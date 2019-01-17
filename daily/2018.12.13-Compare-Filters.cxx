@@ -380,9 +380,9 @@ int main(int argc, char **argv)
 			for (int i = 0; i < 16; i++){
 				waveformLength[i] = grWaveformsRaw[i]->GetN();
 			}
-			for(int i=0; i<grWaveformsRaw[0]->GetN(); i++){
-				printf("%.2f %.2f \n", grWaveformsRaw[0]->GetX()[i], grWaveformsRaw[0]->GetY()[i]);
-			}
+			// for(int i=0; i<grWaveformsRaw[0]->GetN(); i++){
+			// 	printf("%.2f %.2f \n", grWaveformsRaw[0]->GetX()[i], grWaveformsRaw[0]->GetY()[i]);
+			// }
 	
 			double qualArray[4];
 			filterEvent * filterEventPtr = new filterEvent();
