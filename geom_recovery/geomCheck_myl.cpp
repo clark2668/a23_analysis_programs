@@ -53,8 +53,11 @@ int main(int argc, char **argv)
 		double X = araGeom->getStationInfo(station)->getCalAntennaInfo(i)->antLocation[0];
 		double Y = araGeom->getStationInfo(station)->getCalAntennaInfo(i)->antLocation[1];
 		double Z = araGeom->getStationInfo(station)->getCalAntennaInfo(i)->antLocation[2];
+		// string locName(&araGeom->getStationInfo(station)->getCalAntennaInfo(i)->locationName[0]);
+		string otherName(araGeom->getStationInfo(station)->getCalAntennaInfo(i)->getCalAntName());
+
 		//the original locations and positions as in the SQL file
-		// cout<<i<<","<<X<<","<<Y<<","<<Z<<endl; //for print out to csv
+		// cout<<otherName<<","<<X<<","<<Y<<","<<Z<<endl;
 	}
 
 	//first we read in the geometry and delay corrections from Thomas' file
@@ -166,11 +169,13 @@ int main(int argc, char **argv)
 		realCorrections[1] = myFinal[1] - myOriginal[1];
 		realCorrections[2] = myFinal[2] - myOriginal[2];
 
+		string otherName(araGeom->getStationInfo(station)->getCalAntennaInfo(pulser)->getCalAntName());
+
 		//the corrections, so that they work "normally" like "new = old + correction"
-		// cout<<pulser<<","<<realCorrections[0]<<","<<realCorrections[1]<<","<<realCorrections[2]<<endl;
+		// cout<<otherName<<","<<realCorrections[0]<<","<<realCorrections[1]<<","<<realCorrections[2]<<endl;
 
 		//the final values
-		// cout<<pulser<<","<<myFinal[0]<<","<<myFinal[1]<<","<<myFinal[2]<<endl;
+		// cout<<otherName<<","<<myFinal[0]<<","<<myFinal[1]<<","<<myFinal[2]<<endl;
 	}
 	
 }//close the main program
