@@ -4,6 +4,7 @@
 ////		geom check
 ////		this piece of software walks through the corrections from mainAnalysis.cxx
 ////		which Thomas gave to Uzair
+////		It only applies to the measurement antennas (no cal pulser corrections here)
 ////////////////////////////////////////////////////////////////////////////////
 
 // C/C++ Includes
@@ -33,9 +34,9 @@ int main(int argc, char **argv)
 		double Y = araGeom->getStationInfo(station)->getAntennaInfo(i)->antLocation[1];
 		double Z = araGeom->getStationInfo(station)->getAntennaInfo(i)->antLocation[2];
 		double delay = araGeom->getStationInfo(station)->getCableDelay(i);
+
+		//the original locations and positions as in the SQL file
 		// cout<<i<<", "<<X<<", "<<Y<<", "<<Z<<", "<<delay<<endl; //for print out to csv
-		// printf("Chan: %d \t X: %.5f \t Y: %.5f \t Z: %.5f \t Delay: %.5f \n", i, X, Y, Z, delay);
-		// printf("%d , %.5f , %.5f , %.5f, %.5f \n", i, X, Y, Z, delay);
 	}
 
 	ifstream ind;
@@ -73,7 +74,6 @@ int main(int argc, char **argv)
 	std::vector<std::vector<double> > ant_loc;
 	Double_t *antloc=0;
 
-
 	for(int a=0;a<16;a++){
 
 		double myDelays[3]={0};
@@ -83,8 +83,8 @@ int main(int argc, char **argv)
 		if(station==2 && a==0) myDelays[2]+=1.68;
 		if(station==3 && a==10) myDelays[2]+=2.01;
 
-		// cout<<a<<","<<myDelays[0]<<","<<myDelays[1]<<","<<myDelays[2]<<endl;
-
+		//the geometry corrections
+		// cout<<a<<","<<myDelays[0]<<","<<myDelays[1]<<","<<myDelays[2]<<endl; //for print out to csv
 
 		double myFinal[4]={0};
 		antloc = araGeom->getStationInfo(station)->getAntennaInfo(a)->getLocationXYZ();
@@ -92,34 +92,8 @@ int main(int argc, char **argv)
 		myFinal[1] = myDelays[1]+antloc[1];
 		myFinal[2] = myDelays[2]+antloc[2];
 
-		// cout<<a<<","<<myFinal[0]<<","<<myFinal[1]<<","<<myFinal[2]<<endl;
-
-		// if(station==2 && a==0) antloc[2] = antloc[2] + 1.68;
-		// if(station==3 && a==10) antloc[2] = antloc[2] + 2.01;
-
-		// printf(
-		// 	"Ant: %d \t  antlocX: %.5f \t antlocY: %.5f \t antlocZ: %.5f posDelayArray [0]: %.5f \t  posDelayArray [1]: %.5f \t  posDelayArray [2]: %.5f \t slackArray %.5f \n",
-		// 	a,
-		// 	antloc[0],
-		// 	antloc[1],
-		// 	antloc[2],
-		// 	posDelayArray[a%4][0],
-		// 	posDelayArray[a%4][1],
-		// 	posDelayArray[a%4][2],
-		// 	slackArray[a%4]
-		// );
-
-		// antl.push_back(antloc[0] + posDelayArray[a%4][0]  );
-		// antl.push_back(antloc[1] + posDelayArray[a%4][1]);
-		// if((a/4)%2==1){
-		// 	antl.push_back(antloc[2]+180.0 + posDelayArray[a%4][2] + slackArray[a%4] );
-		// }
-		// else antl.push_back(antloc[2]+180.0 + posDelayArray[a%4][2]);
-
-		// cerr << "antDepth[1]["<<a<<"] = " << antl[2] << endl;
-
-		// ant_loc.push_back(antl);
-		// antl.clear();
+		//the final corrected position values
+		// cout<<a<<","<<myFinal[0]<<","<<myFinal[1]<<","<<myFinal[2]<<endl; //for print out to csv
     }
 	
 	double delay = 0;
@@ -132,34 +106,23 @@ int main(int argc, char **argv)
 		addDelay = 0.0;
 		delay= araGeom->getStationInfo(station)->getCableDelay(a);
 		if(a/4==0){
-			// cout<<"First condition for ant "<<a<<endl;
-			// cout<<"Cable delay is "<<delay<<endl;
-			// cout<<"posDelayArray is "<<posDelayArray[a%4][3]<<endl;
 			addDelay+=(4.0 + posDelayArray[a%4][3]);
 		}
 		if(a/4==1){
-			// cout<<"Second condition for ant "<<a<<endl;
-			// cout<<"Cable delay is "<<delay<<endl;
-			// cout<<"posDelayArray is "<<posDelayArray[a%4][3]<<endl;
 			addDelay+=(12.0 + posDelayArray[a%4][3]);
 		}
 		if(a/4==2){
-			// cout<<"Third condition for ant "<<a<<endl;
-			// cout<<"Cable delay is "<<delay<<endl;
-			// cout<<"posDelayArray is "<<posDelayArray[a%4][3]<<endl;
 			addDelay+=(0.0 + posDelayArray[a%4][3]);
 		}
 		if(a/4==3){
-			// cout<<"Fourth condition for ant "<<a<<endl;
-			// cout<<"Cable delay is "<<delay<<endl;
-			// cout<<"posDelayArray is "<<posDelayArray[a%4][3]<<endl;
 			addDelay+=(8.0 + posDelayArray[a%4][3]);
 		}
-		// cout<<a<<","<<addDelay<<endl;
-		cout<<a<<","<<delay+addDelay<<endl;
+		
+		//the corrections
+		// cout<<a<<","<<addDelay<<endl; //for print out to csv
+		
+		//the final corrected delay values
+		// cout<<a<<","<<delay+addDelay<<endl; //for print out to csv
 	}
-
-
-
 	
 }//close the main program
