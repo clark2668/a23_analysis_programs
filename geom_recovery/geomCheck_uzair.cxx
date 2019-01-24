@@ -77,21 +77,21 @@ int main(int argc, char **argv)
 	Double_t *antloc=0;
 	for(int a=0;a<16;a++){ //Loop through all 16 channels  
 
-		double myDelays[3]={0};
-		myDelays[0]=posDelayArray[a%4][0];
-		myDelays[1]=posDelayArray[a%4][1];
-		myDelays[2]=posDelayArray[a%4][2];
-		if(station==2 && a==0) myDelays[2]+=1.68;
-		if(station==3 && a==10) myDelays[2]+=2.01;
+		double myCorrections[3]={0};
+		myCorrections[0]=posDelayArray[a%4][0];
+		myCorrections[1]=posDelayArray[a%4][1];
+		myCorrections[2]=posDelayArray[a%4][2];
+		if(station==2 && a==0) myCorrections[2]+=1.68;
+		if(station==3 && a==10) myCorrections[2]+=2.01;
 
 		//the geometry corrections
-		// cout<<a<<","<<myDelays[0]<<","<<myDelays[1]<<","<<myDelays[2]<<endl; //for print out to csv
+		// cout<<a<<","<<myCorrections[0]<<","<<myCorrections[1]<<","<<myCorrections[2]<<endl; //for print out to csv
 
 		double myFinal[4]={0};
 		antloc = araGeom->getStationInfo(station)->getAntennaInfo(a)->getLocationXYZ();
-		myFinal[0] = myDelays[0]+antloc[0];
-		myFinal[1] = myDelays[1]+antloc[1];
-		myFinal[2] = myDelays[2]+antloc[2];
+		myFinal[0] = myCorrections[0]+antloc[0];
+		myFinal[1] = myCorrections[1]+antloc[1];
+		myFinal[2] = myCorrections[2]+antloc[2];
 
 		//the final corrected position values
 		// cout<<a<<","<<myFinal[0]<<","<<myFinal[1]<<","<<myFinal[2]<<endl; //for print out to csv
