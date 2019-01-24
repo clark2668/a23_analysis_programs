@@ -27,6 +27,13 @@ int main(int argc, char **argv)
 	}
 
 	int station = atoi(argv[1]);
+
+	if(!(station==2 || station==3)){
+		std::cout<<"Station "<<station<<" is not supported by this script!"<<endl;
+		return -1;
+	}
+
+
 	AraGeomTool *araGeom = AraGeomTool::Instance();
 
 
@@ -47,7 +54,7 @@ int main(int argc, char **argv)
 		double Y = araGeom->getStationInfo(station)->getCalAntennaInfo(i)->antLocation[1];
 		double Z = araGeom->getStationInfo(station)->getCalAntennaInfo(i)->antLocation[2];
 		//the original locations and positions as in the SQL file
-		cout<<i<<","<<X<<","<<Y<<","<<Z<<endl; //for print out to csv
+		// cout<<i<<","<<X<<","<<Y<<","<<Z<<endl; //for print out to csv
 	}
 
 	//first we read in the geometry and delay corrections from Thomas' file
