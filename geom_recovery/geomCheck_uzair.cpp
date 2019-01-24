@@ -43,7 +43,7 @@ int main(int argc, char **argv)
 
 	ifstream ind;
 	char posDelayFile[200];
-	sprintf(posDelayFile,"geometryResultsARA%dE.txt",station);
+	sprintf(posDelayFile,"from_Thomas/geometryResultsARA%dE.txt",station);
 	ind.open(posDelayFile);
 	double posDelayArray[4][4]={{0}};
 	double slackArray[4]={0};
