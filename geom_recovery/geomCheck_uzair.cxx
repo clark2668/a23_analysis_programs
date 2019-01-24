@@ -39,6 +39,8 @@ int main(int argc, char **argv)
 		// cout<<i<<", "<<X<<", "<<Y<<", "<<Z<<", "<<delay<<endl; //for print out to csv
 	}
 
+	//first we read in the geometry and delay corrections from Thomas' file
+
 	ifstream ind;
 	char posDelayFile[200];
 	sprintf(posDelayFile,"geometryResultsARA%dE.txt",station);
@@ -70,11 +72,10 @@ int main(int argc, char **argv)
 	else cout << "couldn't read position and delay correction file!!" << endl;
 	ind.close();
 
-	std::vector<double> antl;
-	std::vector<std::vector<double> > ant_loc;
-	Double_t *antloc=0;
+	//then we correct the geometry
 
-	for(int a=0;a<16;a++){
+	Double_t *antloc=0;
+	for(int a=0;a<16;a++){ //Loop through all 16 channels  
 
 		double myDelays[3]={0};
 		myDelays[0]=posDelayArray[a%4][0];
@@ -94,13 +95,14 @@ int main(int argc, char **argv)
 
 		//the final corrected position values
 		// cout<<a<<","<<myFinal[0]<<","<<myFinal[1]<<","<<myFinal[2]<<endl; //for print out to csv
-    }
+	}
 	
+	//then we correct the delays
+
 	double delay = 0;
 	double addDelay = 0;
 
-    //now delay stuff
-	for(int a=0;a<16;a++) {//Loop through all 16 channels and write the data to TGraphs                                                                                         
+	for(int a=0;a<16;a++) { //Loop through all 16 channels                                                                                  
 
 		//Set up the delays properly(some are not taken care of in the simulation):                                                                        
 		addDelay = 0.0;
