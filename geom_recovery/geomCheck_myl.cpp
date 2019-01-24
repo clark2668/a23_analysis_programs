@@ -29,6 +29,8 @@ int main(int argc, char **argv)
 	int station = atoi(argv[1]);
 	AraGeomTool *araGeom = AraGeomTool::Instance();
 
+
+	//antennas
 	for(int i=0; i<16; i++){
 		int pol = (int) araGeom->getStationInfo(station)->getAntennaInfo(i)->polType;
 		double X = araGeom->getStationInfo(station)->getAntennaInfo(i)->antLocation[0];
@@ -37,7 +39,15 @@ int main(int argc, char **argv)
 		double delay = araGeom->getStationInfo(station)->getCableDelay(i);
 
 		//the original locations and positions as in the SQL file
-		// cout<<i<<", "<<X<<", "<<Y<<", "<<Z<<", "<<delay<<endl; //for print out to csv
+		// cout<<i<<","<<X<<","<<Y<<","<<Z<<","<<delay<<endl; //for print out to csv
+	}
+
+	for(int i=0; i<araGeom->getStationInfo(station)->getNumCalAnts(); i++){
+		double X = araGeom->getStationInfo(station)->getCalAntennaInfo(i)->antLocation[0];
+		double Y = araGeom->getStationInfo(station)->getCalAntennaInfo(i)->antLocation[1];
+		double Z = araGeom->getStationInfo(station)->getCalAntennaInfo(i)->antLocation[2];
+		//the original locations and positions as in the SQL file
+		cout<<i<<","<<X<<","<<Y<<","<<Z<<endl; //for print out to csv
 	}
 
 	//first we read in the geometry and delay corrections from Thomas' file
@@ -92,10 +102,68 @@ int main(int argc, char **argv)
 	}
 	
 	//then we correct the cal pulsers
+	
+	int num_pulsers = araGeom->getStationInfo(station)->getNumCalAnts();
+	// cout<<"Number of cal pulsers for station "<<num_pulsers<<endl;
 
-	cout<<"Number of cal pulsers for station "<<araGeom->getStationInfo(station)->getNumCalAnts()<<endl;
+	for(int pulser=0; pulser<num_pulsers; pulser++){
 
-	double delay = 0;
-	double addDelay = 0;
+		//get the name of the cal pulser
+		string locName(&araGeom->getStationInfo(station)->getCalAntennaInfo(pulser)->locationName[0]);
+		// cout<<"locName: "<<locName<<endl;
+
+		double myOriginal[4]={0};
+		antloc = araGeom->getStationInfo(station)->getCalAntennaInfo(pulser)->getLocationXYZ();
+		myOriginal[0] = antloc[0];
+		myOriginal[1] = antloc[1];
+		myOriginal[2] = antloc[2];
+
+		double myCorrections[3]={0};
+		double myFinal[3]={0};
+		double realCorrections[3]={0}; //the corrections organized in a readable way
+
+		if( locName[locName.length()-1]  == '5' ){
+
+			//the "packing" orrder of pulserCorr is weird!
+			//referring to further up in this code in Thomas' comments
+			//the D5 corrections are stored (Z-corr, X-corr, Y-corr)
+
+			myCorrections[0] = pulserCorr[1];
+			myCorrections[1] = pulserCorr[2];
+			myCorrections[2] = pulserCorr[0];
+
+			myFinal[0] = myOriginal[0] + myCorrections[0];
+			myFinal[1] = myOriginal[1] + myCorrections[1];
+			myFinal[2] = myOriginal[2] + myCorrections[2];
+
+		} else if ( locName[locName.length()-1] == '6'){
+
+			//how this correction works is weird
+			//referring to futher up in this code in Thomas' comments
+			//the D6 corrections are (1+distance_correction)*x/y_coordinate
+			
+			myCorrections[0] = 1. + pulserCorr[4];
+			myCorrections[1] = 1. + pulserCorr[4];
+			myCorrections[2] = pulserCorr[3];
+
+			myFinal[0] = myOriginal[0] * myCorrections[0]; //yes, multiplication! not a mistake!
+			myFinal[1] = myOriginal[1] * myCorrections[1]; //yes, multiplication! not a mistake!
+			myFinal[2] = myOriginal[2] + myCorrections[2];
+
+		} else {
+			cerr<<"Pulser name undefined\n";
+			return -1;
+		}
+
+		realCorrections[0] = myFinal[0] - myOriginal[0];
+		realCorrections[1] = myFinal[1] - myOriginal[1];
+		realCorrections[2] = myFinal[2] - myOriginal[2];
+
+		//the corrections, so that they work "normally" like "new = old + correction"
+		// cout<<pulser<<","<<realCorrections[0]<<","<<realCorrections[1]<<","<<realCorrections[2]<<endl;
+
+		//the final values
+		// cout<<pulser<<","<<myFinal[0]<<","<<myFinal[1]<<","<<myFinal[2]<<endl;
+	}
 	
 }//close the main program
