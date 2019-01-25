@@ -17,6 +17,9 @@
 #include "TTree.h"
 #include "TFile.h"
 
+//custom analysis tools
+#include "tools_Cuts.h"
+
 using namespace std;
 
 int main(int argc, char **argv)
@@ -34,6 +37,11 @@ int main(int argc, char **argv)
 	for(int arg=3; arg<argc; arg++){
 
 		int runNum = atoi(argv[arg]);
+
+		//this function is from tools_Cuts (https://github.com/clark2668/a23_analysis_tools/blob/master/tools_Cuts.h)
+		//so you'll need to download and #include that
+
+		if(isBadRun(station,year,runNum)) continue;
 
 		//we need to open the CW file
 
@@ -72,6 +80,12 @@ int main(int argc, char **argv)
 
 		//now to loop over events
 		for(int event=0; event<numEntries; event++){
+
+			//this function is from tools_Cuts (https://github.com/clark2668/a23_analysis_tools/blob/master/tools_Cuts.h)
+			//so you'll need to download and #include that
+
+			if(isBadEvent(station, year, runNum, event)) continue;
+
 
 			NewCWTree->GetEntry(event);
 
