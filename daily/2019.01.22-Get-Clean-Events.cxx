@@ -25,22 +25,15 @@ int main(int argc, char **argv)
 	stringstream ss;
 	
 	if(argc<3){
-		cout<< "Usage\n" << argv[0] << " <station> <year> <run_file_name 1> <run_file_name 2> ..."<<endl;
+		cout<< "Usage\n" << argv[0] << " <station> <year> <run_number_1> <run_number_2> ..."<<endl;
 		return 0;
 	}
 	int station = atoi(argv[1]);
 	int year = atoi(argv[2]);
 
-	for(int file_num=3; file_num<argc; file_num++){
+	for(int arg=3; arg<argc; arg++){
 
-		string chRun = "run";
-		string file = string(argv[file_num]);
-		size_t foundRun = file.find(chRun);
-		string strRunNum = file.substr(foundRun+4,4);
-		int runNum = atoi(strRunNum.c_str());
-		printf("Run Number %d \n", runNum);
-
-		cout << "Run " << file_num << " :: " << argv[file_num] << endl;
+		int runNum = atoi(argv[arg]);
 
 		//we need to open the CW file
 
@@ -139,7 +132,7 @@ int main(int argc, char **argv)
 
 				//if it's not contaminated by *any* CW, do whatever you want
 				if(!isCutonCW_fwd[pol] && !isCutonCW_back[pol] && !isCutonCW_baseline[pol]){
-					PlotThisEvent(station,year,runNum,event, settings, detector, theCorrelators);
+					printf("Event %d is clean\n", event);
 				}
 			
 			} //cal pulser
