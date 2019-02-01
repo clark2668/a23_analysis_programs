@@ -42,13 +42,14 @@ int main(int argc, char **argv)
 	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
 	
 	if(argc<3){
-		cout<< "Usage\n" << argv[0] << " <thresh bin> <wfrms cut val> <station> <year> <joined filename 1> <joined filename 2 > ... <joined filename x>"<<endl;
+		cout<< "Usage\n" << argv[0] << " <isSim?> <thresh bin> <wfrms cut val> <station> <year> <joined filename 1> <joined filename 2 > ... <joined filename x>"<<endl;
 		return 0;
 	}
-	int selected_bin = atoi(argv[1]);
-	double selected_cut = double(atof(argv[2]));
-	int station = atoi(argv[3]);
-	int year = atoi(argv[4]);
+	int isSim = atoi(argv[1]);
+	int selected_bin = atoi(argv[2]);
+	double selected_cut = double(atof(argv[3]));
+	int station = atoi(argv[4]);
+	int year = atoi(argv[5]);
 
 	//just to have the cut parameters up front and easy to find
 
@@ -70,12 +71,12 @@ int main(int argc, char **argv)
 	wfrms_plots_cal[2] = new TH2D("Vpol_3face_cal","Vpol_3face_cal",100,-5,5,40,0,40);
 	wfrms_plots_cal[3] = new TH2D("Hpol_3face_cal","Hpol_3face_cal",100,-5,5,40,0,40);
 
-	int num_total=0;
-	int num_thermal=0;
-	int num_passing[] = {0,0};
-	int num_passing_alt[] = {0,0};
+	double num_total=0.;
+	double num_thermal=0.;
+	double num_passing[] = {0.,0.};
+	double num_passing_alt[] = {0.,0.};
 
-	for(int file_num=5; file_num<argc; file_num++){
+	for(int file_num=6; file_num<argc; file_num++){
 
 		string chRun = "run";
 		string file = string(argv[file_num]);
@@ -108,12 +109,14 @@ int main(int argc, char **argv)
 		bool isCalPulser;
 		bool isSoftTrigger;
 		int waveformLength[16];
+		double weight;
 		inputTree_filter->SetBranchAddress("thirdVPeakOverRMS", &thirdVPeakOverRMS);
 		inputTree_filter->SetBranchAddress("rms_pol_thresh_face", &rms_pol_thresh_face);
 		inputTree_filter->SetBranchAddress("rms_pol_thresh_face_alternate", &rms_pol_thresh_face_alternate);
 		inputTree_filter->SetBranchAddress("isCalpulser",&isCalPulser);
 		inputTree_filter->SetBranchAddress("isSoftTrigger",&isSoftTrigger);
 		inputTree_filter->SetBranchAddress("waveformLength",&waveformLength);
+		inputTree_filter->SetBranchAddress("weight",&weight);
 
 		int numEntries = inputTree_filter->GetEntries();
 		Long64_t starEvery=numEntries/200;
@@ -121,7 +124,7 @@ int main(int argc, char **argv)
 
 		//now to loop over events
 		for(int event=0; event<numEntries; event++){
-			num_total++;
+			num_total+=weight;
 
 			inputTree_filter->GetEvent(event);
 
@@ -174,24 +177,25 @@ int main(int argc, char **argv)
 			bestFaceRMS_alt[1]=rms_faces_H_alt[0];
 
 			if(!isCalPulser && !isShort){
-				num_thermal++;
+				num_thermal+=weight;
 			}
 
 			for(int pol=0; pol<2; pol++){
 				if(!isShort){
-					wfrms_plots[pol]->Fill(TMath::Log10(bestFaceRMS[pol]), SNRs[pol]);
-					wfrms_plots[pol+2]->Fill(TMath::Log10(bestFaceRMS_alt[pol]), SNRs[pol]);
+					wfrms_plots[pol]->Fill(TMath::Log10(bestFaceRMS[pol]), SNRs[pol], weight);
+					wfrms_plots[pol+2]->Fill(TMath::Log10(bestFaceRMS_alt[pol]), SNRs[pol], weight);
 					if(isCalPulser){
-						wfrms_plots_cal[pol]->Fill(TMath::Log10(bestFaceRMS[pol]), SNRs[pol]);
-						wfrms_plots_cal[pol+2]->Fill(TMath::Log10(bestFaceRMS_alt[pol]), SNRs[pol]);
+						wfrms_plots_cal[pol]->Fill(TMath::Log10(bestFaceRMS[pol]), SNRs[pol], weight);
+						wfrms_plots_cal[pol+2]->Fill(TMath::Log10(bestFaceRMS_alt[pol]), SNRs[pol], weight);
 					}
-
-					// if(TMath::Log10(bestFaceRMS[pol]) < wavefrontRMScut[pol]){
-					// 	num_passing[pol]++;
-					// }
-					// if(TMath::Log10(bestFaceRMS[pol+2]) < wavefrontRMScut[pol]){
-					// 	num_passing_alt[pol+2]++;
-					// }
+					if(!isCalPulser){
+						if(TMath::Log10(bestFaceRMS[pol]) < wavefrontRMScut[pol]){
+							num_passing[pol]+=(weight);
+						}
+						if(TMath::Log10(bestFaceRMS_alt[pol]) < wavefrontRMScut[pol]){
+							num_passing_alt[pol]+=(weight);
+						}
+					}
 				}
 			}//loop over polarization
 		
@@ -200,6 +204,18 @@ int main(int argc, char **argv)
 		inputFile->Close();
 		delete inputFile;
 	} //end loop over input files
+
+	printf("Total Events: %.2f \n", num_total);
+	for(int pol=0; pol<2; pol++){
+		printf("12 face: Num passing pol %d: %.3f events, %.3f rate \n", pol, num_passing[pol], 100.*num_passing[pol]/num_total);
+		printf("3  face: Num passing pol %d: %.3f events, %.3f rate \n", pol, num_passing_alt[pol], 100.*num_passing_alt[pol]/num_total);
+	}
+
+	printf("Total Thermal Events: %.2f \n", num_thermal);
+	for(int pol=0; pol<2; pol++){
+		printf("12 face: Num thermal passing pol %d: %.3f events, %.3f rate \n", pol, num_passing[pol], 100.*num_passing[pol]/num_thermal);
+		printf("3  face: Num thermal passing pol %d: %.3f events, %.3f rate \n", pol, num_passing_alt[pol], 100.*num_passing_alt[pol]/num_thermal);
+	}
 
 	TH1D *projections[4];
 	TH1D *projections_cal[4];
@@ -257,7 +273,8 @@ int main(int argc, char **argv)
 			gPad->SetLogy();
 	}
 	char title[300];
-	sprintf(title, "/users/PAS0654/osu0673/A23_analysis_new2/results/%d.%d.%d_A%d_%d_%dEvents_CompareFilters_Vpol%.1f_Hpol%.1f.png",year_now, month_now, day_now,station,year,num_total,0.1*double(thresholdBin_pol[0]) + 2.0,0.1*double(thresholdBin_pol[1])+2.0);
+	if(isSim) sprintf(title, "/users/PAS0654/osu0673/A23_analysis_new2/results/%d.%d.%d_sim_A%d_%d_%dEvents_CompareFilters_Vpol%.1f_Hpol%.1f.png",year_now, month_now, day_now,station,year,int(num_total),0.1*double(thresholdBin_pol[0]) + 2.0,0.1*double(thresholdBin_pol[1])+2.0);
+	sprintf(title, "/users/PAS0654/osu0673/A23_analysis_new2/results/%d.%d.%d_data_A%d_%d_%dEvents_CompareFilters_Vpol%.1f_Hpol%.1f.png",year_now, month_now, day_now,station,year,int(num_total),0.1*double(thresholdBin_pol[0]) + 2.0,0.1*double(thresholdBin_pol[1])+2.0);
 	c->SaveAs(title);
 	delete c;
 	delete wfrms_plots[0]; delete wfrms_plots[1]; delete wfrms_plots[2]; delete wfrms_plots[3];
