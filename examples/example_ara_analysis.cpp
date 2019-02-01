@@ -84,14 +84,12 @@ int main(int argc, char **argv)
 		
 		//now, we'll get the waveform from channel 2
 		TGraph *waveform = realAtriEvPtr->getGraphFromRFChan(2);
-		TGraph *FFT = FFTtools::doFFT(waveform); //get an FFT
-		TGraph *interpolated_waveform = FFTtools::getInterpolatedGraph(chan_org[chloop], 0.5); //get an interpolated waveform with 0.5 ns interpolation
-		TGraph *spectrum = FFTtools::makePowerSpectrumMilliVoltsNanoSeconds(chan[chloop]); //now make a spectrum
+		TGraph *interpolated_waveform = FFTtools::getInterpolatedGraph(waveform, 0.5); //get an interpolated waveform with 0.5 ns interpolation
+		TGraph *spectrum = FFTtools::makePowerSpectrumMilliVoltsNanoSeconds(interpolated_waveform); //now make a spectrum
 		
 		//now do some cleanup
 		delete spectrum;
 		delete interpolated_waveform;
-		delete FFT;
 		delete waveform;
 		delete realAtriEvPtr;
 	}
