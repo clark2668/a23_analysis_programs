@@ -24,11 +24,12 @@
 RawAtriStationEvent *rawAtriEvPtr;
 UsefulAtriStationEvent *realAtriEvPtr;
 
-#include "inputParameters.h"
-#include "outputObjects.h"
-#include "runSummaryObjects.h"
-#include "WaveformFns.h"
-#include "PlottingFns.h"
+#include "tools_inputParameters.h"
+#include "tools_outputObjects.h"
+#include "tools_runSummaryObjects.h"
+#include "tools_WaveformFns.h"
+#include "tools_PlottingFns.h"
+#include "tools_Cuts.h"
 
 int main(int argc, char **argv)
 {
@@ -135,12 +136,11 @@ int main(int argc, char **argv)
 		ss.str("");	ss << "PowerSpectrumAverage_SoftTrigger_" << i;
 		OutputTree->Branch(ss.str().c_str(), &PowerSpectrumAverage_SoftTrigger[i]);
 	}
-
 	for(Long64_t event=0;event<numEntries;event++) {
 		if(event%starEvery==0) {
 			std::cerr << "*";       
 		}
-	 
+
 		eventTree->GetEntry(event);
 
 		if (isSimulation == false){
@@ -157,6 +157,15 @@ int main(int argc, char **argv)
 
 		xLabel = "Time (ns)"; yLabel = "Voltage (mV)";
 		vector<TGraph*> grWaveformsRaw = makeGraphsFromRF(realAtriEvPtr, nGraphs, xLabel, yLabel, titlesForGraphs);
+
+		hasDigitizerError = hasDigitizerIssue(grWaveformsRaw); 
+		//if the event has a  digitizer error, skip it
+		//note that exiting this far up will prevent any errors with the averaging
+		//because we don't count contributions to the average until the numEvents++ later
+		if(hasDigitizerError){
+			deleteGraphVector(grWaveformsRaw); //cleanup
+			continue; //skip this event
+		}
 	   
 		ss.str("");
 

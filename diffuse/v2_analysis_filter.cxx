@@ -41,6 +41,7 @@ UsefulAtriStationEvent *realAtriEvPtr;
 #include "tools_Constants.h"
 #include "tools_RecoFns.h"
 #include "tools_filterEvent.h"
+#include "tools_Cuts.h"
 
 int main(int argc, char **argv)
 {
@@ -229,7 +230,8 @@ int main(int argc, char **argv)
 	// event summary information
 	OutputTree->Branch("isCalpulser", &isCalpulser, "isCalpulser/O");
 	OutputTree->Branch("isSoftTrigger", &isSoftTrigger, "isSoftTrigger/O");
-	OutputTree->Branch("thirdVPeakOverRMS", &thirdVPeakOverRMS, "thirdVPeakOverRMS[3]/D");   
+	OutputTree->Branch("thirdVPeakOverRMS", &thirdVPeakOverRMS, "thirdVPeakOverRMS[3]/D");
+	OutputTree->Branch("hasDigitizerError", &hasDigitizerError, "hasDigitizerError/O");
 	OutputTree->Branch("unixTime", &unixTime);
 	OutputTree->Branch("unixTimeUs", &unixTimeUs);
 	OutputTree->Branch("eventNumber", &eventNumber);
@@ -371,6 +373,17 @@ int main(int argc, char **argv)
 			for (int i = 0; i < 16; i++){
 				waveformLength[i] = grWaveformsRaw[i]->GetN();
 			}
+			hasDigitizerError = hasDigitizerIssue(grWaveformsRaw); 
+			//if the event has a  digitizer error, skip it
+			//note that exiting this far up will prevent any errors with the averaging
+			//because we don't count contributions to the average until the numEvents++ later
+			if(hasDigitizerError){
+				deleteGraphVector(grWaveformsRaw); //cleanup
+				OutputTree->Fill(); //fill this anyway with garbage
+				continue; //don't do any further processing on this event
+			}
+
+
 	
 			double qualArray[4];
 			filterEvent * filterEventPtr = new filterEvent();
