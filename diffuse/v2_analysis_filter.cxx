@@ -216,9 +216,9 @@ int main(int argc, char **argv)
 	TTree* OutputSettingsTree = new TTree("OutputSettingsTree", "OutputSettingsTree");
 	OutputSettingsTree->Branch("detectorCenter", &detectorCenter, "detectorCenter[3]/D");
 	OutputSettingsTree->Branch("calpulserRunMode", &calpulserRunMode, "calpulserRunMode/I");
-	OutputSettingsTree->Branch("numFaces", &numFaces, "numFaces");
-	OutputSettingsTree->Branch("numFaces_A2_drop", &numFaces_A2_drop, "numFaces_A2_drop");
-	OutputSettingsTree->Branch("numFaces_A3_drop", &numFaces_A3_drop, "numFaces_A3_drop");
+	OutputSettingsTree->Branch("numFaces", &numFaces_save, "numFaces/I");
+	OutputSettingsTree->Branch("numFaces_A2_drop", &numFaces_A2_drop_save, "numFaces_A2_drop/I");
+	OutputSettingsTree->Branch("numFaces_A3_drop", &numFaces_A3_drop_save, "numFaces_A3_drop/I");
 	OutputSettingsTree->Branch("numSearchPeaks", &numSearchPeaks, "numSearchPeaks/I");
 	OutputSettingsTree->Branch("thresholdMin", &thresholdMin, "thresholdMin/I");
 	OutputSettingsTree->Branch("thresholdStep", &thresholdStep, "thresholdStep/D");
@@ -488,6 +488,8 @@ int main(int argc, char **argv)
 				}
 		
 			} // end threshold scan
+
+			int dropBadChans=1;
 
 			//then apply the filter over again *with* dropped channels
 			vector<vector<vector<vector<int> > > > faces_drop = setupFaces(station_num, dropBadChans);

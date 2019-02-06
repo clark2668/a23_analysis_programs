@@ -215,7 +215,6 @@ int main(int argc, char **argv)
 	TTree* OutputSettingsTree = new TTree("OutputSettingsTree", "OutputSettingsTree");
 	OutputSettingsTree->Branch("detectorCenter", &detectorCenter, "detectorCenter[3]/D");
 	OutputSettingsTree->Branch("calpulserRunMode", &calpulserRunMode, "calpulserRunMode/I");
-	OutputSettingsTree->Branch("numFaces", &numFaces_v, "numFaces");
 	OutputSettingsTree->Branch("numSearchPeaks", &numSearchPeaks, "numSearchPeaks/I");
 	OutputSettingsTree->Branch("thresholdMin", &thresholdMin, "thresholdMin/I");
 	OutputSettingsTree->Branch("thresholdStep", &thresholdStep, "thresholdStep/D");
