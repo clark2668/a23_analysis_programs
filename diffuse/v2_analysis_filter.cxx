@@ -216,7 +216,9 @@ int main(int argc, char **argv)
 	TTree* OutputSettingsTree = new TTree("OutputSettingsTree", "OutputSettingsTree");
 	OutputSettingsTree->Branch("detectorCenter", &detectorCenter, "detectorCenter[3]/D");
 	OutputSettingsTree->Branch("calpulserRunMode", &calpulserRunMode, "calpulserRunMode/I");
-	OutputSettingsTree->Branch("numFaces", &numFaces_v, "numFaces");
+	OutputSettingsTree->Branch("numFaces", &numFaces, "numFaces");
+	OutputSettingsTree->Branch("numFaces_A2_drop", &numFaces_A2_drop, "numFaces_A2_drop");
+	OutputSettingsTree->Branch("numFaces_A3_drop", &numFaces_A3_drop, "numFaces_A3_drop");
 	OutputSettingsTree->Branch("numSearchPeaks", &numSearchPeaks, "numSearchPeaks/I");
 	OutputSettingsTree->Branch("thresholdMin", &thresholdMin, "thresholdMin/I");
 	OutputSettingsTree->Branch("thresholdStep", &thresholdStep, "thresholdStep/D");
@@ -258,7 +260,8 @@ int main(int argc, char **argv)
 	
 	// event filter information   
 	OutputTree->Branch("TSQualParam", &TSQualParam, "TSQualParam/D");   
-	OutputTree->Branch("rms_pol_thresh_face", &rms_pol_thresh_face, "rms_pol_thresh_face[2][12][15]/D");   
+	OutputTree->Branch("rms_pol_thresh_face", &rms_pol_thresh_face, "rms_pol_thresh_face[2][12][15]/D");
+	OutputTree->Branch("rms_pol_thresh_face_drop", &rms_pol_thresh_face_drop, "rms_pol_thresh_face_drop[2][12][15]/D"); //for when we drop channels
 	
 	// polarization parameters
 	OutputTree->Branch("polarizationRatio", &polarizationRatio, "polarizationRatio/D");   
@@ -470,8 +473,8 @@ int main(int argc, char **argv)
 		
 			polarizationRatio = getPolarizationRatio(grWaveformsRaw, polarizations);
 	
+			//first apply the filter with *no* dropped channels
 			vector<vector<vector<vector<int> > > > faces = setupFaces(station_num);
-			vector<double> faceRmsAllForReco_sorted;
 	
 			for (int thresholdBin = 0; thresholdBin < thresholdSteps; thresholdBin++){
 				double threshold = thresholdMin + thresholdStep*(double)thresholdBin;
@@ -479,21 +482,34 @@ int main(int argc, char **argv)
 				vector<double> rms_faces_V = getRms_Faces_Thresh_N(vvHitTimes, vvRMS_10overRMS, threshold, 0, faces, ant_loc);
 				vector<double> rms_faces_H = getRms_Faces_Thresh_N(vvHitTimes, vvRMS_10overRMS, threshold, 1, faces, ant_loc);
 		
-		
 				for (int i = 0; i < numFaces; i++){
 					rms_pol_thresh_face[0][thresholdBin][i] = rms_faces_V[i];
 					rms_pol_thresh_face[1][thresholdBin][i] = rms_faces_H[i];
 				}
 		
-				sort(rms_faces_V.begin(), rms_faces_V.end());
-				sort(rms_faces_H.begin(), rms_faces_H.end());
-		
-				if (thresholdBin == 3){
-					faceRmsAllForReco_sorted.insert(faceRmsAllForReco_sorted.end(), rms_faces_V.begin(), rms_faces_V.end());
-					faceRmsAllForReco_sorted.insert(faceRmsAllForReco_sorted.end(), rms_faces_H.begin(), rms_faces_H.end());
-					sort(faceRmsAllForReco_sorted.begin(), faceRmsAllForReco_sorted.end());
-				}
 			} // end threshold scan
+
+			//then apply the filter over again *with* dropped channels
+			vector<vector<vector<vector<int> > > > faces_drop = setupFaces(station_num, dropBadChans);
+
+			for (int thresholdBin = 0; thresholdBin < thresholdSteps; thresholdBin++){
+				double threshold = thresholdMin + thresholdStep*(double)thresholdBin;
+		
+				vector<double> rms_faces_V_drop = getRms_Faces_Thresh_N(vvHitTimes, vvRMS_10overRMS, threshold, 0, faces_drop, ant_loc);
+				vector<double> rms_faces_H_drop = getRms_Faces_Thresh_N(vvHitTimes, vvRMS_10overRMS, threshold, 1, faces_drop, ant_loc);
+
+				int num_faces_for_loop = 0;
+				if(station_num==2) num_faces_for_loop = numFaces_A2_drop;
+				if(station_num==3) num_faces_for_loop = numFaces_A3_drop;
+
+				for (int i = 0; i < num_faces_for_loop; i++){
+					rms_pol_thresh_face_drop[0][thresholdBin][i] = rms_faces_V_drop[i];
+					rms_pol_thresh_face_drop[1][thresholdBin][i] = rms_faces_H_drop[i];
+				}
+
+			} // end threshold scan
+
+
 				
 			OutputTree->Fill();
 
