@@ -6,10 +6,20 @@ include_directories( ${INCLUDE_DIRECTORIES} )
 link_directories( ${CMAKE_SOURCE_DIR}/AraSim_1.0 ${CMAKE_SOURCE_DIR}/RayTraceCorrelator )
 add_library(filterEvent a23_analysis_tools/tools_filterEvent.cxx)
 
+#primary analysis code
+
+add_executable(v2_RunSummary ${ANALYSIS_DIRECTORY}/diffuse/v2_analysis_run_summary.cxx)
+target_link_libraries(v2_RunSummary AraEvent filterEvent AraSim ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES})
+
+add_executable(v2_Filter ${ANALYSIS_DIRECTORY}/diffuse/v2_analysis_filter.cxx)
+target_link_libraries(v2_Filter AraEvent filterEvent AraSim ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES})
+
+#other debug stuff
+
 add_executable(CompareFilters ${ANALYSIS_DIRECTORY}/daily/2018.12.13-Compare-Filters.cxx)
 target_link_libraries(CompareFilters AraEvent filterEvent AraSim ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES})
 
 add_executable(Plot_CompareFilters ${ANALYSIS_DIRECTORY}/daily/2018.12.13-Compare-Filters-Plot.cxx)
 target_link_libraries(Plot_CompareFilters AraEvent filterEvent AraSim ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES})
 
-install(TARGETS CompareFilters Plot_CompareFilters DESTINATION ${ARAROOT_INSTALL_PATH}/bin)
+install(TARGETS v2_RunSummary v2_Filter CompareFilters Plot_CompareFilters DESTINATION ${ARAROOT_INSTALL_PATH}/bin)
