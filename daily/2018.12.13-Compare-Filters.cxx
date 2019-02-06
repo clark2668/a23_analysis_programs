@@ -497,8 +497,8 @@ int main(int argc, char **argv)
 			for (int thresholdBin = 0; thresholdBin < thresholdSteps; thresholdBin++){
 				double threshold = thresholdMin + thresholdStep*(double)thresholdBin;
 		
-				vector<double> rms_faces_V_alternate = getRms_Faces_Thresh_N(vvHitTimes, vvRMS_10overRMS, threshold, 0, faces, ant_loc);
-				vector<double> rms_faces_H_alternate = getRms_Faces_Thresh_N(vvHitTimes, vvRMS_10overRMS, threshold, 1, faces, ant_loc);
+				vector<double> rms_faces_V_alternate = getRms_Faces_Thresh_N(vvHitTimes, vvRMS_10overRMS, threshold, 0, faces_alternate, ant_loc);
+				vector<double> rms_faces_H_alternate = getRms_Faces_Thresh_N(vvHitTimes, vvRMS_10overRMS, threshold, 1, faces_alternate, ant_loc);
 		
 		
 				for (int i = 0; i < numFaces_new; i++){
