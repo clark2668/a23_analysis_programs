@@ -164,6 +164,9 @@ int main(int argc, char **argv)
 		//because we don't count contributions to the average until the numEvents++ later
 		if(hasDigitizerError){
 			deleteGraphVector(grWaveformsRaw); //cleanup
+			if (isSimulation == false) {
+				delete realAtriEvPtr;
+			}
 			continue; //skip this event
 		}
 	   

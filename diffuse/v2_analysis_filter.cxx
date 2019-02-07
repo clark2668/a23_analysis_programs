@@ -383,6 +383,9 @@ int main(int argc, char **argv)
 			if(hasDigitizerError){
 				deleteGraphVector(grWaveformsRaw); //cleanup
 				OutputTree->Fill(); //fill this anyway with garbage
+				if (isSimulation == false) {
+					delete realAtriEvPtr;
+				}
 				continue; //don't do any further processing on this event
 			}
 
