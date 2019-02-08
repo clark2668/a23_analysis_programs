@@ -40,6 +40,7 @@ UsefulAtriStationEvent *realAtriEvPtr;
 #include "tools_PlottingFns.h"
 #include "tools_Constants.h"
 #include "tools_RecoFns.h"
+#include "tools_Cuts.h"
 
 AraAntPol::AraAntPol_t Vpol = AraAntPol::kVertical;
 AraAntPol::AraAntPol_t Hpol = AraAntPol::kHorizontal;
@@ -52,8 +53,8 @@ int main(int argc, char **argv)
 	int month_now = time -> tm_mon + 1;
 	int day_now = time -> tm_mday;
 
-	if(argc<6) {
-		std::cout << "Usage\n" << argv[0] << " <simulation_flag> <station> <radius_bin> <output directory> <input file> <pedestal file> \n";
+	if(argc<7) {
+		std::cout << "Usage\n" << argv[0] << " <simulation_flag> <station> <year> <radius_bin> <output directory> <input file> <pedestal file> \n";
 		return -1;
 	}
 
@@ -62,16 +63,18 @@ int main(int argc, char **argv)
 	0: exec
 	1: simulation (yes/no)
 	2: station num (2/3)
-	3: radius bin
-	4: output directory
-	5: input file
-	6: pedestal file
+	3: year (2013-2016)
+	4: radius bin
+	5: output directory
+	6: input file
+	7: pedestal file
 	*/
 
 	isSimulation=atoi(argv[1]);
 	int station_num=atoi(argv[2]);
+	int year = atoi(argv[3]);
 	calpulserRunMode=0;
-	int radiusBin = atoi(argv[3]);
+	int radiusBin = atoi(argv[4]);
 	
 	int numRadiiScanned = 35;
 	int startingRadiusBin = radiusBin;
@@ -85,7 +88,7 @@ int main(int argc, char **argv)
 		titlesForGraphs.push_back(ss.str());
 	}
 		
-	TFile *fp = TFile::Open(argv[5]);
+	TFile *fp = TFile::Open(argv[6]);
 	if(!fp) {
 		std::cout << "Can't open file\n";
 		return -1;
@@ -162,9 +165,9 @@ int main(int argc, char **argv)
 
 	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
 	
-	if (argc == 7){
+	if (argc == 8){
 		cout << "Trying to load named pedestal" << endl;
-		calibrator->setAtriPedFile(argv[6], station_num);
+		calibrator->setAtriPedFile(argv[7], station_num);
 		cout << "Loaded named pedestal" << endl;
 	} else {
 		cout << "Trying to load blank pedestal" << endl;
@@ -195,15 +198,15 @@ int main(int argc, char **argv)
 	Long64_t starEvery=numEntries/80;
 	if(starEvery==0) starEvery++;
 	
-	int runNum = getrunNum(argv[5]);
+	int runNum = getrunNum(argv[6]);
 	printf("Reco Run Number %d \n", runNum);
 	
-	string processedFilename = getProcessedFilename_recoRadius(station_num, argv[4], argv[5], radii[radiusBin]);
+	string processedFilename = getProcessedFilename_recoRadius(station_num, argv[5], argv[6], radii[radiusBin]);
 	TFile *OutputFile = TFile::Open(processedFilename.c_str(), "RECREATE");
 	TTree* OutputSettingsTree = new TTree("OutputSettingsTree", "OutputSettingsTree");
 	OutputSettingsTree->Branch("detectorCenter", &detectorCenter, "detectorCenter[3]/D");
 	OutputSettingsTree->Branch("calpulserRunMode", &calpulserRunMode, "calpulserRunMode/I");
-	OutputSettingsTree->Branch("numFaces", &numFaces_v, "numFaces");
+	OutputSettingsTree->Branch("numFaces", &numFaces_save, "numFaces");
 	OutputSettingsTree->Branch("numSearchPeaks", &numSearchPeaks, "numSearchPeaks/I");
 	OutputSettingsTree->Branch("thresholdMin", &thresholdMin, "thresholdMin/I");
 	OutputSettingsTree->Branch("thresholdStep", &thresholdStep, "thresholdStep/D");
@@ -349,13 +352,53 @@ int main(int argc, char **argv)
 
 			weight_out = weight;
 
+			xLabel = "Time (ns)"; yLabel = "Voltage (mV)";
+			vector<TGraph*> grWaveformsRaw = makeGraphsFromRF(realAtriEvPtr, nGraphs, xLabel, yLabel, titlesForGraphs);
+			ss.str("");
+			hasDigitizerError = hasDigitizerIssue(grWaveformsRaw); 
+			deleteGraphVector(grWaveformsRaw); //cleanup
+			//if the event has a  digitizer error, skip it
+			//note that exiting this far up will prevent any errors with the averaging
+			//because we don't count contributions to the average until the numEvents++ later
+			if(hasDigitizerError){
+				OutputTree->Fill(); //fill this anyway with garbage
+				if (isSimulation == false) {
+					delete realAtriEvPtr;
+				}
+				continue; //don't do any further processing on this event
+			}
+
 			int radiusBin_adjusted = radiusBin-startingRadiusBin;
 
-			TH2D *map_V_raytrace = theCorrelators[radiusBin_adjusted]->getInterferometricMap_RT(settings, detector, realAtriEvPtr, Vpol, isSimulation, 0);
-			TH2D *map_H_raytrace = theCorrelators[radiusBin_adjusted]->getInterferometricMap_RT(settings, detector, realAtriEvPtr, Hpol, isSimulation, 0);
+			vector <int> chan_list_V;
+			vector <int> chan_list_H;
+			for(int chan=0; chan<=7; chan++){
+				chan_list_V.push_back(chan);
+				chan_list_H.push_back(chan+8);
+			}
+
+			if(station_num==2){
+				//for station 2, we need to exclude channel 15 from the analysis
+				chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 15), chan_list_H.end());
+			}
+			else if(station_num==3){
+				//for station 3 years 2014 and 2015, we need to drop string 4 (channels 3, 7, 11, 15) altogether
+				if(year==2014 || year==2015){
+
+					chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 3), chan_list_V.end());
+					chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 7), chan_list_V.end());
+
+					chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 11), chan_list_H.end());
+					chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 15), chan_list_H.end());
+				}
+			}
+
+			TH2D *map_V_raytrace = theCorrelators[radiusBin_adjusted]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Vpol, isSimulation, chan_list_V);
+			TH2D *map_H_raytrace = theCorrelators[radiusBin_adjusted]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Hpol, isSimulation, chan_list_H);
 
 			getCorrMapPeak_wStats(map_V_raytrace, peakTheta_single[0], peakPhi_single[0], peakCorr_single[0], minCorr_single[0], meanCorr_single[0], rmsCorr_single[0], peakSigma_single[0]);
 			getCorrMapPeak_wStats(map_H_raytrace, peakTheta_single[1], peakPhi_single[1], peakCorr_single[1], minCorr_single[1], meanCorr_single[1], rmsCorr_single[1], peakSigma_single[1]);
+
 
 			bool print_maps = false;
 			if(print_maps){
