@@ -260,8 +260,8 @@ int main(int argc, char **argv)
 	
 	// event filter information   
 	OutputTree->Branch("TSQualParam", &TSQualParam, "TSQualParam/D");   
-	OutputTree->Branch("rms_pol_thresh_face", &rms_pol_thresh_face, "rms_pol_thresh_face[2][12][15]/D");
-	OutputTree->Branch("rms_pol_thresh_face_drop", &rms_pol_thresh_face_drop, "rms_pol_thresh_face_drop[2][12][15]/D"); //for when we drop channels
+	OutputTree->Branch("rms_pol_thresh_face", &rms_pol_thresh_face, "rms_pol_thresh_face[2][15][12]/D");
+	OutputTree->Branch("rms_pol_thresh_face_drop", &rms_pol_thresh_face_drop, "rms_pol_thresh_face_drop[2][15][12]/D"); //for when we drop channels
 	
 	// polarization parameters
 	OutputTree->Branch("polarizationRatio", &polarizationRatio, "polarizationRatio/D");   

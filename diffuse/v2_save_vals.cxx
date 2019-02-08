@@ -149,7 +149,7 @@ int main(int argc, char **argv)
 			return -1;
 		}
 		double thirdVPeakOverRMS[3]; //the third highest vpeak over RMS
-		double rms_pol_thresh_face[2][15][12];
+		double rms_pol_thresh_face[2][12][15];
 		bool isCalPulser;
 		bool isSoftTrigger;
 		int waveformLength[16];
