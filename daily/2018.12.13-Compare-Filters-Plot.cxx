@@ -124,9 +124,10 @@ int main(int argc, char **argv)
 
 		//now to loop over events
 		for(int event=0; event<numEntries; event++){
-			num_total+=weight;
 
 			inputTree_filter->GetEvent(event);
+
+			num_total+=weight;
 
 			bool isShort=false;
 			bool failWavefrontRMS[2];
@@ -206,15 +207,26 @@ int main(int argc, char **argv)
 	} //end loop over input files
 
 	printf("Total Events: %.2f \n", num_total);
+	printf("-----------------------\n");
+	printf("-----------------------\n");
 	for(int pol=0; pol<2; pol++){
-		printf("12 face: Num passing pol %d: %.3f events, %.3f rate \n", pol, num_passing[pol], 100.*num_passing[pol]/num_total);
-		printf("3  face: Num passing pol %d: %.3f events, %.3f rate \n", pol, num_passing_alt[pol], 100.*num_passing_alt[pol]/num_total);
+		printf("Pol %d \n", pol);
+		printf("-----------------------\n");
+		printf("	12 face: Num passing pol %d: %.3f events, %.3f rate \n", pol, num_passing[pol], 100.*num_passing[pol]/num_total);
+		printf("	3  face: Num passing pol %d: %.3f events, %.3f rate \n", pol, num_passing_alt[pol], 100.*num_passing_alt[pol]/num_total);
 	}
+	cout<<""<<endl;
+	cout<<""<<endl;
+	cout<<""<<endl;
 
 	printf("Total Thermal Events: %.2f \n", num_thermal);
+	printf("-----------------------\n");
+	printf("-----------------------\n");
 	for(int pol=0; pol<2; pol++){
-		printf("12 face: Num thermal passing pol %d: %.3f events, %.3f rate \n", pol, num_passing[pol], 100.*num_passing[pol]/num_thermal);
-		printf("3  face: Num thermal passing pol %d: %.3f events, %.3f rate \n", pol, num_passing_alt[pol], 100.*num_passing_alt[pol]/num_thermal);
+		printf("Pol %d \n", pol);
+		printf("-----------------------\n");
+		printf("	12 face: Num thermal passing pol %d: %.3f events, %.3f rate \n", pol, num_passing[pol], 100.*num_passing[pol]/num_thermal);
+		printf("	3  face: Num thermal passing pol %d: %.3f events, %.3f rate \n", pol, num_passing_alt[pol], 100.*num_passing_alt[pol]/num_thermal);
 	}
 
 	TH1D *projections[4];

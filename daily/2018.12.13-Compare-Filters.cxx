@@ -255,14 +255,14 @@ int main(int argc, char **argv)
 	
 	// event filter information   
 	OutputTree->Branch("TSQualParam", &TSQualParam, "TSQualParam/D");   
-	OutputTree->Branch("rms_pol_thresh_face", &rms_pol_thresh_face, "rms_pol_thresh_face[2][12][15]/D");
+	OutputTree->Branch("rms_pol_thresh_face", &rms_pol_thresh_face, "rms_pol_thresh_face[2][15][12]/D");
 
 	int dropBadChans=1;
 	int numFaces_new=3;
 
 	double rms_pol_thresh_face_alternate[2][thresholdSteps][numFaces_new];
 	char rms_title[300];
-	sprintf(rms_title,"rms_pol_thresh_face_alternate[2][12][%d]/D",numFaces_new); 
+	sprintf(rms_title,"rms_pol_thresh_face_alternate[2][15][%d]/D",numFaces_new); 
 	OutputTree->Branch("rms_pol_thresh_face_alternate", &rms_pol_thresh_face_alternate,rms_title);
 	
 	// polarization parameters
