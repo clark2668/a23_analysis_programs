@@ -30,11 +30,11 @@ UsefulAtriStationEvent *realAtriEvPtr;
 #include "Math/Interpolator.h"
 #include "Math/InterpolationTypes.h"
 
-#include "inputParameters.h"
-#include "outputObjects.h"
-#include "runSummaryObjects.h"
-#include "WaveformFns.h"
-#include "PlottingFns.h"
+#include "tools_inputParameters.h"
+#include "tools_outputObjects.h"
+#include "tools_runSummaryObjects.h"
+#include "tools_WaveformFns.h"
+#include "tools_PlottingFns.h"
 
 using namespace std;
 TGraph *customInterpolation(TGraph *grIn, Double_t deltaT);
