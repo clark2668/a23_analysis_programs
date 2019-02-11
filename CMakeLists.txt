@@ -8,14 +8,17 @@ add_library(filterEvent a23_analysis_tools/tools_filterEvent.cxx)
 
 #primary analysis code
 
-add_executable(v2_RunSummary ${ANALYSIS_DIRECTORY}/diffuse/v2_analysis_run_summary.cxx)
-target_link_libraries(v2_RunSummary AraEvent filterEvent AraSim ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES})
+add_executable(v2_Baselines ${ANALYSIS_DIRECTORY}/diffuse/v2_analysis_baselines.cxx)
+target_link_libraries(v2_Baselines AraEvent AraSim ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES})
 
 add_executable(v2_Filter ${ANALYSIS_DIRECTORY}/diffuse/v2_analysis_filter.cxx)
 target_link_libraries(v2_Filter AraEvent filterEvent AraSim ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES})
 
 add_executable(v2_Reco ${ANALYSIS_DIRECTORY}/diffuse/v2_analysis_reco.cxx)
 target_link_libraries(v2_Reco AraEvent filterEvent AraSim RayTraceCorrelator ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES})
+
+add_executable(v2_RunSummary ${ANALYSIS_DIRECTORY}/diffuse/v2_analysis_run_summary.cxx)
+target_link_libraries(v2_RunSummary AraEvent filterEvent AraSim ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES})
 
 #other debug stuff
 
@@ -25,4 +28,4 @@ target_link_libraries(CompareFilters AraEvent filterEvent AraSim ${ROOT_LIBRARIE
 add_executable(Plot_CompareFilters ${ANALYSIS_DIRECTORY}/daily/2018.12.13-Compare-Filters-Plot.cxx)
 target_link_libraries(Plot_CompareFilters AraEvent filterEvent AraSim ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES})
 
-install(TARGETS v2_Reco v2_RunSummary v2_Filter CompareFilters Plot_CompareFilters DESTINATION ${ARAROOT_INSTALL_PATH}/bin)
+install(TARGETS v2_Baselines v2_Reco v2_RunSummary v2_Filter CompareFilters Plot_CompareFilters DESTINATION ${ARAROOT_INSTALL_PATH}/bin)
