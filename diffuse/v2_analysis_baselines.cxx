@@ -127,7 +127,6 @@ int main(int argc, char **argv)
 				
 				if(gr->GetN()<550){ //check for short waveform
 					delete gr; //if so, clean up
-					delete realAtriEvPtr; //clean up the event too
 					break; //and stop working on this event altogether
 				}
 				TGraph *grInt = customInterpolation(gr,0.6);
