@@ -123,6 +123,7 @@ int main(int argc, char **argv)
 		if(starEvery==0) starEvery++;
 
 		//now to loop over events
+		numEntries=3;
 		for(int event=0; event<numEntries; event++){
 
 			inputTree_filter->GetEvent(event);

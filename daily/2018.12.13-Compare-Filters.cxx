@@ -269,7 +269,7 @@ int main(int argc, char **argv)
 	OutputTree->Branch("polarizationRatio", &polarizationRatio, "polarizationRatio/D");   
 
 	int eventSim = 0;
-
+	numEntries=2;
 	for(Long64_t event=0;event<numEntries;event++) {
 
 		if(event%starEvery==0) {
@@ -407,7 +407,12 @@ int main(int argc, char **argv)
 						vWaveformRMS[i] = RMS_RFTrigger[i];
 					}
 				}
-			}       
+			}
+
+			for(int i=0; i<16; i++){
+				printf("Chan %d RMS is %.2f \n", i, vWaveformRMS[i]);
+			}
+
 			copy(vWaveformRMS.begin(), vWaveformRMS.begin()+16, waveformRMS);
 	
 			vector<double> vWaveformRMS_50ns;
