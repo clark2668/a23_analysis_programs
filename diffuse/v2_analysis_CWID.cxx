@@ -10,6 +10,7 @@
 #include <iomanip>
 #include <sstream>
 #include <deque>
+#include <vector>
 
 //AraRoot Includes
 #include "RawAtriStationEvent.h"
@@ -126,11 +127,21 @@ int main(int argc, char **argv)
 	char del_me_file_name[400];
 	sprintf(del_me_file_name,"%s/delme_run%d.root",output_location.c_str(),runNum);
 	TFile *tempFile = TFile::Open(del_me_file_name,"RECREATE");
+	tempFile->cd();
 	TTree *tempTree = new TTree("tempTree","tempTree");
 	bool hasError=0;
 	tempTree->Branch("hasError",&hasError);
-	TGraph *temp_phs[16];
-	tempTree->Branch("temp_phs",&temp_phs, "temp_phs[16]");
+	vector<TGraph*> temp_phs;
+	temp_phs.resize(16);
+	// tempTree->Branch("temp_phs",&temp_phs);
+	// TGraph *temp_phs[16];
+	// tempTree->Branch("temp_phs",&temp_phs, "temp_phs[16]");
+	stringstream ss;
+	for(int i=0; i<16; i++){
+		ss.str(""); ss<<"temp_phs_"<<i;
+		tempTree->Branch(ss.str().c_str(),&temp_phs[i]);
+	}
+
 	for(int event=0; event<numEntries; event++){
 		eventTree->GetEntry(event);
 		if (isSimulation == false){
@@ -150,6 +161,7 @@ int main(int argc, char **argv)
 		if(hasError){
 			//if it has a digitizer error, just push back junk
 			for(int i=0; i<16; i++){
+				// temp_phs.push_back(new TGraph());
 				temp_phs[i] = new TGraph();
 			}
 		}
@@ -158,16 +170,22 @@ int main(int argc, char **argv)
 			vector<TGraph*> grWaveformsInt = makeInterpolatedGraphs(grWaveformsRaw, 0.6, xLabel, yLabel, titlesForGraphs);
 			vector<TGraph*> grWaveformsPadded = makePaddedGraphs(grWaveformsInt, 0, xLabel, yLabel, titlesForGraphs);
 			for(int chan=0; chan<16; chan++){
+				// temp_phs.push_back(getFFTPhase(grWaveformsPadded[chan],120.,1000.));
 				temp_phs[chan] = getFFTPhase(grWaveformsPadded[chan],120.,1000.);
 			}
 			deleteGraphVector(grWaveformsInt);
 			deleteGraphVector(grWaveformsPadded);
 		}
 		tempTree->Fill(); //fill the tree
-		tempFile->Write();
 		deleteGraphVector(grWaveformsRaw);
+		for(int i=0; i<16; i++) delete temp_phs[i];
+		// deleteGraphVector(temp_phs);
 		if(!isSimulation) delete realAtriEvPtr;
 	}
+	tempFile->Write();
+
+	temp_phs.clear();
+	temp_phs.resize(16);
 
 	//now, to loop over events!
 	for(Long64_t event=0;event<numEntries;event++){
