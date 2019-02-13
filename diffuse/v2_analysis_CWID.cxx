@@ -14,21 +14,21 @@
 //AraRoot Includes
 #include "RawAtriStationEvent.h"
 #include "UsefulAtriStationEvent.h"
+#include "AraGeomTool.h"
+#include "AraAntennaInfo.h"
 
 //ROOT Includes
 #include "TTree.h"
 #include "TFile.h"
 #include "TGraph.h"
 
-RawAtriStationEvent *rawAtriEvPtr;
-UsefulAtriStationEvent *realAtriEvPtr;
-
-#include "AraGeomTool.h"
-#include "AraAntennaInfo.h"
 #include "tools_WaveformFns.h"
 #include "tools_PlottingFns.h"
 #include "tools_RecoFns.h"
 #include "tools_CW.h"
+
+RawAtriStationEvent *rawAtriEvPtr;
+UsefulAtriStationEvent *realAtriEvPtr;
 
 vector<double> CWCut_TB(vector <TGraph*> waveforms, vector <TGraph*> baselines, int pol, double dBCut, double dBCutBroad, int station, int num_coinc);
 
