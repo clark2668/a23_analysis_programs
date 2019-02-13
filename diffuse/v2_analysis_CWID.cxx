@@ -122,7 +122,6 @@ int main(int argc, char **argv)
 	and write them to a local ROOT file which we can delete later
 	This way we dont' have to constantly re-do the FFT's
 	*/
-	numEntries=30;
 
 	char del_me_file_name[400];
 	sprintf(del_me_file_name,"%s/delme_run%d.root",output_location.c_str(),runNum);
