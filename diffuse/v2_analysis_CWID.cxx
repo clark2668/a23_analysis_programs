@@ -118,6 +118,56 @@ int main(int argc, char **argv)
 	NewCWTree->Branch("badSigmas_back",&badSigmas_back);
 	NewCWTree->Branch("badFreqs_baseline",&badFreqs_baseline);
 
+	/*
+	In this re-factorization, we want to do all the event FFT's up front
+	and write them to a local ROOT file which we can delete later
+	This way we dont' have to constantly re-do the FFT's
+	*/
+
+	char del_me_file_name[400];
+	sprintf(del_me_file_name,"%s/delme_run%d.root",output_location.c_str(),runNum);
+	TFile *tempFile = TFile::Open(del_me_file_name,"RECREATE");
+	TTree *tempTree = new TTree("tempTree","tempTree");
+	vector<TGraph*> temp_phs;
+	bool hasError=0;
+	tempTree->Branch("temp_phs",&temp_phs);
+	tempTree->Branch("hasError",&hasError);
+	for(int event=0; event<numEntries; event++){
+		eventTree->GetEntry(event);
+		if (isSimulation == false){
+			realAtriEvPtr = new UsefulAtriStationEvent(rawAtriEvPtr, AraCalType::kLatestCalib);
+		}
+		stringstream ss;
+		string xLabel, yLabel;
+		xLabel = "Time (ns)"; yLabel = "Voltage (mV)";
+		vector<string> titlesForGraphs;
+		for (int i = 0; i < nGraphs; i++){
+			ss.str("");
+			ss << "Channel " << i;
+			titlesForGraphs.push_back(ss.str());
+		}
+		vector<TGraph*> grWaveformsRaw = makeGraphsFromRF(realAtriEvPtr, 16, xLabel, yLabel, titlesForGraphs);
+		hasError = hasDigitizerIssue(grWaveformsRaw);
+		if(hasError){
+			//if it has a digitizer error, just push back junk
+			temp_phs.push_back(new TGraph());
+		}
+		else{
+			//otherwise, interpolate, pad, and get the phase
+			vector<TGraph*> grWaveformsInt = makeInterpolatedGraphs(grWaveformsRaw, 0.6, xLabel, yLabel, titlesForGraphs);
+			vector<TGraph*> grWaveformsPadded = makePaddedGraphs(grWaveformsInt, 0, xLabel, yLabel, titlesForGraphs);
+			for(int i=0; i<16; i++){
+				temp_phs.push_back(getFFTPhase(grWaveformsPadded[chan],120.,1000.));
+			}
+			deleteGraphVector(grWaveformsInt);
+			deleteGraphVector(grWaveformsPadded);
+		}
+		tempTree->Fill(); //fill the tree
+		deleteGraphVector(grWaveformsRaw);
+		deleteGraphVector(temp_phs);
+	}
+	tempFile->Write();
+
 	//now, to loop over events!
 	for(Long64_t event=0;event<numEntries;event++){
 
@@ -147,16 +197,18 @@ int main(int argc, char **argv)
 
 		vector<TGraph*> grWaveformsRaw = makeGraphsFromRF(realAtriEvPtr, 16, xLabel, yLabel, titlesForGraphs);
 
-		//before we do the phase variance, we should check for baseline violations	
-		vector<double> baseline_CW_cut_V = CWCut_TB(grWaveformsRaw, average, 0, 6., 5.5, station_num, 3);
-		vector<double> baseline_CW_cut_H = CWCut_TB(grWaveformsRaw, average, 1, 6., 5.5, station_num, 3);
-		for(int i=0; i<baseline_CW_cut_V.size(); i++){
-			// printf("Event %d Baseline CW Cut %.2f \n", event, baseline_CW_cut_V[i]);
-		}		
-		badFreqs_baseline.push_back(baseline_CW_cut_V);
-		badFreqs_baseline.push_back(baseline_CW_cut_H);
-		
-		if(1==1){
+		tempTree->GetEntry(event);
+	
+		if(!hasError){
+
+			//before we do the phase variance, we should check for baseline violations	
+			vector<double> baseline_CW_cut_V = CWCut_TB(grWaveformsRaw, average, 0, 6., 5.5, station_num, 3);
+			vector<double> baseline_CW_cut_H = CWCut_TB(grWaveformsRaw, average, 1, 6., 5.5, station_num, 3);
+			for(int i=0; i<baseline_CW_cut_V.size(); i++){
+				// printf("Event %d Baseline CW Cut %.2f \n", event, baseline_CW_cut_V[i]);
+			}		
+			badFreqs_baseline.push_back(baseline_CW_cut_V);
+			badFreqs_baseline.push_back(baseline_CW_cut_H);
 
 			const int numPols = 2; //how many polarization do we want to think about
 			const int numEventsForPhaseVariance = 15; //how many events do we need for the phase variance technique?
@@ -171,18 +223,19 @@ int main(int argc, char **argv)
 				vvdGrPhaseDiff_back[i].resize(numPairs); //and for the number of pairs in that polarization
 			}
 
-			vector<TGraph*> grWaveformsInt = makeInterpolatedGraphs(grWaveformsRaw, 0.6, xLabel, yLabel, titlesForGraphs);
-			vector<TGraph*> grWaveformsPadded = makePaddedGraphs(grWaveformsInt, 0, xLabel, yLabel, titlesForGraphs);
+			// vector<TGraph*> grWaveformsInt = makeInterpolatedGraphs(grWaveformsRaw, 0.6, xLabel, yLabel, titlesForGraphs);
+			// vector<TGraph*> grWaveformsPadded = makePaddedGraphs(grWaveformsInt, 0, xLabel, yLabel, titlesForGraphs);
 
 			//forward case
 			//assume the initial event is the "0th" entry, and try to go forward
-			//if there aren't enough good events ahead of us (no cal, no soft, no short) to do the forward case,
+			//if there aren't enough good events ahead of us (no errors) to do the forward case,
 			//then we declare it a failure and leave the vector of bad freqs and such empty!
 
 			vector<vector<TGraph*> > phases_forward;
 			vector <TGraph*> first_event_in_sequence_phases_forward;
 			for(int chan=0; chan<16; chan++){
-				first_event_in_sequence_phases_forward.push_back(getFFTPhase(grWaveformsPadded[chan],120.,1000.));
+				first_event_in_sequence_phases_forward.push_back(temp_phs[chan]);
+				// first_event_in_sequence_phases_forward.push_back(getFFTPhase(grWaveformsPadded[chan],120.,1000.));
 			}
 			phases_forward.push_back(first_event_in_sequence_phases_forward);
 
@@ -192,23 +245,24 @@ int main(int argc, char **argv)
 				//printf("			Trying to move forwards to event %d \n",event_next);
 				//printf("			I've found %d good events \n",found_events_forward);
 				if(found_events_forward==14) break; //after you've collected 15 events (0->14), we're good to go.
-				eventTree->GetEntry(event_next);
-				UsefulAtriStationEvent *realAtriEvPtr_next = new UsefulAtriStationEvent(rawAtriEvPtr, AraCalType::kLatestCalib);
-				vector<TGraph*> grWaveformsRaw_next = makeGraphsFromRF(realAtriEvPtr_next, 16, xLabel, yLabel, titlesForGraphs);
-				if(1==1){
+				tempTree->GetEntry(event_next);
+				// eventTree->GetEntry(event_next);
+				// UsefulAtriStationEvent *realAtriEvPtr_next = new UsefulAtriStationEvent(rawAtriEvPtr, AraCalType::kLatestCalib);
+				// vector<TGraph*> grWaveformsRaw_next = makeGraphsFromRF(realAtriEvPtr_next, 16, xLabel, yLabel, titlesForGraphs);
+				if(!hasError){
 					found_events_forward++;
-					vector<TGraph*> grWaveformsInt_next = makeInterpolatedGraphs(grWaveformsRaw_next, 0.6, xLabel, yLabel, titlesForGraphs);
-					vector<TGraph*> grWaveformsPadded_next = makePaddedGraphs(grWaveformsInt_next, 0, xLabel, yLabel, titlesForGraphs);
+					// vector<TGraph*> grWaveformsInt_next = makeInterpolatedGraphs(grWaveformsRaw_next, 0.6, xLabel, yLabel, titlesForGraphs);
+					// vector<TGraph*> grWaveformsPadded_next = makePaddedGraphs(grWaveformsInt_next, 0, xLabel, yLabel, titlesForGraphs);
 					vector<TGraph*> this_event_phases;
 					for(int chan=0; chan<16; chan++){
-						this_event_phases.push_back(getFFTPhase(grWaveformsPadded_next[chan],120.,1000.));
-						//phases_forward[found_events_forward][chan] = getFFTPhase(grWaveformsPadded_next[chan], 120, 1000);
+						this_event_phases.push_back(temp_phs[chan]);
+						// this_event_phases.push_back(getFFTPhase(grWaveformsPadded_next[chan],120.,1000.));
 					}
 					phases_forward.push_back(this_event_phases);
-					for(int chan=0; chan<16; chan++) {delete grWaveformsInt_next[chan]; delete grWaveformsPadded_next[chan];}  //cleanup
+					// for(int chan=0; chan<16; chan++) {delete grWaveformsInt_next[chan]; delete grWaveformsPadded_next[chan];}  //cleanup
 				}
-				for(int chan=0; chan<16; chan++) delete grWaveformsRaw_next[chan]; //cleanup
-				delete realAtriEvPtr_next;
+				// for(int chan=0; chan<16; chan++) delete grWaveformsRaw_next[chan]; //cleanup
+				// delete realAtriEvPtr_next;
 			}
 
 			//if we have enough events to conduct the CW check
@@ -257,13 +311,17 @@ int main(int argc, char **argv)
 			
 			//reverse case
 			//assume the initial event is the "15th" entry, and try to go backwards
-			//if there aren't enough good events behind us (no cal, no soft, no short) to do the backward case
+			//if there aren't enough good events ahead of us (no errors) to do the forward case,
 			//then we declare it a failure and leave the vector of bad freqs and such empty!
+
+
+			tempTree->GetEntry(event);
 
 			vector<vector<TGraph*> > phases_backward;
 			vector <TGraph*> first_event_in_sequence_phases_backwards;
 			for(int chan=0; chan<16; chan++){
-				first_event_in_sequence_phases_backwards.push_back(getFFTPhase(grWaveformsPadded[chan],120.,1000.));
+				first_event_in_sequence_phases_backwards.push_back(temp_phs[chan]);
+				// first_event_in_sequence_phases_backwards.push_back(getFFTPhase(grWaveformsPadded[chan],120.,1000.));
 			}
 			phases_backward.push_back(first_event_in_sequence_phases_backwards);
 
@@ -272,22 +330,24 @@ int main(int argc, char **argv)
 			for(int event_next=event-1; event_next>=0;event_next--){
 				//printf("			Trying to move backwards to event %d \n");
 				if(found_events_backwards==0) break;
-				eventTree->GetEntry(event_next);
-				UsefulAtriStationEvent *realAtriEvPtr_prev = new UsefulAtriStationEvent(rawAtriEvPtr, AraCalType::kLatestCalib);
-				vector<TGraph*> grWaveformsRaw_prev = makeGraphsFromRF(realAtriEvPtr_prev, 16, xLabel, yLabel, titlesForGraphs);
-				if(1==1){
+				tempTree->GetEntry(event_next)
+				// eventTree->GetEntry(event_next);
+				// UsefulAtriStationEvent *realAtriEvPtr_prev = new UsefulAtriStationEvent(rawAtriEvPtr, AraCalType::kLatestCalib);
+				// vector<TGraph*> grWaveformsRaw_prev = makeGraphsFromRF(realAtriEvPtr_prev, 16, xLabel, yLabel, titlesForGraphs);
+				if(!hasError){
 					found_events_backwards--;
-					vector<TGraph*> grWaveformsInt_prev = makeInterpolatedGraphs(grWaveformsRaw_prev, 0.6, xLabel, yLabel, titlesForGraphs);
-					vector<TGraph*> grWaveformsPadded_prev = makePaddedGraphs(grWaveformsInt_prev, 0, xLabel, yLabel, titlesForGraphs);
+					// vector<TGraph*> grWaveformsInt_prev = makeInterpolatedGraphs(grWaveformsRaw_prev, 0.6, xLabel, yLabel, titlesForGraphs);
+					// vector<TGraph*> grWaveformsPadded_prev = makePaddedGraphs(grWaveformsInt_prev, 0, xLabel, yLabel, titlesForGraphs);
 					vector<TGraph*> this_event_phases;
 					for(int chan=0; chan<16; chan++){
-						this_event_phases.push_back(getFFTPhase(grWaveformsPadded_prev[chan],120.,1000.));
+						this_event_phases.push_back(temp_phs[chan]);
+						// this_event_phases.push_back(getFFTPhase(grWaveformsPadded_prev[chan],120.,1000.));
 					}
 					phases_backward.push_back(this_event_phases);
-					for(int chan=0; chan<16; chan++) {delete grWaveformsInt_prev[chan]; delete grWaveformsPadded_prev[chan];}  //cleanup
+					// for(int chan=0; chan<16; chan++) {delete grWaveformsInt_prev[chan]; delete grWaveformsPadded_prev[chan];}  //cleanup
 				}
-				for(int chan=0; chan<16; chan++) delete grWaveformsRaw_prev[chan]; //cleanup
-				delete realAtriEvPtr_prev;
+				// for(int chan=0; chan<16; chan++) delete grWaveformsRaw_prev[chan]; //cleanup
+				// delete realAtriEvPtr_prev;
 			}
 
 			//if we have enough events to conduct the CW check
@@ -333,17 +393,15 @@ int main(int argc, char **argv)
 					delete phases_backward[use_event][chan];
 				}
 			}
-			//cleanup these intermediate waveforms
-			for(int i=0; i<16; i++){
-				delete grWaveformsPadded[i];
-				delete grWaveformsInt[i];
-			}
+			// //cleanup these intermediate waveforms
+			// for(int i=0; i<16; i++){
+			// 	delete grWaveformsPadded[i];
+			// 	delete grWaveformsInt[i];
+			// }
 
 		}
 		NewCWTree->Fill();
-		for(int i=0; i<16; i++){
-			delete grWaveformsRaw[i];
-		}
+		deleteGraphVector(grWaveformsRaw);
 		if(isSimulation==false){
 			delete realAtriEvPtr;
 		}
@@ -353,6 +411,8 @@ int main(int argc, char **argv)
 	outFile->Close();
 	fp->Close();
 	SummaryFile->Close();
+
+	tempFile->Close();
 
 	printf("Done! Run Number %d \n", runNum);
 
