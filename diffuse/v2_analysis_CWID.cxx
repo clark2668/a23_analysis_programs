@@ -25,10 +25,10 @@ UsefulAtriStationEvent *realAtriEvPtr;
 
 #include "AraGeomTool.h"
 #include "AraAntennaInfo.h"
-#include "WaveformFns.h"
-#include "PlottingFns.h"
-#include "RecoFns.h"
-#include "CW.h"
+#include "tools_WaveformFns.h"
+#include "tools_PlottingFns.h"
+#include "tools_RecoFns.h"
+#include "tools_CW.h"
 
 vector<double> CWCut_TB(vector <TGraph*> waveforms, vector <TGraph*> baselines, int pol, double dBCut, double dBCutBroad, int station, int num_coinc);
 
