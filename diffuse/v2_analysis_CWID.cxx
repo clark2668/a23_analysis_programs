@@ -75,7 +75,7 @@ int main(int argc, char **argv)
   	Long64_t numEntries=eventTree->GetEntries();
 	Long64_t starEvery=numEntries/80;
 	if(starEvery==0) starEvery++;
-  
+
 	//first, let's get the baselines loaded in
 	char summary_file_name[400];
 	sprintf(summary_file_name,"/fs/scratch/PAS0654/ara/10pct/Baselines/A%d/%d/baseline_station_%d_run_%d.root",station_num,year,station_num, runNum);
@@ -123,7 +123,6 @@ int main(int argc, char **argv)
 	and write them to a local ROOT file which we can delete later
 	This way we dont' have to constantly re-do the FFT's
 	*/
-
 	char del_me_file_name[400];
 	sprintf(del_me_file_name,"%s/delme_run%d.root",output_location.c_str(),runNum);
 	TFile *tempFile = TFile::Open(del_me_file_name,"RECREATE");
