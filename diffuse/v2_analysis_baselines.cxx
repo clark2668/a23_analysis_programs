@@ -35,6 +35,7 @@ UsefulAtriStationEvent *realAtriEvPtr;
 #include "tools_runSummaryObjects.h"
 #include "tools_WaveformFns.h"
 #include "tools_PlottingFns.h"
+#include "tools_Cuts.h"
 
 using namespace std;
 TGraph *customInterpolation(TGraph *grIn, Double_t deltaT);
@@ -124,11 +125,12 @@ int main(int argc, char **argv)
 
 			for(int chan=0; chan<numAnts; chan++){
 				TGraph *gr = realAtriEvPtr->getGraphFromRFChan(chan); //get waveform
-				
-				if(gr->GetN()<550){ //check for short waveform
-					delete gr; //if so, clean up
-					break; //and stop working on this event altogether
+
+				if(hasTimingErrorGraph(gr) || hasTooFewBlocksGraph(gr) || gr->GetN()<500){
+					delete gr;
+					break;
 				}
+				
 				TGraph *grInt = customInterpolation(gr,0.6);
 
 				TGraph *grPad = FFTtools::padWaveToLength(grInt,WaveformLength); //pad
