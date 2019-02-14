@@ -134,10 +134,10 @@ int main(int argc, char **argv)
 		TH2D *map_300m_H;
 		TH2D *map_30m_V_select;
 
-		map_30m_V = theCorrelators[0]->getInterferometricMap_RT_Rezero(settings, detector, realAtriEvPtr, Vpol, 0, 0,-1);
-		map_300m_V = theCorrelators[1]->getInterferometricMap_RT_Rezero(settings, detector, realAtriEvPtr, Vpol, 0, 0,-1);
-		map_30m_H = theCorrelators[0]->getInterferometricMap_RT_Rezero(settings, detector, realAtriEvPtr, Hpol, 0, 0,-1);
-		map_300m_H = theCorrelators[1]->getInterferometricMap_RT_Rezero(settings, detector, realAtriEvPtr, Hpol, 0, 0,-1);
+		map_30m_V = theCorrelators[0]->getInterferometricMap_RT(settings, detector, realAtriEvPtr, Vpol, 0, 0);
+		map_300m_V = theCorrelators[1]->getInterferometricMap_RT(settings, detector, realAtriEvPtr, Vpol, 0, 0);
+		map_30m_H = theCorrelators[0]->getInterferometricMap_RT(settings, detector, realAtriEvPtr, Hpol, 0, 0);
+		map_300m_H = theCorrelators[1]->getInterferometricMap_RT(settings, detector, realAtriEvPtr, Hpol, 0, 0);
 
 		int PeakTheta_Recompute_30m;
 		int PeakTheta_Recompute_300m;
@@ -172,7 +172,7 @@ int main(int argc, char **argv)
 			// cMaps->cd(5);
 			// map_30m_V_select->Draw("colz");
 		char save_temp_title[400];		
-		sprintf(save_temp_title,"/users/PAS0654/osu0673/A23_analysis/results/single_events/%d.%d.%d_Run%d_Ev%d_Maps.png",year_now,month_now,day_now,runNum,event);
+		sprintf(save_temp_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/single_events/%d.%d.%d_Run%d_Ev%d_Maps.png",year_now,month_now,day_now,runNum,event);
 		cMaps->SaveAs(save_temp_title);
 		delete cMaps;
 		delete map_30m_V; delete map_300m_V; delete map_30m_H; delete map_300m_H; 
@@ -181,7 +181,7 @@ int main(int argc, char **argv)
 
 
 	char save_temp_title[300];
-	sprintf(save_temp_title,"/users/PAS0654/osu0673/A23_analysis/results/single_events/%d.%d.%d_Run%d_Ev%d_Waveforms.png",year_now,month_now,day_now,runNum,event);
+	sprintf(save_temp_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/single_events/%d.%d.%d_Run%d_Ev%d_Waveforms.png",year_now,month_now,day_now,runNum,event);
 	TCanvas *cWave = new TCanvas("","",4*1100,4*850);
 	cWave->Divide(4,4);
 	for(int i=0; i<16; i++){
@@ -192,7 +192,7 @@ int main(int argc, char **argv)
 	cWave->SaveAs(save_temp_title);
 	delete cWave;
 
-	sprintf(save_temp_title,"/users/PAS0654/osu0673/A23_analysis/results/single_events/%d.%d.%d_Run%d_Ev%d_Spectra.png",year_now,month_now,day_now,runNum,event);
+	sprintf(save_temp_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/single_events/%d.%d.%d_Run%d_Ev%d_Spectra.png",year_now,month_now,day_now,runNum,event);
 	TCanvas *cSpec = new TCanvas("","",4*1100,4*850);
 	cSpec->Divide(4,4);
 	for(int i=0; i<16; i++){
@@ -220,7 +220,7 @@ int main(int argc, char **argv)
 		cnow->cd(i);
 		more_spec[i]->Draw("AL");
 	}
-	sprintf(save_temp_title,"/users/PAS0654/osu0673/A23_analysis/results/single_events/%d.%d.%d_Run%d_Ev%d_Spectra_Special.png",year_now,month_now,day_now,runNum,event);
+	sprintf(save_temp_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/single_events/%d.%d.%d_Run%d_Ev%d_Spectra_Special.png",year_now,month_now,day_now,runNum,event);
 	cnow->SaveAs(save_temp_title);
 	delete cnow;
 
