@@ -1,37 +1,44 @@
-cmake_minimum_required (VERSION 2.6)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules")
-set(ARAROOT_INSTALL_PATH $ENV{ARA_UTIL_INSTALL_DIR})
+Set(INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/AraDisplay ${CMAKE_SOURCE_DIR}/AraCorrelator ${CMAKE_SOURCE_DIR}/AraEvent ${LIBROOTFFTWWRAPPER_INCLUDE_DIRS} ${ROOT_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/analysis/a23_analysis_tools )
 
-#Set the hint variables to point to where cmake should look first for a header / library file
-#This is in case you have multiple instances of for example sqlite3 - one of which is known to be the correct version
-#set(SQLITE3_HINT_INCLUDES "~/repositories/InstallDir/utilities/include/")
-#set(SQLITE3_HINT_LIBRARIES "~/repositories/InstallDir/utilities/lib")
-#you might also need to specify FFTW stuff
-set(FFTW_LIBRARIES "$ENV{PLATFORM_DIR}/lib/libfftw3.so.3.5.5")
-set(FFTW_INCLUDES "$ENV{PLATFORM_DIR}/include")
+Set(ANALYSIS_DIRECTORY ${CMAKE_SOURCE_DIR}/analysis/a23_analysis_programs)
 
-project(AraRoot)
-find_package(ROOT REQUIRED COMPONENTS MathMore Gui)
-find_package(libRootFftwWrapper REQUIRED)
-#find_package(FFTW REQUIRED)
-find_package(sqlite3 REQUIRED)
-find_package(zlib REQUIRED)
+include_directories( ${INCLUDE_DIRECTORIES} )
+link_directories( ${CMAKE_SOURCE_DIR}/AraSim_1.0 ${CMAKE_SOURCE_DIR}/RayTraceCorrelator )
+add_library(filterEvent a23_analysis_tools/tools_filterEvent.cxx)
 
-#Build these sub-directories by searching for CMakeLists.txt files in there
-add_subdirectory(AraEvent)
-#add_subdirectory(AraCorrelator)
-#add_subdirectory(AraDisplay)
-#add_subdirectory(AraWebPlotter)
-#add_subdirectory(utilities/Atri)
-#add_subdirectory(utilities/Icrr)
-add_subdirectory(analysis)
-#add_subdirectory(AraVertex)
-#add_subdirectory(calibration/antCalib) 
-#add_subdirectory(calibration/ATRI) 
-#add_subdirectory(calibration/ATRI/voltageCalib) 
+#primary analysis code
 
-#add_subdirectory(debugging/sample_lines)
-#add_subdirectory(debugging/data_lines)
-#add_subdirectory(debugging/operating_parameters/vadj)
-#add_subdirectory(debugging/operating_parameters/vdly)
-#add_subdirectory(debugging/thresholds)
+add_executable(v2_Baselines ${ANALYSIS_DIRECTORY}/diffuse/v2_analysis_baselines.cxx)
+target_link_libraries(v2_Baselines AraEvent AraSim ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES})
+
+add_executable(v2_CWID ${ANALYSIS_DIRECTORY}/diffuse/v2_analysis_CWID.cxx)
+target_link_libraries(v2_CWID AraEvent AraSim ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES})
+
+add_executable(v2_Filter ${ANALYSIS_DIRECTORY}/diffuse/v2_analysis_filter.cxx)
+target_link_libraries(v2_Filter AraEvent filterEvent AraSim ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES})
+
+add_executable(v2_Join ${ANALYSIS_DIRECTORY}/diffuse/v2_analysis_join_filter_41_300.cxx)
+target_link_libraries(v2_Join AraEvent filterEvent AraSim ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES})
+
+add_executable(v2_Reco ${ANALYSIS_DIRECTORY}/diffuse/v2_analysis_reco.cxx)
+target_link_libraries(v2_Reco AraEvent filterEvent AraSim RayTraceCorrelator ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES})
+
+add_executable(v2_RunSummary ${ANALYSIS_DIRECTORY}/diffuse/v2_analysis_run_summary.cxx)
+target_link_libraries(v2_RunSummary AraEvent filterEvent AraSim ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES})
+
+add_executable(v2_SaveVals ${ANALYSIS_DIRECTORY}/diffuse/v2_analysis_run_summary.cxx)
+target_link_libraries(v2_SaveVals AraEvent filterEvent AraSim ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES})
+
+#other debug stuff
+
+add_executable(CompareFilters ${ANALYSIS_DIRECTORY}/daily/2018.12.13-Compare-Filters.cxx)
+target_link_libraries(CompareFilters AraEvent filterEvent AraSim ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES})
+
+add_executable(Plot_CompareFilters ${ANALYSIS_DIRECTORY}/daily/2018.12.13-Compare-Filters-Plot.cxx)
+target_link_libraries(Plot_CompareFilters AraEvent filterEvent AraSim ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES})
+
+add_executable(Debug_PrintEvent ${ANALYSIS_DIRECTORY}/diffuse/debug_print_event.cxx)
+target_link_libraries(Debug_PrintEvent AraEvent AraSim RayTraceCorrelator ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES})
+
+
+install(TARGETS v2_Baselines Debug_PrintEvent v2_CWID v2_Filter v2_Join v2_Reco v2_RunSummary v2_SaveVals CompareFilters Plot_CompareFilters DESTINATION ${ARAROOT_INSTALL_PATH}/bin)
