@@ -50,13 +50,14 @@ int main(int argc, char **argv)
 	stringstream ss;
 	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
 	
-	if(argc<3){
-		cout<< "Usage\n" << argv[0] << " <station> <year> <output_location> <joined filename 1> <joined filename 2 > ... <joined filename x>"<<endl;
+	if(argc<5){
+		cout<< "Usage\n" << argv[0] << " <station> <year> <drop_bad_chan> <output_location> <joined filename 1> <joined filename 2 > ... <joined filename x>"<<endl;
 		return 0;
 	}
 	int station = atoi(argv[1]);
 	int year = atoi(argv[2]);
-	string output_location = argv[3];
+	int dropBadChans = atoi(argv[3]);
+	string output_location = argv[4];
 
 	//just to have the cut parameters up front and easy to find
 	int thresholdBin_pol[]={3,5}; //bin 3 = 2.3, bin 5 = 2.5 //what is the faceRMS inclusion threshold?
@@ -73,7 +74,7 @@ int main(int argc, char **argv)
 	theCorrelators[0] =  new RayTraceCorrelator(station, 41., settings, 1, 4); //41 m, cal puser
 	theCorrelators[1] =  new RayTraceCorrelator(station, 300., settings, 1, 4);//300 m, far reco
 
-	for(int file_num=4; file_num<argc; file_num++){
+	for(int file_num=5; file_num<argc; file_num++){
 
 		string chRun = "run";
 		string file = string(argv[file_num]);
@@ -84,6 +85,9 @@ int main(int argc, char **argv)
 
 		char outfile_name[300];
 		sprintf(outfile_name,"%s/vals_for_cut_run_%d.root",output_location.c_str(),runNum);
+		if(dropBadChans){
+			sprintf(outfile_name,"%s/vals_for_cut_drop_run_%d.root",output_location.c_str(),runNum);
+		}
 		TFile *fpOut = new TFile(outfile_name,"recreate");
 		TTree *trees[3];
 		trees[0]= new TTree("VTree","VTree");
@@ -150,11 +154,13 @@ int main(int argc, char **argv)
 		}
 		double thirdVPeakOverRMS[3]; //the third highest vpeak over RMS
 		double rms_pol_thresh_face[2][15][12];
+		double rms_pol_thresh_face_drop[2][15][12];
 		bool isCalPulser;
 		bool isSoftTrigger;
 		int waveformLength[16];
 		inputTree_filter->SetBranchAddress("thirdVPeakOverRMS", &thirdVPeakOverRMS);
 		inputTree_filter->SetBranchAddress("rms_pol_thresh_face", &rms_pol_thresh_face);
+		inputTree_filter->SetBranchAddress("rms_pol_thresh_face_drop", &rms_pol_thresh_face_drop);
 		inputTree_filter->SetBranchAddress("isCalpulser",&isCalPulser);
 		inputTree_filter->SetBranchAddress("isSoftTrigger",&isSoftTrigger);
 		inputTree_filter->SetBranchAddress("waveformLength",&waveformLength);
@@ -385,15 +391,40 @@ int main(int argc, char **argv)
 			if(SNRs[0]>29.) SNRs[0]=29.;
 			if(SNRs[1]>29.) SNRs[1]=29.;
 
-			vector <double>  rms_faces_V;
-			rms_faces_V.resize(12);
+			vector <double> rms_faces_V;
 			vector <double> rms_faces_H;
-			rms_faces_H.resize(12);
 
-			//now, we must loop over the faces
-			for(int i=0; i<12; i++){
-				rms_faces_V[i] = rms_pol_thresh_face[0][thresholdBin_pol[0]][i];  //this is right RMS for this polarization, threshold requirement, and face
-				rms_faces_H[i] = rms_pol_thresh_face[1][thresholdBin_pol[1]][i];
+			if(dropBadChans){
+				int num_faces_for_V_loop;
+				int num_faces_for_H_loop;
+				if(station==2){
+					rms_faces_V.resize(numFaces);
+					num_faces_for_V_loop=numFace;
+					rms_faces_H.resize(numFaces_A2_drop);
+					num_faces_for_H_loop=numFaces_A2_drop;
+				}
+				else if(station==3 && (year==2014 || year==2015)){
+					rms_faces_V.resize(numFaces_A3_drop);
+					num_faces_for_V_loop=numFaces_A3_drop;
+					rms_faces_H.resize(numFaces_A3_drop);
+					num_faces_for_H_loop=numFaces_A3_drop;
+				}
+				//now we loop over the faces
+				for(int i=0; i<num_faces_for_V_loop; i++){
+					rms_faces_V[i] = rms_pol_thresh_face_drop[0][thresholdBin_pol[0]][i];
+				}
+				for(int i=0; i<num_faces_for_H_loop; i++){
+					rms_faces_H[i] = rms_pol_thresh_face_drop[1][thresholdBin_pol[1]][i];
+				}
+			}
+			else{
+				rms_faces_V.resize(12);
+				rms_faces_H.resize(12);
+				//now, we must loop over the faces
+				for(int i=0; i<12; i++){
+					rms_faces_V[i] = rms_pol_thresh_face[0][thresholdBin_pol[0]][i];  //this is right RMS for this polarization, threshold requirement, and face
+					rms_faces_H[i] = rms_pol_thresh_face[1][thresholdBin_pol[1]][i];
+				}
 			}
 
 			//now to sort them smallest to largest; lowest RMS is best
@@ -433,9 +464,9 @@ int main(int argc, char **argv)
 
 					//what happens if we act like it's a *cut*
 					//we want all of the clean events in both histograms (as cut as after filter)
-					if(!isCutonCW_fwd[pol] && !isCutonCW_back[pol] && !isCutonCW_baseline[pol]){
-						PlotThisEvent(station,year,runNum,event, settings, detector, theCorrelators);
-					} //not cut by any CW
+					// if(!isCutonCW_fwd[pol] && !isCutonCW_back[pol] && !isCutonCW_baseline[pol]){
+					// 	PlotThisEvent(station,year,runNum,event, settings, detector, theCorrelators);
+					// } //not cut by any CW
 
 					//and now to do *filtering*
 					if(isCutonCW_fwd[pol] || isCutonCW_back[pol] || isCutonCW_baseline[pol]){
@@ -771,26 +802,70 @@ int main(int argc, char **argv)
 							for (int i = 0; i < numFaces; i++){ //loop over the faces, and store the RMS for that polarization, threshold bin, and face
 								rms_pol_thresh_face_new[0][thresholdBin][i] = rms_faces_V_new[i];
 								rms_pol_thresh_face_new[1][thresholdBin][i] = rms_faces_H_new[i];
+							}	
+						} // end threshold scan
+
+						//now the dropped channel case
+						vector<vector<vector<vector<int> > > > faces_drop = setupFaces(station_num, dropBadChans);
+						double rms_pol_thresh_face_new_drop[2][15][12];
+						for (int thresholdBin = 0; thresholdBin < thresholdSteps; thresholdBin++){
+							double threshold = thresholdMin + thresholdStep*(double)thresholdBin;
+							
+							//get the RMS of all the faces at this threshold bin
+							vector<double> rms_faces_V_new_drop = getRms_Faces_Thresh_N(vvHitTimes_new, vvRMS_10overRMS_new, threshold, 0, faces_drop, ant_loc);
+							vector<double> rms_faces_H_new_drop = getRms_Faces_Thresh_N(vvHitTimes_new, vvRMS_10overRMS_new, threshold, 1, faces_drop, ant_loc);
+
+							int num_faces_for_loop = 0;
+							if(station_num==2) num_faces_for_loop = numFaces_A2_drop;
+							if(station_num==3) num_faces_for_loop = numFaces_A3_drop;
+
+							for (int i = 0; i < num_faces_for_loop; i++){
+								rms_pol_thresh_face_new_drop[0][thresholdBin][i] = rms_faces_V_new_drop[i];
+								rms_pol_thresh_face_new_drop[1][thresholdBin][i] = rms_faces_H_new_drop[i];
 							}
-									
-								//sort, in increasing order, the RMSs for this threshold
-							sort(rms_faces_V_new.begin(), rms_faces_V_new.end());
-							sort(rms_faces_H_new.begin(), rms_faces_H_new.end());
 						} // end threshold scan
 
 						int thresholdBin_pol_new[]={3,5};
 
-						vector <double>  rms_faces_V_new;
-						rms_faces_V_new.resize(12);
+						vector <double> rms_faces_V_new;
 						vector <double> rms_faces_H_new;
-						rms_faces_H_new.resize(12);
-						//now, we must loop over the faces
-						for(int i=0; i<12; i++){
-							rms_faces_V_new[i] = rms_pol_thresh_face_new[0][thresholdBin_pol_new[0]][i];  //this is right RMS for this polarization, threshold requirement, and face
-							rms_faces_H_new[i] = rms_pol_thresh_face_new[1][thresholdBin_pol_new[1]][i];
+
+						if(dropBadChans){
+							int num_faces_for_V_loop;
+							int num_faces_for_H_loop;
+							if(station==2){
+								rms_faces_V.resize(numFaces);
+								num_faces_for_V_loop=numFace;
+								rms_faces_H.resize(numFaces_A2_drop);
+								num_faces_for_H_loop=numFaces_A2_drop;
+							}
+							else if(station==3 && (year==2014 || year==2015)){
+								rms_faces_V.resize(numFaces_A3_drop);
+								num_faces_for_V_loop=numFaces_A3_drop;
+								rms_faces_H.resize(numFaces_A3_drop);
+								num_faces_for_H_loop=numFaces_A3_drop;
+							}
+							//now we loop over the faces
+							for(int i=0; i<num_faces_for_V_loop; i++){
+								rms_faces_V[i] = rms_pol_thresh_face_new_drop[0][thresholdBin_pol_new[0]][i];
+							}
+							for(int i=0; i<num_faces_for_H_loop; i++){
+								rms_faces_H[i] = rms_pol_thresh_face_new_drop[1][thresholdBin_pol_new[1]][i];
+							}
 						}
+						else{
+							rms_faces_V.resize(12);
+							rms_faces_H.resize(12);
+							//now, we must loop over the faces
+							for(int i=0; i<12; i++){
+								rms_faces_V[i] = rms_pol_thresh_face_new[0][thresholdBin_pol_new[0]][i];  //this is right RMS for this polarization, threshold requirement, and face
+								rms_faces_H[i] = rms_pol_thresh_face_new[1][thresholdBin_pol_new[1]][i];
+							}
+						}
+
 						sort(rms_faces_V_new.begin(), rms_faces_V_new.end());
 						sort(rms_faces_H_new.begin(), rms_faces_H_new.end());
+						
 						double bestFaceRMS_new[2];
 						bestFaceRMS_new[0]=rms_faces_V_new[0];
 						bestFaceRMS_new[1]=rms_faces_H_new[0];
