@@ -258,7 +258,7 @@ int main(int argc, char **argv)
 		PeakCorr_vs_SNR_all[pol]->SetTitle(graph_title[pol]);
 		gPad->SetLogz();
 	}
-	sprintf(title, "/users/PAS0654/osu0673/A23_analysis/results/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
+	sprintf(title, "/users/PAS0654/osu0673/A23_analysis_new2/results/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
 	c2->SaveAs(title);
 	delete c2;
 	delete PeakCorr_vs_SNR_all[0]; delete PeakCorr_vs_SNR_all[1];
@@ -277,7 +277,7 @@ int main(int argc, char **argv)
 		PeakCorr_vs_SNR_cutCal[pol]->SetTitle(graph_title[pol]);
 		gPad->SetLogz();
 	}
-	sprintf(title, "/users/PAS0654/osu0673/A23_analysis/results/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
+	sprintf(title, "/users/PAS0654/osu0673/A23_analysis_new2/results/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
 	c3->SaveAs(title);
 	delete c3;
 	delete PeakCorr_vs_SNR_cutCal[0]; delete PeakCorr_vs_SNR_cutCal[1];
@@ -296,7 +296,7 @@ int main(int argc, char **argv)
 		PeakCorr_vs_SNR_cutCal_cutSoft[pol]->SetTitle(graph_title[pol]);
 		gPad->SetLogz();
 	}
-	sprintf(title, "/users/PAS0654/osu0673/A23_analysis/results/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
+	sprintf(title, "/users/PAS0654/osu0673/A23_analysis_new2/results/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
 	c4->SaveAs(title);
 	delete c4;
 	delete PeakCorr_vs_SNR_cutCal_cutSoft[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft[1];
@@ -315,7 +315,7 @@ int main(int argc, char **argv)
 		PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[pol]->SetTitle(graph_title[pol]);
 		gPad->SetLogz();
 	}
-	sprintf(title, "/users/PAS0654/osu0673/A23_analysis/results/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
+	sprintf(title, "/users/PAS0654/osu0673/A23_analysis_new2/results/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
 	c5->SaveAs(title);
 	delete c5;
 	delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[1];
@@ -334,7 +334,7 @@ int main(int argc, char **argv)
 		PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[pol]->SetTitle(graph_title[pol]);
 		gPad->SetLogz();
 	}
-	sprintf(title, "/users/PAS0654/osu0673/A23_analysis/results/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
+	sprintf(title, "/users/PAS0654/osu0673/A23_analysis_new2/results/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
 	c6->SaveAs(title);
 	delete c6;
 	delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[1];
@@ -353,7 +353,7 @@ int main(int argc, char **argv)
 		PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[pol]->SetTitle(graph_title[pol]);
 		gPad->SetLogz();
 	}
-	sprintf(title, "/users/PAS0654/osu0673/A23_analysis/results/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
+	sprintf(title, "/users/PAS0654/osu0673/A23_analysis_new2/results/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
 	c7->SaveAs(title);
 	delete c7;
 	delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[1];
@@ -374,7 +374,7 @@ int main(int argc, char **argv)
 		// PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->GetXaxis()->SetRangeUser(0,10);
 		// PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->GetYaxis()->SetRangeUser(0,0.5);
 	}
-	sprintf(title, "/users/PAS0654/osu0673/A23_analysis/results/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
+	sprintf(title, "/users/PAS0654/osu0673/A23_analysis_new2/results/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
 	c8->SaveAs(title);
 	delete c8;
 	delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[1];
