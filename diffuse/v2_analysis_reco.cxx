@@ -383,7 +383,7 @@ int main(int argc, char **argv)
 			}
 			else if(station_num==3){
 				//for station 3 years 2014 and 2015, we need to drop string 4 (channels 3, 7, 11, 15) altogether
-				if(year==2014 || year==2015){
+				if(year==2014 || year==2015 || year==2016){
 
 					chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 3), chan_list_V.end());
 					chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 7), chan_list_V.end());
