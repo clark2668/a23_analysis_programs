@@ -403,7 +403,7 @@ int main(int argc, char **argv)
 					rms_faces_H.resize(numFaces_A2_drop);
 					num_faces_for_H_loop=numFaces_A2_drop;
 				}
-				else if(station==3 && (year==2014 || year==2015)){
+				else if(station==3 && (year==2014 || year==2015 || year==2016)){
 					rms_faces_V.resize(numFaces_A3_drop);
 					num_faces_for_V_loop=numFaces_A3_drop;
 					rms_faces_H.resize(numFaces_A3_drop);
@@ -839,7 +839,7 @@ int main(int argc, char **argv)
 								rms_faces_H.resize(numFaces_A2_drop);
 								num_faces_for_H_loop=numFaces_A2_drop;
 							}
-							else if(station==3 && (year==2014 || year==2015)){
+							else if(station==3 && (year==2014 || year==2015 || year==2016)){
 								rms_faces_V.resize(numFaces_A3_drop);
 								num_faces_for_V_loop=numFaces_A3_drop;
 								rms_faces_H.resize(numFaces_A3_drop);
