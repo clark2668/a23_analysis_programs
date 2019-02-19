@@ -50,7 +50,7 @@ int main(int argc, char **argv)
 	stringstream ss;
 	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
 	
-	if(argc<5){
+	if(argc<6){
 		cout<< "Usage\n" << argv[0] << " <station> <year> <drop_bad_chan> <output_location> <joined filename 1> <joined filename 2 > ... <joined filename x>"<<endl;
 		return 0;
 	}
