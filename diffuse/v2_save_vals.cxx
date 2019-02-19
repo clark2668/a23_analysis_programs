@@ -399,11 +399,12 @@ int main(int argc, char **argv)
 				int num_faces_for_H_loop;
 				if(station==2){
 					rms_faces_V.resize(numFaces);
-					num_faces_for_V_loop=numFace;
+					num_faces_for_V_loop=numFaces;
 					rms_faces_H.resize(numFaces_A2_drop);
 					num_faces_for_H_loop=numFaces_A2_drop;
 				}
 				else if(station==3 && (year==2014 || year==2015 || year==2016)){
+					cout<<"Gonna drop bad chans!"<<endl;
 					rms_faces_V.resize(numFaces_A3_drop);
 					num_faces_for_V_loop=numFaces_A3_drop;
 					rms_faces_H.resize(numFaces_A3_drop);
@@ -593,15 +594,41 @@ int main(int argc, char **argv)
 						// for(int iFreq=0; iFreq<uniqueNotchFreqs.size(); iFreq++) printf("				Unique freq %d is %.2f with band %.2f\n",iFreq,uniqueNotchFreqs[iFreq],uniqueNotchBands[iFreq]);
 
 						//now, we must re-do the interferometry
+
+						vector <int> chan_list_V;
+						vector <int> chan_list_H;
+						for(int chan=0; chan<=7; chan++){
+							chan_list_V.push_back(chan);
+							chan_list_H.push_back(chan+8);
+						}
+						if(dropBadChans){
+							if(station==2){
+								//for station 2, we need to exclude channel 15 from the analysis
+								chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 15), chan_list_H.end());
+							}
+							else if(station==3){
+								//for station 3 years 2014 and 2015, we need to drop string 4 (channels 3, 7, 11, 15) altogether
+								if(year==2014 || year==2015 || year==2016){
+
+									chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 3), chan_list_V.end());
+									chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 7), chan_list_V.end());
+
+									chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 11), chan_list_H.end());
+									chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 15), chan_list_H.end());
+								}
+							}
+						}
+
+
 						TH2D *map_30m;
 						TH2D *map_300m;
 						if(pol==0){
-							map_30m = theCorrelators[0]->getInterferometricMap_RT_FiltMany(settings, detector, realAtriEvPtr, Vpol, 0, 0,-1,uniqueNotchFreqs,uniqueNotchBands);
-							map_300m = theCorrelators[1]->getInterferometricMap_RT_FiltMany(settings, detector, realAtriEvPtr, Vpol, 0, 0,-1,uniqueNotchFreqs,uniqueNotchBands);
+							map_30m = theCorrelators[0]->getInterferometricMap_RT_FiltMany_select(settings, detector, realAtriEvPtr, Vpol, 0, chan_list_V, 0,-1,uniqueNotchFreqs,uniqueNotchBands);
+							map_300m = theCorrelators[1]->getInterferometricMap_RT_FiltMany_select(settings, detector, realAtriEvPtr, Vpol, 0, chan_list_V, 0,-1,uniqueNotchFreqs,uniqueNotchBands);
 						}
 						if(pol==1){
-							map_30m = theCorrelators[0]->getInterferometricMap_RT_FiltMany(settings, detector, realAtriEvPtr, Hpol, 0, 0,-1,uniqueNotchFreqs,uniqueNotchBands);
-							map_300m = theCorrelators[1]->getInterferometricMap_RT_FiltMany(settings, detector, realAtriEvPtr, Hpol, 0, 0,-1,uniqueNotchFreqs,uniqueNotchBands);
+							map_30m = theCorrelators[0]->getInterferometricMap_RT_FiltMany_select(settings, detector, realAtriEvPtr, Hpol, 0, chan_list_H, 0,-1,uniqueNotchFreqs,uniqueNotchBands);
+							map_300m = theCorrelators[1]->getInterferometricMap_RT_FiltMany_select(settings, detector, realAtriEvPtr, Hpol, 0, chan_list_H, 0,-1,uniqueNotchFreqs,uniqueNotchBands);
 						}
 						int PeakTheta_Recompute_30m;
 						int PeakTheta_Recompute_300m;
@@ -806,7 +833,7 @@ int main(int argc, char **argv)
 						} // end threshold scan
 
 						//now the dropped channel case
-						vector<vector<vector<vector<int> > > > faces_drop = setupFaces(station_num, dropBadChans);
+						vector<vector<vector<vector<int> > > > faces_drop = setupFaces(station, dropBadChans);
 						double rms_pol_thresh_face_new_drop[2][15][12];
 						for (int thresholdBin = 0; thresholdBin < thresholdSteps; thresholdBin++){
 							double threshold = thresholdMin + thresholdStep*(double)thresholdBin;
@@ -816,8 +843,8 @@ int main(int argc, char **argv)
 							vector<double> rms_faces_H_new_drop = getRms_Faces_Thresh_N(vvHitTimes_new, vvRMS_10overRMS_new, threshold, 1, faces_drop, ant_loc);
 
 							int num_faces_for_loop = 0;
-							if(station_num==2) num_faces_for_loop = numFaces_A2_drop;
-							if(station_num==3) num_faces_for_loop = numFaces_A3_drop;
+							if(station==2) num_faces_for_loop = numFaces_A2_drop;
+							if(station==3) num_faces_for_loop = numFaces_A3_drop;
 
 							for (int i = 0; i < num_faces_for_loop; i++){
 								rms_pol_thresh_face_new_drop[0][thresholdBin][i] = rms_faces_V_new_drop[i];
@@ -835,7 +862,7 @@ int main(int argc, char **argv)
 							int num_faces_for_H_loop;
 							if(station==2){
 								rms_faces_V.resize(numFaces);
-								num_faces_for_V_loop=numFace;
+								num_faces_for_V_loop=numFaces;
 								rms_faces_H.resize(numFaces_A2_drop);
 								num_faces_for_H_loop=numFaces_A2_drop;
 							}
@@ -1062,10 +1089,10 @@ int PlotThisEvent(int station, int year, int runNum, int event, Settings *settin
 		TH2D *map_300m_H;
 		TH2D *map_30m_V_select;
 
-		map_30m_V = theCorrelators[0]->getInterferometricMap_RT_Rezero(settings, detector, realAtriEvPtr, Vpol, 0, 0,-1);
-		map_300m_V = theCorrelators[1]->getInterferometricMap_RT_Rezero(settings, detector, realAtriEvPtr, Vpol, 0, 0,-1);
-		map_30m_H = theCorrelators[0]->getInterferometricMap_RT_Rezero(settings, detector, realAtriEvPtr, Hpol, 0, 0,-1);
-		map_300m_H = theCorrelators[1]->getInterferometricMap_RT_Rezero(settings, detector, realAtriEvPtr, Hpol, 0, 0,-1);
+		map_30m_V = theCorrelators[0]->getInterferometricMap_RT(settings, detector, realAtriEvPtr, Vpol, 0, 0);
+		map_300m_V = theCorrelators[1]->getInterferometricMap_RT(settings, detector, realAtriEvPtr, Vpol, 0, 0);
+		map_30m_H = theCorrelators[0]->getInterferometricMap_RT(settings, detector, realAtriEvPtr, Hpol, 0, 0);
+		map_300m_H = theCorrelators[1]->getInterferometricMap_RT(settings, detector, realAtriEvPtr, Hpol, 0, 0);
 
 		int PeakTheta_Recompute_30m;
 		int PeakTheta_Recompute_300m;
