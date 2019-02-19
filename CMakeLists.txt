@@ -17,6 +17,9 @@ target_link_libraries(v2_CWID AraEvent AraSim ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES
 add_executable(v2_Filter ${ANALYSIS_DIRECTORY}/diffuse/v2_analysis_filter.cxx)
 target_link_libraries(v2_Filter AraEvent filterEvent AraSim ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES})
 
+add_executable(v2_FinalPlot ${ANALYSIS_DIRECTORY}/diffuse/v2_final_plots.cxx)
+target_link_libraries(v2_FinalPlot ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES})
+
 add_executable(v2_Join ${ANALYSIS_DIRECTORY}/diffuse/v2_analysis_join_filter_41_300.cxx)
 target_link_libraries(v2_Join AraEvent filterEvent AraSim ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES})
 
@@ -26,8 +29,8 @@ target_link_libraries(v2_Reco AraEvent filterEvent AraSim RayTraceCorrelator ${R
 add_executable(v2_RunSummary ${ANALYSIS_DIRECTORY}/diffuse/v2_analysis_run_summary.cxx)
 target_link_libraries(v2_RunSummary AraEvent filterEvent AraSim ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES})
 
-add_executable(v2_SaveVals ${ANALYSIS_DIRECTORY}/diffuse/v2_analysis_run_summary.cxx)
-target_link_libraries(v2_SaveVals AraEvent filterEvent AraSim ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES})
+add_executable(v2_SaveVals ${ANALYSIS_DIRECTORY}/diffuse/v2_save_vals.cxx)
+target_link_libraries(v2_SaveVals AraEvent filterEvent AraSim RayTraceCorrelator ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES})
 
 #other debug stuff
 
@@ -41,4 +44,4 @@ add_executable(Debug_PrintEvent ${ANALYSIS_DIRECTORY}/diffuse/debug_print_event.
 target_link_libraries(Debug_PrintEvent AraEvent AraSim RayTraceCorrelator ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES})
 
 
-install(TARGETS v2_Baselines Debug_PrintEvent v2_CWID v2_Filter v2_Join v2_Reco v2_RunSummary v2_SaveVals CompareFilters Plot_CompareFilters DESTINATION ${ARAROOT_INSTALL_PATH}/bin)
+install(TARGETS v2_Baselines v2_CWID v2_Filter v2_FinalPlot v2_Join v2_Reco v2_RunSummary v2_SaveVals CompareFilters Plot_CompareFilters Debug_PrintEvent DESTINATION ${ARAROOT_INSTALL_PATH}/bin)
