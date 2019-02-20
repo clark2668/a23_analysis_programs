@@ -84,14 +84,18 @@ int main(int argc, char **argv)
 	bool isCal;
 	bool isSoft;
 	int waveform_length[16];
-	double frac_power[16];
+	double frac_power_75[16];
+	double frac_power_110[16];
+	double frac_power_150[16];
 	int runNum;
 	bool hasDigitizerError;
 	outTree->Branch("isCal", &isCal, "isCal/O");
 	outTree->Branch("isSoft", &isSoft, "isSoft/O");
 	outTree->Branch("hasDigitizerError", &hasDigitizerError, "hasDigitizerError/O");
 	outTree->Branch("waveform_length", &waveform_length, "waveform_length[16]/I");
-	outTree->Branch("frac_power", &frac_power, "frac_power[16]/D");
+	outTree->Branch("frac_power_75", &frac_power_75, "frac_power_75[16]/D");
+	outTree->Branch("frac_power_110", &frac_power_110, "frac_power_110[16]/D");
+	outTree->Branch("frac_power_150", &frac_power_150, "frac_power_150[16]/D");
 	runNum=run;
 	outTree->Branch("run",&runNum);
 
@@ -122,14 +126,23 @@ int main(int argc, char **argv)
 			delete ev;
 			continue;
 		}
+		vector<TGraph*> grWaveformsInt = makeInterpolatedGraphs(grWaveformsRaw, 0.6, xLabel, yLabel, titlesForGraphs);
+		vector<TGraph*> grWaveformsPadded = makePaddedGraphs(grWaveformsInt, 0, xLabel, yLabel, titlesForGraphs);
+		vector<TGraph*> grSpectra = makePowerSpectrumGraphs(grWaveformsPadded, xLabel, yLabel, titlesForGraphs);
+
 		for(int i=0; i<16; i++){
 			waveform_length[i]=grWaveformsRaw[i]->GetN();
-			frac_power[i]=cumulativePowerBelow(grWaveformsRaw[i],75.);
+			frac_power_75[i]=cumulativePowerBelowfromSpectrum(grSpectra[i],75.);
+			frac_power_110[i]=cumulativePowerBelowfromSpectrum(grSpectra[i],110.);
+			frac_power_150[i]=cumulativePowerBelowfromSpectrum(grSpectra[i],150.);
 		}
 		outTree->Fill();
 
 		//cleanup
-		deleteGraphVector(grWaveformsRaw); //cleanup
+		deleteGraphVector(grWaveformsRaw);
+		deleteGraphVector(grWaveformsInt);
+		deleteGraphVector(grWaveformsPadded);
+		deleteGraphVector(grSpectra);
 		delete ev;
 	} //loop over events
 	
