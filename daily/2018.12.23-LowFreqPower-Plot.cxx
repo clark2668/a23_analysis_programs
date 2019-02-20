@@ -59,6 +59,8 @@ int main(int argc, char **argv)
 
 	int num_total=0;
 
+	int glitch_number[16]={0};
+
 	for(int file_num=3; file_num<argc; file_num++){
 
 		cout<<argv[file_num]<<endl;
@@ -80,11 +82,13 @@ int main(int argc, char **argv)
 		int waveform_length[16];
 		double frac_power[16];
 		int runNum;
+		bool hasDigitizerError;
 		inTree->SetBranchAddress("isCal", &isCal);
 		inTree->SetBranchAddress("isSoft", &isSoft);
 		inTree->SetBranchAddress("waveform_length", &waveform_length);
 		inTree->SetBranchAddress("frac_power", &frac_power);
 		inTree->SetBranchAddress("run",&runNum);
+		inTree->SetBranchAddress("hasDigitizerError",&hasDigitizerError);
 
 		int numEntries = inTree->GetEntries();
 		Long64_t starEvery=numEntries/200;
@@ -95,14 +99,21 @@ int main(int argc, char **argv)
 			// if(event<540 || event>550) continue;
 			inTree->GetEvent(event);
 
-			if(isCal || isSoft) continue;
+			if(isCal || isSoft || hasDigitizerError) continue;
 			num_total++;
-			for(int i=0; i<16; i++) distro[i]->Fill(frac_power[i]);
+			for(int i=0; i<16; i++){
+				distro[i]->Fill(frac_power[i]);
+				if(frac_power[i]>0.1) glitch_number[i]++;
+			}
 
 		}
 		fpIn->Close();
 		delete fpIn;
 	} //end loop over input files
+
+	for(int i=0; i<16; i++){
+		printf("Chan %d percentage with error: %.9f \n", i, double(glitch_number[i])/double(num_total)*100.);
+	}
 	
 	TCanvas *c = new TCanvas("","",2*1100,2*850);
 	c->Divide(4,4);
@@ -112,9 +123,11 @@ int main(int argc, char **argv)
 		distro[i]->SetLineWidth(2);
 		gPad->SetLogy();
 		distro[i]->GetYaxis()->SetRangeUser(1.,1e7);
+		distro[i]->GetYaxis()->SetTitle("Number of Events");
+		distro[i]->GetXaxis()->SetTitle("Fracion of Power Below 75 MHz");
 	}
 	char save_plot_title[400];
-	sprintf(save_plot_title,"/users/PAS0654/osu0673/A23_analysis/results/glitch_detect/%d.%d.%d_Distro_Glitch_%dEvents.png",year_now,month_now,day_now,num_total);
+	sprintf(save_plot_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/glitch_detect/%d.%d.%d_Distro_Glitch_A%d_%d_%dEvents.png",year_now,month_now,day_now,station,year,num_total);
 	c->SaveAs(save_plot_title);
 	delete c;
 }
