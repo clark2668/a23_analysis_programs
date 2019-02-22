@@ -45,15 +45,15 @@ int main(int argc, char **argv)
 	
 	TFile *fpIn = new TFile(argv[2], "OLD"); //we're going to open the data file
 	if(!fpIn){
-		std::cerr<< "Can not open the old file: " <<argv[file]<<endl;
-		break;
+		std::cerr<< "Can not open the old file: " <<argv[2]<<endl;
+		return -1;
 	} //throw a warning if you can't open it
 	
 	fpIn->cd(); //go into that file
 	TTree *eventTree = (TTree*) fpIn->Get("eventTree"); //load in the event free for this file
 	if(!eventTree){
-		std::cerr<<"Can't find eventTree in file" <<file<<" with filename " <<argv[file]<<endl;
-		break;
+		std::cerr<<"Can't find eventTree in file" <<argv[2]<<" with filename " <<argv[2]<<endl;
+		return -1;
 	} //throw a warning if you can't open it
 	 //set the tree address to access our raw data type
 	RawAtriStationEvent *rawAtriEvPtr=0;
