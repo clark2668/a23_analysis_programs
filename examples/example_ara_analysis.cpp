@@ -27,6 +27,7 @@
 #include "UsefulAtriStationEvent.h"
 #include "FFTtools.h"
 #include "AraGeomTool.h"
+#include "AraQualCuts.h"
 
 //ROOT Includes
 #include "TTree.h"
@@ -63,6 +64,8 @@ int main(int argc, char **argv)
 	eventTree->SetBranchAddress("run",&runNum);
 	
 	double numEntries = eventTree -> GetEntries(); //get the number of entries in this file
+
+	AraQualCuts *qual = AraQualCuts::Instance();
 	
 	for(int event=0; event<numEntries; event++){ //loop over those entries
 		
@@ -81,6 +84,7 @@ int main(int argc, char **argv)
 		
 		//make a *useful* event out of the *raw* event, which functionally just calibrates it
 		UsefulAtriStationEvent *realAtriEvPtr = new UsefulAtriStationEvent(rawAtriEvPtr, AraCalType::kLatestCalib);
+		if(!(qual->isGoodEvent(realAtriEvPtr))) continue;
 		
 		//now, we'll get the waveform from channel 2
 		TGraph *waveform = realAtriEvPtr->getGraphFromRFChan(2);
