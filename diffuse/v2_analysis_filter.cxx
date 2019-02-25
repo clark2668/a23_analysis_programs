@@ -31,6 +31,7 @@ UsefulAtriStationEvent *realAtriEvPtr;
 #include "Report.h"
 
 #include "AraGeomTool.h"
+#include "AraQualCuts.h"
 #include "AraAntennaInfo.h"
 
 #include "tools_inputParameters.h"
@@ -76,6 +77,7 @@ int main(int argc, char **argv)
 	}
 	
 	AraGeomTool * geomTool = new AraGeomTool();
+	AraQualCuts *qualCut = AraQualCuts::Instance();
 	
 	TFile *fp = TFile::Open(argv[5]);
 	if(!fp) {
@@ -348,7 +350,6 @@ int main(int argc, char **argv)
 		if(!isSimulation){
 			realAtriEvPtr = new UsefulAtriStationEvent(rawAtriEvPtr, AraCalType::kLatestCalib);
 		}
-		
 			
 		if (isSimulation){
 			isCalpulser = false;
@@ -368,20 +369,11 @@ int main(int argc, char **argv)
 		if (analyzeEvent == true){
 
 			weight_out = weight;
-	
-			xLabel = "Time (ns)"; yLabel = "Voltage (mV)";
-			vector<TGraph*> grWaveformsRaw = makeGraphsFromRF(realAtriEvPtr, nGraphs, xLabel, yLabel, titlesForGraphs);
-			ss.str("");
-
-			for (int i = 0; i < 16; i++){
-				waveformLength[i] = grWaveformsRaw[i]->GetN();
-			}
-			hasDigitizerError = hasDigitizerIssue(grWaveformsRaw); 
+			hasDigitizerError = !(qualCut->isGoodEvent(realAtriEvPtr));
 			//if the event has a  digitizer error, skip it
 			//note that exiting this far up will prevent any errors with the averaging
 			//because we don't count contributions to the average until the numEvents++ later
 			if(hasDigitizerError){
-				deleteGraphVector(grWaveformsRaw); //cleanup
 				OutputTree->Fill(); //fill this anyway with garbage
 				if (isSimulation == false) {
 					delete realAtriEvPtr;
@@ -389,7 +381,13 @@ int main(int argc, char **argv)
 				continue; //don't do any further processing on this event
 			}
 
+			xLabel = "Time (ns)"; yLabel = "Voltage (mV)";
+			vector<TGraph*> grWaveformsRaw = makeGraphsFromRF(realAtriEvPtr, nGraphs, xLabel, yLabel, titlesForGraphs);
+			ss.str("");
 
+			for (int i = 0; i < 16; i++){
+				waveformLength[i] = grWaveformsRaw[i]->GetN();
+			}
 	
 			double qualArray[4];
 			filterEvent * filterEventPtr = new filterEvent();
