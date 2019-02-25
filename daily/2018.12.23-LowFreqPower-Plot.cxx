@@ -49,15 +49,16 @@ int main(int argc, char **argv)
 	int year = atoi(argv[2]);
 
 	TH1D *distro[16];
-	TH1D *distro_cal[16];
+	TH1D *distro_75[16];
 	TH1D *glitch[16];
 	for(int i=0; i<16; i++){
-		distro[i] = new TH1D("","",100,0,1);
-		distro_cal[i] = new TH1D("","",100,0,1);
+		distro[i] = new TH1D("","",100,0,1); 
+		distro_75[i] = new TH1D("","",100,0,1); 
 		glitch[i] = new TH1D("","",100,0,1);
 	}
 
 	int num_total=0;
+	int num_total_glitch=0;
 
 	int glitch_number[16]={0};
 
@@ -80,13 +81,17 @@ int main(int argc, char **argv)
 		bool isCal;
 		bool isSoft;
 		int waveform_length[16];
-		double frac_power[16];
+		double frac_power_75[16];
+		double frac_power_110[16];
+		double frac_power_150[16];
 		int runNum;
 		bool hasDigitizerError;
 		inTree->SetBranchAddress("isCal", &isCal);
 		inTree->SetBranchAddress("isSoft", &isSoft);
 		inTree->SetBranchAddress("waveform_length", &waveform_length);
-		inTree->SetBranchAddress("frac_power", &frac_power);
+		inTree->SetBranchAddress("frac_power_75", &frac_power_75);
+		inTree->SetBranchAddress("frac_power_110", &frac_power_110);
+		inTree->SetBranchAddress("frac_power_150", &frac_power_150);
 		inTree->SetBranchAddress("run",&runNum);
 		inTree->SetBranchAddress("hasDigitizerError",&hasDigitizerError);
 
@@ -96,35 +101,76 @@ int main(int argc, char **argv)
 
 		//now to loop over events
 		for(int event=0; event<numEntries; event++){
-			// if(event<540 || event>550) continue;
 			inTree->GetEvent(event);
 
 			if(isCal || isSoft || hasDigitizerError) continue;
 			num_total++;
+			bool need_to_print=false;
+			int this_glitch_counter=0;
 			for(int i=0; i<16; i++){
-				distro[i]->Fill(frac_power[i]);
-				if(frac_power[i]>0.1) glitch_number[i]++;
+				distro[i]->Fill(frac_power_150[i]);
+				distro_75[i]->Fill(frac_power_75[i]);
+				if(frac_power_75[i]>0.1 && i!=11){
+					// if(station==3 && i!=3 && i!=7 && i!=11 && i!=15) this_glitch_counter++;
+					glitch_number[i]++;
+					this_glitch_counter++;
+				}
 			}
-
+			if(this_glitch_counter>2){
+				need_to_print=false;
+				num_total_glitch++;
+			}
+			if(need_to_print) PlotThisEvent(station, year, runNum ,event);
 		}
 		fpIn->Close();
 		delete fpIn;
 	} //end loop over input files
 
 	for(int i=0; i<16; i++){
-		printf("Chan %d percentage with error: %.9f \n", i, double(glitch_number[i])/double(num_total)*100.);
+		printf("Chan %d fraction: %.6f \n", i, double(glitch_number[i])/double(num_total));
 	}
-	
-	TCanvas *c = new TCanvas("","",2*1100,2*850);
+
+	stringstream ss1;
+	vector<string> titlesForGraphs;
+	for (int i = 0; i < 16; i++){
+		ss1.str("");
+		ss1 << "Channel " << i;
+		titlesForGraphs.push_back(ss1.str());
+	}
+
+	printf("Total number cut is %d/%d = %.6f \n", num_total_glitch, num_total, double(num_total_glitch)/double(num_total));
+	TH1 *cumulative[16];
+	for(int i=0; i<16; i++){
+		// distro[i]->Scale(1./double(distro[i]->GetEntries())*100.);
+		cumulative[i] = distro[i]->GetCumulative();
+	}
+	gStyle->SetOptStat(0);
+	TCanvas *c = new TCanvas("","",4*1100,4*850);
 	c->Divide(4,4);
 	for(int i=0; i<16; i++){
 		c->cd(i+1);
 		distro[i]->Draw("");
-		distro[i]->SetLineWidth(2);
+		distro[i]->SetLineWidth(5);
+		distro[i]->SetLineColor(kBlue);
 		gPad->SetLogy();
-		distro[i]->GetYaxis()->SetRangeUser(1.,1e7);
+		distro[i]->GetYaxis()->SetRangeUser(1.,1e8);
+		// distro[i]->GetYaxis()->SetRangeUser(0.00001,200.);		
 		distro[i]->GetYaxis()->SetTitle("Number of Events");
-		distro[i]->GetXaxis()->SetTitle("Fracion of Power Below 75 MHz");
+		distro[i]->GetXaxis()->SetTitle("Fraction of Power Below X MHz");
+		distro[i]->SetTitle(titlesForGraphs[i].c_str());
+		distro[i]->GetXaxis()->SetTitleOffset(1.1);
+		distro[i]->GetYaxis()->SetTitleOffset(1.1);
+		distro[i]->GetZaxis()->SetTitleOffset(1.1);
+		distro[i]->GetXaxis()->SetTitleSize(0.06);
+		distro[i]->GetYaxis()->SetTitleSize(0.06);
+		distro[i]->GetZaxis()->SetTitleSize(0.06);
+		distro[i]->GetXaxis()->SetLabelSize(0.06);
+		distro[i]->GetYaxis()->SetLabelSize(0.06);
+		distro[i]->GetZaxis()->SetLabelSize(0.06);
+
+		distro_75[i]->Draw("same");
+		distro_75[i]->SetLineWidth(5);
+		distro_75[i]->SetLineColor(kRed);
 	}
 	char save_plot_title[400];
 	sprintf(save_plot_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/glitch_detect/%d.%d.%d_Distro_Glitch_A%d_%d_%dEvents.png",year_now,month_now,day_now,station,year,num_total);
@@ -193,7 +239,7 @@ int PlotThisEvent(int station, int year, int runNum, int event){
 
 
 	char save_temp_title[300];
-	sprintf(save_temp_title,"/users/PAS0654/osu0673/A23_analysis/results/debug/%d.%d.%d_Run%d_Ev%d_Waveforms.png",year_now,month_now,day_now,runNum,event);
+	sprintf(save_temp_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/glitch_detect/%d.%d.%d_Station%d_Run%d_Ev%d_Waveforms.png",year_now,month_now,day_now,station,runNum,event);
 	TCanvas *cWave = new TCanvas("","",4*1100,4*850);
 	cWave->Divide(4,4);
 	for(int i=0; i<16; i++){
@@ -206,7 +252,7 @@ int PlotThisEvent(int station, int year, int runNum, int event){
 
 	bool print_spectrum=false;
 	if(print_spectrum){
-		vector<TGraph*> grWaveformsInt = makeInterpolatedGraphs(waveforms, 0.5, xLabel, yLabel, titlesForGraphs);
+		vector<TGraph*> grWaveformsInt = makeInterpolatedGraphs(waveforms, 0.6, xLabel, yLabel, titlesForGraphs);
 		vector<TGraph*> grWaveformsPadded = makePaddedGraphs(grWaveformsInt, 0, xLabel, yLabel, titlesForGraphs);
 		xLabel = "Frequency (Hz)"; yLabel = "Power Spectral Density (mV/Hz)";
 		vector<TGraph*> grWaveformsPowerSpectrum = makePowerSpectrumGraphs(grWaveformsPadded, xLabel, yLabel, titlesForGraphs);
