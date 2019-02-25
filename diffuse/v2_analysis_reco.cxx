@@ -356,8 +356,6 @@ int main(int argc, char **argv)
 			weight_out = weight;
 			hasDigitizerError = !(qualCut->isGoodEvent(realAtriEvPtr));
 			//if the event has a  digitizer error, skip it
-			//note that exiting this far up will prevent any errors with the averaging
-			//because we don't count contributions to the average until the numEvents++ later
 			if(hasDigitizerError){
 				OutputTree->Fill(); //fill this anyway with garbage
 				if (isSimulation == false) {
