@@ -11,11 +11,10 @@
 #include <string>
 
 //AraRoot Includes
-#include "RawIcrrStationEvent.h"
 #include "RawAtriStationEvent.h"
 #include "UsefulAraStationEvent.h"
-#include "UsefulIcrrStationEvent.h"
 #include "UsefulAtriStationEvent.h"
+#include "AraQualCuts.h"
 
 RawAtriStationEvent *rawAtriEvPtr;
 UsefulAtriStationEvent *realAtriEvPtr;
@@ -73,6 +72,9 @@ int main(int argc, char **argv)
 	printf("Run Number %d \n", runNum);
 	runNumber = runNum;
 
+	AraQualCuts *qualCut = AraQualCuts::Instance(); //we also need a qual cuts tool
+
+
 	if(argc==6){
 		//only if they gave us a pedestal should we fire up the calibrator
 		AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
@@ -121,18 +123,11 @@ int main(int argc, char **argv)
 			isSoftTrigger = rawAtriEvPtr->isSoftwareTrigger();
 		}
 
-		if(!isCalpulser && !isSoftTrigger){
+		if(!isCalpulser && !isSoftTrigger && qualCut->isGoodEvent(realAtriEvPtr)){
 
 			for(int chan=0; chan<numAnts; chan++){
-				TGraph *gr = realAtriEvPtr->getGraphFromRFChan(chan); //get waveform
-
-				if(hasTimingErrorGraph(gr) || hasTooFewBlocksGraph(gr) || gr->GetN()<500){
-					delete gr;
-					break;
-				}
-				
+				TGraph *gr = realAtriEvPtr->getGraphFromRFChan(chan); //get waveform				
 				TGraph *grInt = customInterpolation(gr,0.6);
-
 				TGraph *grPad = FFTtools::padWaveToLength(grInt,WaveformLength); //pad
 				double *getX = grPad->GetX();
 				double deltaT = getX[1]-getX[0];

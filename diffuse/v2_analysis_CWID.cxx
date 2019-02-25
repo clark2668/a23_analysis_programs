@@ -17,6 +17,7 @@
 #include "UsefulAtriStationEvent.h"
 #include "AraGeomTool.h"
 #include "AraAntennaInfo.h"
+#include "AraQualCuts.h"
 
 //ROOT Includes
 #include "TTree.h"
@@ -62,6 +63,7 @@ int main(int argc, char **argv)
 		//only if they gave us a pedestal should we fire up the calibrator
 		calibrator->setAtriPedFile(argv[6],station_num);
 	}
+	AraQualCuts *qualCut = AraQualCuts::Instance(); //we also need a qual cuts tool
 
 	if(isSimulation){
 		eventTree->SetBranchAddress("UsefulAtriStationEvent", &realAtriEvPtr);
@@ -156,7 +158,7 @@ int main(int argc, char **argv)
 			titlesForGraphs.push_back(ss.str());
 		}
 		vector<TGraph*> grWaveformsRaw = makeGraphsFromRF(realAtriEvPtr, 16, xLabel, yLabel, titlesForGraphs);
-		hasError = hasDigitizerIssue(grWaveformsRaw);
+		hasError = !(qualCut->isGoodEvent(realAtriEvPtr));
 		if(hasError){
 			//if it has a digitizer error, just push back junk
 			for(int i=0; i<16; i++){
