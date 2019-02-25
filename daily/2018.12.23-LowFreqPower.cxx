@@ -128,7 +128,6 @@ int main(int argc, char **argv)
 			titlesForGraphs.push_back(ss1.str());
 		}
 		vector <TGraph*> grWaveformsRaw = makeGraphsFromRF(ev,16,xLabel,yLabel,titlesForGraphs);
-		hasDigitizerError = hasDigitizerIssue(grWaveformsRaw);
 
 		vector<TGraph*> grWaveformsInt = makeInterpolatedGraphs(grWaveformsRaw, 0.6, xLabel, yLabel, titlesForGraphs);
 		vector<TGraph*> grWaveformsPadded = makePaddedGraphs(grWaveformsInt, 0, xLabel, yLabel, titlesForGraphs);
