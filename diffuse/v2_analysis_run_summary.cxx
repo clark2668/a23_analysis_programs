@@ -10,11 +10,10 @@
 #include <iostream>
 
 //AraRoot Includes
-#include "RawIcrrStationEvent.h"
 #include "RawAtriStationEvent.h"
 #include "UsefulAraStationEvent.h"
-#include "UsefulIcrrStationEvent.h"
 #include "UsefulAtriStationEvent.h"
+#include "AraQualCuts.h"
 
 //ROOT Includes
 #include "TTree.h"
@@ -105,6 +104,8 @@ int main(int argc, char **argv)
 		printf("Data; load raw event tree \n");
 	}
 
+	AraQualCuts *qualCut = AraQualCuts::Instance(); //we also need a qual cuts tool
+
 	Long64_t numEntries=eventTree->GetEntries();
 	Long64_t starEvery=numEntries/100;
 	if(starEvery==0) starEvery++;
@@ -155,28 +156,23 @@ int main(int argc, char **argv)
 			isSoftTrigger = rawAtriEvPtr->isSoftwareTrigger();
 		}
 
-		xLabel = "Time (ns)"; yLabel = "Voltage (mV)";
-		vector<TGraph*> grWaveformsRaw = makeGraphsFromRF(realAtriEvPtr, nGraphs, xLabel, yLabel, titlesForGraphs);
-
-		hasDigitizerError = hasDigitizerIssue(grWaveformsRaw); 
+		hasDigitizerError = !(qualCut->isGoodEvent(realAtriEvPtr));
 		//if the event has a  digitizer error, skip it
-		//note that exiting this far up will prevent any errors with the averaging
-		//because we don't count contributions to the average until the numEvents++ later
 		if(hasDigitizerError){
-			deleteGraphVector(grWaveformsRaw); //cleanup
 			if (isSimulation == false) {
 				delete realAtriEvPtr;
 			}
-			continue; //skip this event
+			continue; //don't do any further processing on this event
 		}
-	   
-		ss.str("");
 
+		xLabel = "Time (ns)"; yLabel = "Voltage (mV)";
+		vector<TGraph*> grWaveformsRaw = makeGraphsFromRF(realAtriEvPtr, nGraphs, xLabel, yLabel, titlesForGraphs);
+   
+		ss.str("");
 		xLabel = "Time (ns)"; yLabel = "Voltage (mV)";
 		vector<TGraph*> grWaveformsInt = makeInterpolatedGraphs(grWaveformsRaw, interpolationTimeStep, xLabel, yLabel, titlesForGraphs);
 		
 		ss.str("");
-
 		vector<double> vWaveformRMS;
 		getRMS(grWaveformsInt, vWaveformRMS, 0);
 

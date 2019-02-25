@@ -14,6 +14,7 @@
 //AraRoot Includes
 #include "RawAtriStationEvent.h"
 #include "UsefulAtriStationEvent.h"
+#include "AraQualCuts.h"
 #include "FFTtools.h"
 
 #include "tools_PlottingFns.h"
@@ -76,6 +77,8 @@ int main(int argc, char **argv)
 	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
 	calibrator->setAtriPedFile(ped_file_name,station); //because someone had a brain (!!), this will error handle itself if the pedestal doesn't exist
 
+	AraQualCuts *qualCut = AraQualCuts::Instance(); //we also need a qual cuts tool
+
 	char outfile_name[400];
 	sprintf(outfile_name,"%s/low_freq_power_run%d.root",argv[4],run);
 
@@ -107,6 +110,12 @@ int main(int argc, char **argv)
 		isSoft = rawAtriEvPtr->isSoftwareTrigger();
 
 		UsefulAtriStationEvent *ev = new UsefulAtriStationEvent(rawAtriEvPtr,AraCalType::kLatestCalib);
+		hasDigitizerError = !(qualCut->isGoodEvent(ev));
+		if(hasDigitizerError){ //cleanup
+			outTree->Fill();
+			delete ev;
+			continue;
+		}
 
 		//now get the waveforms
 		stringstream ss1;
@@ -120,12 +129,7 @@ int main(int argc, char **argv)
 		}
 		vector <TGraph*> grWaveformsRaw = makeGraphsFromRF(ev,16,xLabel,yLabel,titlesForGraphs);
 		hasDigitizerError = hasDigitizerIssue(grWaveformsRaw);
-		if(hasDigitizerError){ //cleanup
-			outTree->Fill();
-			deleteGraphVector(grWaveformsRaw); //cleanup
-			delete ev;
-			continue;
-		}
+
 		vector<TGraph*> grWaveformsInt = makeInterpolatedGraphs(grWaveformsRaw, 0.6, xLabel, yLabel, titlesForGraphs);
 		vector<TGraph*> grWaveformsPadded = makePaddedGraphs(grWaveformsInt, 0, xLabel, yLabel, titlesForGraphs);
 		vector<TGraph*> grSpectra = makePowerSpectrumGraphs(grWaveformsPadded, xLabel, yLabel, titlesForGraphs);

@@ -31,6 +31,7 @@ UsefulAtriStationEvent *realAtriEvPtr;
 #include "Report.h"
 
 #include "AraAntennaInfo.h"
+#include "AraQualCuts.h"
 #include "RayTraceCorrelator.h"
 
 #include "tools_inputParameters.h"
@@ -52,7 +53,7 @@ int main(int argc, char **argv)
 	int year_now = time -> tm_year + 1900;
 	int month_now = time -> tm_mon + 1;
 	int day_now = time -> tm_mday;
-
+	
 	if(argc<7) {
 		std::cout << "Usage\n" << argv[0] << " <simulation_flag> <station> <year> <radius_bin> <output directory> <input file> <pedestal file> \n";
 		return -1;
@@ -78,6 +79,8 @@ int main(int argc, char **argv)
 	
 	int numRadiiScanned = 35;
 	int startingRadiusBin = radiusBin;
+
+	AraQualCuts *qualCut = AraQualCuts::Instance(); //we also need a qual cuts tool
 	
 	stringstream ss;
 	string xLabel, yLabel;
@@ -351,15 +354,8 @@ int main(int argc, char **argv)
 		if (analyzeEvent == true){
 
 			weight_out = weight;
-
-			xLabel = "Time (ns)"; yLabel = "Voltage (mV)";
-			vector<TGraph*> grWaveformsRaw = makeGraphsFromRF(realAtriEvPtr, nGraphs, xLabel, yLabel, titlesForGraphs);
-			ss.str("");
-			hasDigitizerError = hasDigitizerIssue(grWaveformsRaw); 
-			deleteGraphVector(grWaveformsRaw); //cleanup
+			hasDigitizerError = !(qualCut->isGoodEvent(realAtriEvPtr));
 			//if the event has a  digitizer error, skip it
-			//note that exiting this far up will prevent any errors with the averaging
-			//because we don't count contributions to the average until the numEvents++ later
 			if(hasDigitizerError){
 				OutputTree->Fill(); //fill this anyway with garbage
 				if (isSimulation == false) {
