@@ -91,7 +91,9 @@ int main(int argc, char **argv)
 			cout<<"conditioning value "<<i<<" is "<<conditioning[i]<<endl;
 		}
 
-		if(!(qual->isGoodEvent(realAtriEvPtr))) continue;
+		bool this_qual = qual->isGoodEvent(realAtriEvPtr); //get the quality
+		if(!this_qual) continue;
+		cout<<"Qual is "<<this_qual<<endl;
 	
 		//now, we'll get the waveform from channel 2
 		TGraph *waveform = realAtriEvPtr->getGraphFromRFChan(0);
