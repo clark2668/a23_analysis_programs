@@ -33,6 +33,7 @@
 #include "TTree.h"
 #include "TFile.h"
 #include "TGraph.h"
+#include "TCanvas.h"
 
 
 using namespace std;
@@ -66,7 +67,7 @@ int main(int argc, char **argv)
 	double numEntries = eventTree -> GetEntries(); //get the number of entries in this file
 
 	AraQualCuts *qual = AraQualCuts::Instance();
-	
+	numEntries=2;
 	for(int event=0; event<numEntries; event++){ //loop over those entries
 		
 		eventTree->GetEntry(event); //get the event
@@ -84,14 +85,22 @@ int main(int argc, char **argv)
 		
 		//make a *useful* event out of the *raw* event, which functionally just calibrates it
 		UsefulAtriStationEvent *realAtriEvPtr = new UsefulAtriStationEvent(rawAtriEvPtr, AraCalType::kLatestCalib);
-		if(!(qual->isGoodEvent(realAtriEvPtr))) continue;
-		
+
+		vector<string> conditioning = realAtriEvPtr->fConditioningList;
+		for(int i=0; i<conditioning.size(); i++){
+			cout<<"conditioning value "<<i<<" is "<<conditioning[i]<<endl;
+		}
+
+		bool this_qual = qual->isGoodEvent(realAtriEvPtr); //get the quality
+		if(!this_qual) continue;
+		cout<<"Qual is "<<this_qual<<endl;
+	
 		//now, we'll get the waveform from channel 2
-		TGraph *waveform = realAtriEvPtr->getGraphFromRFChan(2);
+		TGraph *waveform = realAtriEvPtr->getGraphFromRFChan(0);
 		TGraph *interpolated_waveform = FFTtools::getInterpolatedGraph(waveform, 0.5); //get an interpolated waveform with 0.5 ns interpolation
 		TGraph *padded_waveform = FFTtools::padWaveToLength(interpolated_waveform,2048);
 		TGraph *spectrum = FFTtools::makePowerSpectrumMilliVoltsNanoSeconds(padded_waveform); //now make a spectrum
-		
+	
 		//now do some cleanup
 		delete spectrum;
 		delete interpolated_waveform;
