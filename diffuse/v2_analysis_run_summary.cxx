@@ -54,19 +54,6 @@ int main(int argc, char **argv)
 	vector<double> RMS_All_total;
 	RMS_All_total.resize(nGraphs);
 
-	vector<TGraph*> PowerSpectrumAverage_RFTrigger;
-	vector<TGraph*> PowerSpectrumAverage_Calpulser;
-	vector<TGraph*> PowerSpectrumAverage_SoftTrigger;
-	PowerSpectrumAverage_RFTrigger.resize(nGraphs);
-	PowerSpectrumAverage_Calpulser.resize(nGraphs);
-	PowerSpectrumAverage_SoftTrigger.resize(nGraphs);
-
-	for (int i = 0; i < nGraphs; i++){
-		PowerSpectrumAverage_RFTrigger[i] = new TGraph(1024);
-		PowerSpectrumAverage_Calpulser[i] = new TGraph(1024);
-		PowerSpectrumAverage_SoftTrigger[i] = new TGraph(1024);
-	}
-
 	stringstream ss;
 	string xLabel, yLabel;
 	vector<string> titlesForGraphs;
@@ -129,14 +116,6 @@ int main(int argc, char **argv)
 	OutputTree->Branch("RMS_Calpulser", &RMS_Calpulser, "RMS_Calpulser[20]/D");
 	OutputTree->Branch("RMS_All", &RMS_All, "RMS_All[20]/D");
 
-	for (int i = 0; i < 16; i++){
-		ss.str("");	ss << "PowerSpectrumAverage_RFTrigger_" << i;
-		OutputTree->Branch(ss.str().c_str(), &PowerSpectrumAverage_RFTrigger[i]);
-		ss.str("");	ss << "PowerSpectrumAverage_Calpulser_" << i;
-		OutputTree->Branch(ss.str().c_str(), &PowerSpectrumAverage_Calpulser[i]);
-		ss.str("");	ss << "PowerSpectrumAverage_SoftTrigger_" << i;
-		OutputTree->Branch(ss.str().c_str(), &PowerSpectrumAverage_SoftTrigger[i]);
-	}
 	for(Long64_t event=0;event<numEntries;event++) {
 		if(event%starEvery==0) {
 			std::cerr << "*";       
@@ -196,32 +175,7 @@ int main(int argc, char **argv)
 		transform(RMS_All_total.begin(), RMS_All_total.end(), vWaveformRMS.begin(),
 		RMS_All_total.begin(), std::plus<double>());
 		numEvents++;
-
-		vector<TGraph*> grWaveformsPadded = makePaddedGraphs(grWaveformsInt, isSoftTrigger, xLabel, yLabel, titlesForGraphs);
-		vector<TGraph*> grWaveformsPowerSpectrum = makePowerSpectrumGraphs(grWaveformsPadded, xLabel, yLabel, titlesForGraphs);
-
-		for (int i = 0; i < nGraphs; i++){
-			for (int point = 0; point < grWaveformsPowerSpectrum[i]->GetN(); point++){
-				double x1,y1;
-				grWaveformsPowerSpectrum[i]->GetPoint(point, x1,y1);
-				double x2,y2;
-				if (isCalpulser == true){
-					PowerSpectrumAverage_Calpulser[i]->GetPoint(point,x2,y2);
-					PowerSpectrumAverage_Calpulser[i]->SetPoint(point,x1,y1+y2);
-				}
-				if (isSoftTrigger == true){
-					PowerSpectrumAverage_SoftTrigger[i]->GetPoint(point,x2,y2);
-					PowerSpectrumAverage_SoftTrigger[i]->SetPoint(point,x1,y1+y2);
-				}
-				if (isSoftTrigger == false && isCalpulser == false){
-					PowerSpectrumAverage_RFTrigger[i]->GetPoint(point,x2,y2);
-					PowerSpectrumAverage_RFTrigger[i]->SetPoint(point,x1,y1+y2);
-				}
-			}
-		}
-
-		deleteGraphVector(grWaveformsPowerSpectrum);
-		deleteGraphVector(grWaveformsPadded);
+		
 		deleteGraphVector(grWaveformsInt);
 		deleteGraphVector(grWaveformsRaw);
 		if (isSimulation == false) {
@@ -243,33 +197,6 @@ int main(int argc, char **argv)
 	copy(RMS_RFTrigger_total.begin(), RMS_RFTrigger_total.begin()+16, RMS_RFTrigger);
 	copy(RMS_SoftTrigger_total.begin(), RMS_SoftTrigger_total.begin()+16, RMS_SoftTrigger);
 	copy(RMS_Calpulser_total.begin(), RMS_Calpulser_total.begin()+16, RMS_Calpulser);
-
-	for (int i = 0; i < nGraphs; i++){
-		for (int point = 0; point < PowerSpectrumAverage_Calpulser[i]->GetN(); point++){
-			double x,y;
-			PowerSpectrumAverage_Calpulser[i]->GetPoint(point,x,y);
-			if (numCalpulsers != 0){
-				PowerSpectrumAverage_Calpulser[i]->SetPoint(point,x,y/(double)numCalpulsers);
-			} else {
-				PowerSpectrumAverage_Calpulser[i]->SetPoint(point,x,0);
-			}
-
-
-			PowerSpectrumAverage_SoftTrigger[i]->GetPoint(point,x,y);
-			if (numSoftTriggers != 0){
-				PowerSpectrumAverage_SoftTrigger[i]->SetPoint(point,x,y/(double)numSoftTriggers);
-			} else {
-				PowerSpectrumAverage_SoftTrigger[i]->SetPoint(point,x,0);
-			}
-
-			PowerSpectrumAverage_RFTrigger[i]->GetPoint(point,x,y);
-			if (numRFTriggers != 0){
-				PowerSpectrumAverage_RFTrigger[i]->SetPoint(point,x,y/(double)numRFTriggers);
-			} else{
-				PowerSpectrumAverage_RFTrigger[i]->SetPoint(point,x,0);
-			}
-		}
-	}
 
 	OutputTree->Fill();
 	OutputFile->Write();
