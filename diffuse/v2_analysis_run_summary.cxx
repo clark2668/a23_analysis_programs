@@ -19,6 +19,8 @@
 #include "TTree.h"
 #include "TFile.h"
 #include "TGraph.h"
+#include "Math/Interpolator.h"
+#include "Math/InterpolationTypes.h"
 
 RawAtriStationEvent *rawAtriEvPtr;
 UsefulAtriStationEvent *realAtriEvPtr;
@@ -29,6 +31,8 @@ UsefulAtriStationEvent *realAtriEvPtr;
 #include "tools_WaveformFns.h"
 #include "tools_PlottingFns.h"
 #include "tools_Cuts.h"
+
+TGraph *customInterpolation(TGraph *grIn, Double_t deltaT);
 
 int main(int argc, char **argv)
 {
@@ -44,6 +48,12 @@ int main(int argc, char **argv)
 	numSoftTriggers = 0;
 	numCalpulsers = 0;
 	numRFTriggers = 0;
+
+	int numAnts=16;
+	double lowFreqLimit=120;
+	double highFreqLimit=900.;
+	int WaveformLength=2048;
+	int newLength=(WaveformLength/2)+1;
 
 	vector<double> RMS_SoftTrigger_total;
 	RMS_SoftTrigger_total.resize(nGraphs);
@@ -93,6 +103,20 @@ int main(int argc, char **argv)
 
 	AraQualCuts *qualCut = AraQualCuts::Instance(); //we also need a qual cuts tool
 
+	double frequencyArray[newLength];
+	double FFTre[16][newLength];
+	double FFTim[16][newLength];
+	double FFT[16][newLength];
+	for(int j=0; j<newLength; j++){
+		for(int i=0; i<16; i++){
+			FFTre[i][j]=0;
+			FFTim[i][j]=0;
+			FFT[i][j]=0;
+		}
+		frequencyArray[j]=0;
+	}
+	int eventsIncludedCtr=0;
+
 	Long64_t numEntries=eventTree->GetEntries();
 	Long64_t starEvery=numEntries/100;
 	if(starEvery==0) starEvery++;
@@ -115,6 +139,15 @@ int main(int argc, char **argv)
 	OutputTree->Branch("RMS_RFTrigger", &RMS_RFTrigger, "RMS_RFTrigger[20]/D");
 	OutputTree->Branch("RMS_Calpulser", &RMS_Calpulser, "RMS_Calpulser[20]/D");
 	OutputTree->Branch("RMS_All", &RMS_All, "RMS_All[20]/D");
+
+	TTree *BaselineTree = new TTree("BaselineTree","BaselineTree");
+	vector <TGraph*> average;
+	average.resize(16);
+	stringstream ss1;
+	for(int i=0; i<16; i++){
+		ss1.str(""); ss1<<"baselines_RF_chan_"<<i;
+		BaselineTree->Branch(ss1.str().c_str(),&average[i]);
+	}
 
 	for(Long64_t event=0;event<numEntries;event++) {
 		if(event%starEvery==0) {
@@ -175,12 +208,50 @@ int main(int argc, char **argv)
 		transform(RMS_All_total.begin(), RMS_All_total.end(), vWaveformRMS.begin(),
 		RMS_All_total.begin(), std::plus<double>());
 		numEvents++;
-		
+
+		//now to make a baseline
+
+		if(!isCalpulser && !isSoftTrigger && !hasDigitizerError){
+
+			for(int chan=0; chan<numAnts; chan++){
+				TGraph *grInt = customInterpolation(grWaveformsRaw[chan],interpolationTimeStep);
+				TGraph *grPad = FFTtools::padWaveToLength(grInt,WaveformLength); //pad
+				double *getX = grPad->GetX();
+				double deltaT = getX[1]-getX[0];
+				while(grPad->GetN()<WaveformLength){
+					double lastX = 0.;
+					double lastY = 0.;
+					grPad->GetPoint(grPad->GetN()-1,lastX,lastY);
+					grPad->SetPoint(grPad->GetN(),lastX+deltaT,0);
+				}
+				double *getY = grPad->GetY();
+				int length = grPad->GetN();
+
+				FFTWComplex *theFFT = FFTtools::doFFT(length,getY);
+				double deltaF = 1/(deltaT * length);
+				deltaF*=1e3;
+
+				for(int samp=0; samp<newLength; samp++){
+					FFTre[chan][samp]+=pow(theFFT[samp].re,2.);
+					FFTim[chan][samp]+=pow(theFFT[samp].im,2.);
+
+					if(chan==0){
+						if(samp==0) frequencyArray[samp]=0.;
+						if(samp>0) frequencyArray[samp]=frequencyArray[samp-1]+deltaF;
+					}
+				}
+				delete [] theFFT;
+				delete grPad;
+				delete grInt;
+			}
+			eventsIncludedCtr++;
+		}
+
 		deleteGraphVector(grWaveformsInt);
 		deleteGraphVector(grWaveformsRaw);
 		if (isSimulation == false) {
 			delete realAtriEvPtr;
-		}	 
+		}
 	}
 
 	cout << numRFTriggers << " : ";
@@ -198,10 +269,77 @@ int main(int argc, char **argv)
 	copy(RMS_SoftTrigger_total.begin(), RMS_SoftTrigger_total.begin()+16, RMS_SoftTrigger);
 	copy(RMS_Calpulser_total.begin(), RMS_Calpulser_total.begin()+16, RMS_Calpulser);
 
+	//now compute the average baseline
+	if(eventsIncludedCtr>0){
+
+		for(int chan=0; chan<numAnts; chan++){
+			for(int samp=0; samp<newLength;samp++){
+				FFTre[chan][samp]=FFTre[chan][samp]/double(eventsIncludedCtr);
+				FFTim[chan][samp]=FFTre[chan][samp]/double(eventsIncludedCtr);
+				FFT[chan][samp]=sqrt(FFTre[chan][samp] + FFTim[chan][samp]);
+				if(FFT[chan][samp]>0.) FFT[chan][samp] = 10*log10(FFT[chan][samp]);
+				if(frequencyArray[samp]<lowFreqLimit || frequencyArray[samp]>highFreqLimit){
+					FFT[chan][samp]=0;
+				}
+			}
+		}
+		for(int chan=0; chan<16; chan++){
+			vector <double> freq;
+			vector <double> amps;
+			for(int samp=0; samp<newLength; samp++){
+				freq.push_back(frequencyArray[samp]);
+				amps.push_back(FFT[chan][samp]);
+			}
+			average[chan]=new TGraph(newLength,&freq[0],&amps[0]);
+		}
+	}
+
+	BaselineTree->Fill();
 	OutputTree->Fill();
 	OutputFile->Write();
 	OutputFile->Close();
+
 	fp->Close();
 	delete fp;
 	printf("Done! Run Number %d \n", runNum);
+}
+
+TGraph *customInterpolation(TGraph *grIn, Double_t deltaT)
+{
+	std::vector<double> tVec;
+	std::vector<double> vVec;
+
+	Int_t numIn=grIn->GetN();
+	Double_t tIn,vIn;
+
+	Double_t startTime=0;
+	Double_t lastTime=0;
+	for (int samp=0;samp<numIn;samp++) {
+		grIn->GetPoint(samp,tIn,vIn);
+		tVec.push_back(tIn);
+		vVec.push_back(vIn);
+		if(samp==0) startTime=tIn;
+		lastTime=tIn;
+	}
+	if(tVec.size()<1) {
+		std::cout << "Insufficent points for interpolation\n";
+		return NULL;
+	}
+
+	ROOT::Math::Interpolator chanInterp(tVec,vVec,ROOT::Math::Interpolation::kAKIMA);
+	Int_t roughPoints=Int_t((lastTime-startTime)/deltaT);
+
+	Double_t *newTimes = new Double_t[roughPoints+1]; //Will change this at some point, but for now
+	Double_t *newVolts = new Double_t[roughPoints+1]; //Will change this at some point, but for now
+	Int_t numPoints=0;
+	for(Double_t time=startTime;time<=lastTime;time+=deltaT) {
+		newTimes[numPoints]=time;
+		newVolts[numPoints]=chanInterp.Eval(time);
+		numPoints++;
+	}
+
+	TGraph *grInt = new TGraph(numPoints,newTimes,newVolts);
+	delete [] newTimes;
+	delete [] newVolts;
+	return grInt;
 }
