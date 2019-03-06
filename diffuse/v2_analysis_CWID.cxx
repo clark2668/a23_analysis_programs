@@ -40,6 +40,18 @@ int main(int argc, char **argv)
 		std::cout << "Usage\n" << argv[0] << " <simulation_flag> <station> <year> <output directory> <input file> <pedestal file> \n";
 		return -1;
 	}
+
+	/*
+	arguments
+	0: exec
+	1: simulation (yes/no)
+	2: station num (2/3)
+	3: year
+	4: output directory
+	5: input file
+	6: pedestal file
+	*/
+
 	int isSimulation=atoi(argv[1]);
 	int station_num=atoi(argv[2]);
 	int year=atoi(argv[3]);
@@ -80,7 +92,7 @@ int main(int argc, char **argv)
 
 	//first, let's get the baselines loaded in
 	char summary_file_name[400];
-	sprintf(summary_file_name,"/fs/scratch/PAS0654/ara/10pct/Baselines/A%d/%d/baseline_station_%d_run_%d.root",station_num,year,station_num, runNum);
+	sprintf(summary_file_name,"/fs/scratch/PAS0654/ara/10pct/RunSummary/A%d/%d/run_summary_station%d_run_%d.root",station_num,year,station_num, runNum);
 	TFile *SummaryFile = TFile::Open(summary_file_name);
 	if(!SummaryFile) {
 		std::cerr << "Can't open summary file\n";
@@ -134,9 +146,6 @@ int main(int argc, char **argv)
 	tempTree->Branch("hasError",&hasError);
 	vector<TGraph*> temp_phs;
 	temp_phs.resize(16);
-	// tempTree->Branch("temp_phs",&temp_phs);
-	// TGraph *temp_phs[16];
-	// tempTree->Branch("temp_phs",&temp_phs, "temp_phs[16]");
 	stringstream ss;
 	for(int i=0; i<16; i++){
 		ss.str(""); ss<<"temp_phs_"<<i;
@@ -147,7 +156,12 @@ int main(int argc, char **argv)
 		eventTree->GetEntry(event);
 		if (isSimulation == false){
 			realAtriEvPtr = new UsefulAtriStationEvent(rawAtriEvPtr, AraCalType::kLatestCalib);
+			hasError = !(qualCut->isGoodEvent(realAtriEvPtr));
 		}
+		else if(isSimulation){
+			hasError=false;
+		}
+
 		stringstream ss;
 		string xLabel, yLabel;
 		xLabel = "Time (ns)"; yLabel = "Voltage (mV)";
@@ -158,7 +172,6 @@ int main(int argc, char **argv)
 			titlesForGraphs.push_back(ss.str());
 		}
 		vector<TGraph*> grWaveformsRaw = makeGraphsFromRF(realAtriEvPtr, 16, xLabel, yLabel, titlesForGraphs);
-		hasError = !(qualCut->isGoodEvent(realAtriEvPtr));
 		if(hasError){
 			//if it has a digitizer error, just push back junk
 			for(int i=0; i<16; i++){
