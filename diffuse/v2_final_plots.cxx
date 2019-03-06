@@ -43,10 +43,6 @@ int main(int argc, char **argv)
 	}
 	int station = atoi(argv[1]);
 	int year = atoi(argv[2]);
-
-	//just to have the cut parameters up front and easy to find
-	int thresholdBin_pol[]={3,5}; //bin 3 = 2.3, bin 5 = 2.5 //what is the faceRMS inclusion threshold?
-	double wavefrontRMScut[]={-1.5, -1.5}; //event wavefrontRMS < this value
 	
 	TH2D *PeakCorr_vs_SNR_all[2];
 	PeakCorr_vs_SNR_all[0]=new TH2D("","V",30,0,30,100,0,1);
@@ -132,6 +128,7 @@ int main(int argc, char **argv)
 		int isCW;
 		int isNewBox;
 		int isSurf;
+		int isBadEvent;
 
 		trees[2]->SetBranchAddress("cal",&isCal);
 		trees[2]->SetBranchAddress("soft",&isSoft);
@@ -139,6 +136,7 @@ int main(int argc, char **argv)
 		trees[2]->SetBranchAddress("CW",&isCW);
 		trees[2]->SetBranchAddress("box",&isNewBox);
 		trees[2]->SetBranchAddress("surf",&isSurf);
+		trees[2]->SetBranchAddress("bad",&isBadEvent);
 
 		stringstream ss;
 		for(int i=0; i<8; i++){
@@ -158,11 +156,10 @@ int main(int argc, char **argv)
 		for(int event=0; event<trees[0]->GetEntries(); event++){
 		//for(int event=0; event<25; event++){
 
-			if(isBadEvent(station, year, runNum, event)) continue;
-
 			trees[0]->GetEvent(event);
 			trees[1]->GetEvent(event);
 			trees[2]->GetEvent(event);
+			if(isBadEvent) continue;
 			num_total++;
 
 			for(int pol=0; pol<2; pol++){
