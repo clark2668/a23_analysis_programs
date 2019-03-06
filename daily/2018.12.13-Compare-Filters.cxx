@@ -194,7 +194,7 @@ int main(int argc, char **argv)
 			runSummaryFilename = "/fs/scratch/PAS0654/ara/sim/RunSummary/run_summary_station_2_run_0.root";
 		}
 		else if(station_num==3){
-			runSummaryFilename = "/fs/scratch/PAS0654/ara/sim/RunSummary/run_summary_station_3_run_0.root";
+			runSummaryFilename = "/fs/scratch/PAS0654/ara/sim/RunSummary/run_summary_station_3_run_1.root";
 		}
 	}
 	TFile *SummaryFile = TFile::Open(runSummaryFilename.c_str());
@@ -365,14 +365,24 @@ int main(int argc, char **argv)
 		if(!isSimulation){
 			realAtriEvPtr = new UsefulAtriStationEvent(rawAtriEvPtr, AraCalType::kLatestCalib);
 		}
+
 		
 		if (isSimulation){
 			isCalpulser = false;
 			isSoftTrigger = false;
+			hasDigitizerError=false;
 		} else{
 			isCalpulser = rawAtriEvPtr->isCalpulserEvent();
 			isSoftTrigger = rawAtriEvPtr->isSoftwareTrigger();
 			weight = 1.;
+			hasDigitizerError = !(qual->isGoodEvent(realAtriEvPtr));
+		}
+		if(hasDigitizerError){
+			OutputTree->Fill(); //fill this anyway with garbage
+			if (isSimulation == false) {
+				delete realAtriEvPtr;
+			}
+			continue; //don't do any further processing on this event
 		}
 
 		bool analyzeEvent = false;
@@ -385,16 +395,6 @@ int main(int argc, char **argv)
 		if (analyzeEvent == true){
 
 			weight_out = weight;
-			hasDigitizerError = !(qual->isGoodEvent(realAtriEvPtr));
-			if(hasDigitizerError){
-				OutputTree->Fill(); //fill this anyway with garbage
-				if (isSimulation == false) {
-					delete realAtriEvPtr;
-				}
-				continue; //don't do any further processing on this event
-			}
-
-			// cout<<"weight out is "<<weight_out<<endl;
 	
 			xLabel = "Time (ns)"; yLabel = "Voltage (mV)";
 			vector<TGraph*> grWaveformsRaw = makeGraphsFromRF(realAtriEvPtr, nGraphs, xLabel, yLabel, titlesForGraphs);
