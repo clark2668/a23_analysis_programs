@@ -47,8 +47,8 @@ UsefulAtriStationEvent *realAtriEvPtr;
 int main(int argc, char **argv)
 {
 
-	if(argc<6) {
-		std::cout << "Usage\n" << argv[0] << " <simulation_flag> <station> <run summary directory> <output directory> <input file> <pedestal file> \n";
+	if(argc<7) {
+		std::cout << "Usage\n" << argv[0] << " <simulation_flag> <station> <year> <run summary directory> <output directory> <input file> <pedestal file> \n";
 		return -1;
 	}
 
@@ -57,15 +57,17 @@ int main(int argc, char **argv)
 	0: exec
 	1: simulation (yes/no)
 	2: station num (2/3)
-	3: run summary directory
-	4: output directory
-	5: input file
-	6: pedestal file
+	3: year
+	4: run summary directory
+	5: output directory
+	6: input file
+	7: pedestal file
 	*/
 
 	isSimulation=atoi(argv[1]);
 	int station_num=atoi(argv[2]);
 	calpulserRunMode=0; //analyze all events
+	int year=atoi(argv[3]);
 		
 	stringstream ss;
 	string xLabel, yLabel;
@@ -79,7 +81,7 @@ int main(int argc, char **argv)
 	AraGeomTool * geomTool = new AraGeomTool();
 	AraQualCuts *qualCut = AraQualCuts::Instance();
 	
-	TFile *fp = TFile::Open(argv[5]);
+	TFile *fp = TFile::Open(argv[6]);
 	if(!fp) {
 		std::cout << "Can't open file\n";
 		return -1;
@@ -151,7 +153,7 @@ int main(int argc, char **argv)
 	
 	if (argc == 7){
 		cout << "Trying to load named pedestal" << endl;
-		calibrator->setAtriPedFile(argv[6], station_num);
+		calibrator->setAtriPedFile(argv[7], station_num);
 		cout << "Loaded named pedestal" << endl;
 	} else {
 		cout << "Trying to load blank pedestal" << endl;
@@ -181,12 +183,12 @@ int main(int argc, char **argv)
 	Long64_t starEvery=numEntries/80;
 	if(starEvery==0) starEvery++;
 		
-	int runNum = getrunNum(argv[5]);
+	int runNum = getrunNum(argv[6]);
 	printf("Filter Run Number %d \n", runNum);
 
 	string runSummaryFilename;
 	if (isSimulation == false){
-		runSummaryFilename = getRunSummaryFilename(station_num, argv[3], argv[5]);
+		runSummaryFilename = getRunSummaryFilename(station_num, argv[4], argv[6]);
 	}
 	else {
 		if(station_num==2){
@@ -212,7 +214,7 @@ int main(int argc, char **argv)
 	SummaryTree->SetBranchAddress("RMS_SoftTrigger", &RMS_SoftTrigger);
 	SummaryTree->GetEntry(0);
 	
-	string processedFilename = getProcessedFilename_filter(station_num, argv[4], argv[5]);
+	string processedFilename = getProcessedFilename_filter(station_num, argv[5], argv[6]);
 	cout<<"processed filename is "<<processedFilename<<endl;
 	TFile *OutputFile = TFile::Open(processedFilename.c_str(), "RECREATE");
 	TTree* OutputSettingsTree = new TTree("OutputSettingsTree", "OutputSettingsTree");
@@ -262,8 +264,29 @@ int main(int argc, char **argv)
 	
 	// event filter information   
 	OutputTree->Branch("TSQualParam", &TSQualParam, "TSQualParam/D");   
-	OutputTree->Branch("rms_pol_thresh_face", &rms_pol_thresh_face, "rms_pol_thresh_face[2][15][12]/D");
-	OutputTree->Branch("rms_pol_thresh_face_drop", &rms_pol_thresh_face_drop, "rms_pol_thresh_face_drop[2][15][12]/D"); //for when we drop channels
+	OutputTree->Branch("rms_pol_thresh_face_V", &rms_pol_thresh_face_V, "rms_pol_thresh_face_V[15][12]/D");
+	OutputTree->Branch("rms_pol_thresh_face_H", &rms_pol_thresh_face_H, "rms_pol_thresh_face_H[15][12]/D");
+
+	int dropBadChans=1;
+	int numFaces_new_V;
+	int numFaces_new_H;
+	if(station_num==2){
+		numFaces_new_V = numFaces;
+		numFaces_new_H = numFaces_A2_drop;
+	}
+	else if(station_num==3){
+		numFaces_new_V = numFaces_A3_drop;
+		numFaces_new_H = numFaces_A3_drop;
+	}
+	double rms_pol_thresh_face_alternate_V[thresholdSteps][numFaces_new_V];
+	double rms_pol_thresh_face_alternate_H[thresholdSteps][numFaces_new_H];
+	char rms_title_V[300];
+	char rms_title_H[300];
+	sprintf(rms_title_V,"rms_pol_thresh_face_alternate_V[15][%d]/D",numFaces_new_V); 
+	sprintf(rms_title_H,"rms_pol_thresh_face_alternate_H[15][%d]/D",numFaces_new_H); 
+	OutputTree->Branch("rms_pol_thresh_face_alternate_V", &rms_pol_thresh_face_alternate_V,rms_title_V);
+	OutputTree->Branch("rms_pol_thresh_face_alternate_H", &rms_pol_thresh_face_alternate_H,rms_title_H);
+
 	
 	// polarization parameters
 	OutputTree->Branch("polarizationRatio", &polarizationRatio, "polarizationRatio/D");   
@@ -476,7 +499,6 @@ int main(int argc, char **argv)
 	
 			//first apply the filter with *no* dropped channels
 			vector<vector<vector<vector<int> > > > faces = setupFaces(station_num);
-	
 			for (int thresholdBin = 0; thresholdBin < thresholdSteps; thresholdBin++){
 				double threshold = thresholdMin + thresholdStep*(double)thresholdBin;
 		
@@ -484,35 +506,28 @@ int main(int argc, char **argv)
 				vector<double> rms_faces_H = getRms_Faces_Thresh_N(vvHitTimes, vvRMS_10overRMS, threshold, 1, faces, ant_loc);
 		
 				for (int i = 0; i < numFaces; i++){
-					rms_pol_thresh_face[0][thresholdBin][i] = rms_faces_V[i];
-					rms_pol_thresh_face[1][thresholdBin][i] = rms_faces_H[i];
+					rms_pol_thresh_face_V[thresholdBin][i] = rms_faces_V[i];
+					rms_pol_thresh_face_H[thresholdBin][i] = rms_faces_H[i];
 				}
 		
 			} // end threshold scan
 
-			int dropBadChans=1;
-
 			//then apply the filter over again *with* dropped channels
+			int dropBadChans=1;
 			vector<vector<vector<vector<int> > > > faces_drop = setupFaces(station_num, dropBadChans);
-
 			for (int thresholdBin = 0; thresholdBin < thresholdSteps; thresholdBin++){
 				double threshold = thresholdMin + thresholdStep*(double)thresholdBin;
 		
-				vector<double> rms_faces_V_drop = getRms_Faces_Thresh_N(vvHitTimes, vvRMS_10overRMS, threshold, 0, faces_drop, ant_loc);
-				vector<double> rms_faces_H_drop = getRms_Faces_Thresh_N(vvHitTimes, vvRMS_10overRMS, threshold, 1, faces_drop, ant_loc);
-
-				int num_faces_for_loop = 0;
-				if(station_num==2) num_faces_for_loop = numFaces_A2_drop;
-				if(station_num==3) num_faces_for_loop = numFaces_A3_drop;
-
-				for (int i = 0; i < num_faces_for_loop; i++){
-					rms_pol_thresh_face_drop[0][thresholdBin][i] = rms_faces_V_drop[i];
-					rms_pol_thresh_face_drop[1][thresholdBin][i] = rms_faces_H_drop[i];
+				vector<double> rms_faces_V_alternate = getRms_Faces_Thresh_N(vvHitTimes, vvRMS_10overRMS, threshold, 0, faces_drop, ant_loc);
+				vector<double> rms_faces_H_alternate = getRms_Faces_Thresh_N(vvHitTimes, vvRMS_10overRMS, threshold, 1, faces_drop, ant_loc);
+		
+				for (int i = 0; i < numFaces_new_V; i++){
+					rms_pol_thresh_face_alternate_V[thresholdBin][i] = rms_faces_V_alternate[i];
 				}
-
+				for (int i = 0; i < numFaces_new_H; i++){
+					rms_pol_thresh_face_alternate_H[thresholdBin][i] = rms_faces_H_alternate[i];
+				}
 			} // end threshold scan
-
-
 				
 			OutputTree->Fill();
 
@@ -525,7 +540,6 @@ int main(int argc, char **argv)
 		} //analyze event?
 	} //loop over events
 	
-
 	OutputFile->Write();
 	OutputFile->Close();
 	fp->Close();
