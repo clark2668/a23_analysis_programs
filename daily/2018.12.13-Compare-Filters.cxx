@@ -32,6 +32,7 @@ UsefulAtriStationEvent *realAtriEvPtr;
 
 #include "AraGeomTool.h"
 #include "AraAntennaInfo.h"
+#include "AraQualCuts.h"
 
 #include "tools_inputParameters.h"
 #include "tools_outputObjects.h"
@@ -46,7 +47,7 @@ int main(int argc, char **argv)
 {
 
 	if(argc<6) {
-		std::cout << "Usage\n" << argv[0] << " <simulation_flag> <station> <run summary directory> <output directory> <input file> <pedestal file> \n";
+		std::cout << "Usage\n" << argv[0] << " <simulation_flag> <station> <year> <run summary directory> <output directory> <input file> <pedestal file> \n";
 		return -1;
 	}
 
@@ -55,15 +56,17 @@ int main(int argc, char **argv)
 	0: exec
 	1: simulation (yes/no)
 	2: station num (2/3)
-	3: run summary directory
-	4: output directory
-	5: input file
-	6: pedestal file
+	3: year
+	4: run summary directory
+	5: output directory
+	6: input file
+	7: pedestal file
 	*/
 
 	isSimulation=atoi(argv[1]);
 	int station_num=atoi(argv[2]);
 	calpulserRunMode=0; //analyze all events
+	int year=atoi(argv[3]);
 		
 	stringstream ss;
 	string xLabel, yLabel;
@@ -76,7 +79,7 @@ int main(int argc, char **argv)
 	
 	AraGeomTool * geomTool = new AraGeomTool();
 	
-	TFile *fp = TFile::Open(argv[5]);
+	TFile *fp = TFile::Open(argv[6]);
 	if(!fp) {
 		std::cout << "Can't open file\n";
 		return -1;
@@ -145,10 +148,11 @@ int main(int argc, char **argv)
 	}
 
 	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
+	AraQualCuts *qual = AraQualCuts::Instance();
 	
-	if (argc == 7){
+	if (argc == 8){
 		cout << "Trying to load named pedestal" << endl;
-		calibrator->setAtriPedFile(argv[6], station_num);
+		calibrator->setAtriPedFile(argv[7], station_num);
 		cout << "Loaded named pedestal" << endl;
 	} else {
 		cout << "Trying to load blank pedestal" << endl;
@@ -178,12 +182,12 @@ int main(int argc, char **argv)
 	Long64_t starEvery=numEntries/80;
 	if(starEvery==0) starEvery++;
 		
-	int runNum = getrunNum(argv[5]);
+	int runNum = getrunNum(argv[6]);
 	printf("Filter Run Number %d \n", runNum);
 
 	string runSummaryFilename;
 	if (isSimulation == false){
-		runSummaryFilename = getRunSummaryFilename(station_num, argv[3], argv[5]);
+		runSummaryFilename = getRunSummaryFilename(station_num, argv[4], argv[6]);
 	}
 	else {
 		if(station_num==2){
@@ -209,7 +213,7 @@ int main(int argc, char **argv)
 	SummaryTree->SetBranchAddress("RMS_SoftTrigger", &RMS_SoftTrigger);
 	SummaryTree->GetEntry(0);
 	
-	string processedFilename = getProcessedFilename_filter(station_num, argv[4], argv[5]);
+	string processedFilename = getProcessedFilename_filter(station_num, argv[5], argv[6]);
 	cout<<"processed filename is "<<processedFilename<<endl;
 	TFile *OutputFile = TFile::Open(processedFilename.c_str(), "RECREATE");
 	TTree* OutputSettingsTree = new TTree("OutputSettingsTree", "OutputSettingsTree");
@@ -228,7 +232,8 @@ int main(int argc, char **argv)
 	// event summary information
 	OutputTree->Branch("isCalpulser", &isCalpulser, "isCalpulser/O");
 	OutputTree->Branch("isSoftTrigger", &isSoftTrigger, "isSoftTrigger/O");
-	OutputTree->Branch("thirdVPeakOverRMS", &thirdVPeakOverRMS, "thirdVPeakOverRMS[3]/D");   
+	OutputTree->Branch("thirdVPeakOverRMS", &thirdVPeakOverRMS, "thirdVPeakOverRMS[3]/D");  
+	OutputTree->Branch("hasDigitizerError", &hasDigitizerError, "hasDigitizerError/O"); 
 	OutputTree->Branch("unixTime", &unixTime);
 	OutputTree->Branch("unixTimeUs", &unixTimeUs);
 	OutputTree->Branch("eventNumber", &eventNumber);
@@ -255,27 +260,36 @@ int main(int argc, char **argv)
 	
 	// event filter information   
 	OutputTree->Branch("TSQualParam", &TSQualParam, "TSQualParam/D");   
-	OutputTree->Branch("rms_pol_thresh_face", &rms_pol_thresh_face, "rms_pol_thresh_face[2][15][12]/D");
+	OutputTree->Branch("rms_pol_thresh_face_V", &rms_pol_thresh_face_V, "rms_pol_thresh_face_V[15][12]/D");
+	OutputTree->Branch("rms_pol_thresh_face_H", &rms_pol_thresh_face_H, "rms_pol_thresh_face_H[15][12]/D");
 
 	int dropBadChans=1;
-	int numFaces_new=3;
-
-	double rms_pol_thresh_face_alternate[2][thresholdSteps][numFaces_new];
-	char rms_title[300];
-	sprintf(rms_title,"rms_pol_thresh_face_alternate[2][15][%d]/D",numFaces_new); 
-	OutputTree->Branch("rms_pol_thresh_face_alternate", &rms_pol_thresh_face_alternate,rms_title);
-	
-	// polarization parameters
-	OutputTree->Branch("polarizationRatio", &polarizationRatio, "polarizationRatio/D");   
+	int numFaces_new_V;
+	int numFaces_new_H;
+	if(station_num==2){
+		numFaces_new_V = numFaces;
+		numFaces_new_H = numFaces_A2_drop;
+	}
+	else if(station_num==3){
+		numFaces_new_V = numFaces_A3_drop;
+		numFaces_new_H = numFaces_A3_drop;
+	}
+	double rms_pol_thresh_face_alternate_V[thresholdSteps][numFaces_new_V];
+	double rms_pol_thresh_face_alternate_H[thresholdSteps][numFaces_new_H];
+	char rms_title_V[300];
+	char rms_title_H[300];
+	sprintf(rms_title_V,"rms_pol_thresh_face_alternate_V[15][%d]/D",numFaces_new_V); 
+	sprintf(rms_title_H,"rms_pol_thresh_face_alternate_H[15][%d]/D",numFaces_new_H); 
+	OutputTree->Branch("rms_pol_thresh_face_alternate_V", &rms_pol_thresh_face_alternate_V,rms_title_V);
+	OutputTree->Branch("rms_pol_thresh_face_alternate_H", &rms_pol_thresh_face_alternate_H,rms_title_H);
 
 	int eventSim = 0;
-	numEntries=2;
 	for(Long64_t event=0;event<numEntries;event++) {
 
 		if(event%starEvery==0) {
 			std::cout << "*";
 		}
-		cout<<"On event "<<event<<endl;
+		// cout<<"On event "<<event<<endl;
 
 		eventTree->GetEntry(event);
 		if (isSimulation == false){
@@ -371,6 +385,15 @@ int main(int argc, char **argv)
 		if (analyzeEvent == true){
 
 			weight_out = weight;
+			hasDigitizerError = !(qual->isGoodEvent(realAtriEvPtr));
+			if(hasDigitizerError){
+				OutputTree->Fill(); //fill this anyway with garbage
+				if (isSimulation == false) {
+					delete realAtriEvPtr;
+				}
+				continue; //don't do any further processing on this event
+			}
+
 			// cout<<"weight out is "<<weight_out<<endl;
 	
 			xLabel = "Time (ns)"; yLabel = "Voltage (mV)";
@@ -386,7 +409,6 @@ int main(int argc, char **argv)
 			TSQualParam = -1.;
 			TSQualParam = filterEventPtr->getQualityParameter(grWaveformsRaw, ant_loc, station_num, qualArray);
 			delete filterEventPtr;
-	
 			xLabel = "Time (ns)"; yLabel = "Voltage (mV)";
 			vector<TGraph*> grWaveformsInt = makeInterpolatedGraphs(grWaveformsRaw, interpolationTimeStep, xLabel, yLabel, titlesForGraphs);
 	
@@ -409,9 +431,9 @@ int main(int argc, char **argv)
 				}
 			}
 
-			for(int i=0; i<16; i++){
-				printf("Chan %d RMS is %.2f \n", i, vWaveformRMS[i]);
-			}
+			// for(int i=0; i<16; i++){
+			// 	printf("Chan %d RMS is %.2f \n", i, vWaveformRMS[i]);
+			// }
 
 			copy(vWaveformRMS.begin(), vWaveformRMS.begin()+16, waveformRMS);
 	
@@ -467,56 +489,32 @@ int main(int argc, char **argv)
 					vvRMS_10overRMS[i][j] = sqrt(vvPeakIntPowers[i][j]/numBinsToIntegrate)/waveformRMS[i];
 				}
 			}
-		
-			polarizationRatio = getPolarizationRatio(grWaveformsRaw, polarizations);
-	
-			vector<vector<vector<vector<int> > > > faces = setupFaces(station_num);
-			vector<double> faceRmsAllForReco_sorted;
-	
+
+			vector<vector<vector<vector<int> > > > faces = setupFaces(station_num);	
 			for (int thresholdBin = 0; thresholdBin < thresholdSteps; thresholdBin++){
 				double threshold = thresholdMin + thresholdStep*(double)thresholdBin;
 		
 				vector<double> rms_faces_V = getRms_Faces_Thresh_N(vvHitTimes, vvRMS_10overRMS, threshold, 0, faces, ant_loc);
 				vector<double> rms_faces_H = getRms_Faces_Thresh_N(vvHitTimes, vvRMS_10overRMS, threshold, 1, faces, ant_loc);
 		
-		
 				for (int i = 0; i < numFaces; i++){
-					rms_pol_thresh_face[0][thresholdBin][i] = rms_faces_V[i];
-					rms_pol_thresh_face[1][thresholdBin][i] = rms_faces_H[i];
-				}
-		
-				sort(rms_faces_V.begin(), rms_faces_V.end());
-				sort(rms_faces_H.begin(), rms_faces_H.end());
-		
-				if (thresholdBin == 3){
-					faceRmsAllForReco_sorted.insert(faceRmsAllForReco_sorted.end(), rms_faces_V.begin(), rms_faces_V.end());
-					faceRmsAllForReco_sorted.insert(faceRmsAllForReco_sorted.end(), rms_faces_H.begin(), rms_faces_H.end());
-					sort(faceRmsAllForReco_sorted.begin(), faceRmsAllForReco_sorted.end());
+					rms_pol_thresh_face_V[thresholdBin][i] = rms_faces_V[i];
+					rms_pol_thresh_face_H[thresholdBin][i] = rms_faces_H[i];
 				}
 			} // end threshold scan
-			
-			vector<vector<vector<vector<int> > > > faces_alternate = setupFaces(station_num, dropBadChans);
-			vector<double> faceRmsAllForReco_sorted_alternate;
 
+			vector<vector<vector<vector<int> > > > faces_alternate = setupFaces(station_num, dropBadChans);
 			for (int thresholdBin = 0; thresholdBin < thresholdSteps; thresholdBin++){
 				double threshold = thresholdMin + thresholdStep*(double)thresholdBin;
 		
 				vector<double> rms_faces_V_alternate = getRms_Faces_Thresh_N(vvHitTimes, vvRMS_10overRMS, threshold, 0, faces_alternate, ant_loc);
 				vector<double> rms_faces_H_alternate = getRms_Faces_Thresh_N(vvHitTimes, vvRMS_10overRMS, threshold, 1, faces_alternate, ant_loc);
-		
-		
-				for (int i = 0; i < numFaces_new; i++){
-					rms_pol_thresh_face_alternate[0][thresholdBin][i] = rms_faces_V_alternate[i];
-					rms_pol_thresh_face_alternate[1][thresholdBin][i] = rms_faces_H_alternate[i];
+
+				for (int i = 0; i < numFaces_new_V; i++){
+					rms_pol_thresh_face_alternate_V[thresholdBin][i] = rms_faces_V_alternate[i];
 				}
-		
-				sort(rms_faces_V_alternate.begin(), rms_faces_V_alternate.end());
-				sort(rms_faces_H_alternate.begin(), rms_faces_H_alternate.end());
-		
-				if (thresholdBin == 3){
-					faceRmsAllForReco_sorted_alternate.insert(faceRmsAllForReco_sorted_alternate.end(), rms_faces_V_alternate.begin(), rms_faces_V_alternate.end());
-					faceRmsAllForReco_sorted_alternate.insert(faceRmsAllForReco_sorted_alternate.end(), rms_faces_H_alternate.begin(), rms_faces_H_alternate.end());
-					sort(faceRmsAllForReco_sorted_alternate.begin(), faceRmsAllForReco_sorted_alternate.end());
+				for (int i = 0; i < numFaces_new_H; i++){
+					rms_pol_thresh_face_alternate_H[thresholdBin][i] = rms_faces_H_alternate[i];
 				}
 			} // end threshold scan
 

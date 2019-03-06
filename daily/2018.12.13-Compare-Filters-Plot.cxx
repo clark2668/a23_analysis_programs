@@ -26,6 +26,7 @@
 #include "tools_PlottingFns.h"
 #include "tools_RecoFns.h"
 #include "tools_inputParameters.h"
+#include "tools_outputObjects.h"
 
 using namespace std;
 
@@ -59,17 +60,23 @@ int main(int argc, char **argv)
 	int thresholdBin_pol[]={selected_bin, selected_bin}; //bin 3 = 2.3, bin 5 = 2.5 //what is the faceRMS inclusion threshold?
 	double wavefrontRMScut[]={selected_cut, selected_cut}; //event wavefrontRMS < this value
 
-	TH2D *wfrms_plots[6];
-	wfrms_plots[0] = new TH2D("Vpol_12face","Vpol_12face",100,-5,5,40,0,40);
-	wfrms_plots[1] = new TH2D("Hpol_12face","Hpol_12face",100,-5,5,40,0,40);
-	wfrms_plots[2] = new TH2D("Vpol_3face","Vpol_3face",100,-5,5,40,0,40);
-	wfrms_plots[3] = new TH2D("Hpol_3face","Hpol_3face",100,-5,5,40,0,40);
+	TH2D *wfrms_plots[4];
+	wfrms_plots[0] = new TH2D("Vpol_org","Vpol_org",100,-5,5,40,0,40);
+	wfrms_plots[1] = new TH2D("Hpol_org","Hpol_org",100,-5,5,40,0,40);
+	wfrms_plots[2] = new TH2D("Vpol_alt","Vpol_alt",100,-5,5,40,0,40);
+	wfrms_plots[3] = new TH2D("Hpol_alt","Hpol_alt",100,-5,5,40,0,40);
 
-	TH2D *wfrms_plots_cal[6];
-	wfrms_plots_cal[0] = new TH2D("Vpol_12face_cal","Vpol_12face_cal",100,-5,5,40,0,40);
-	wfrms_plots_cal[1] = new TH2D("Hpol_12face_cal","Hpol_12face_cal",100,-5,5,40,0,40);
-	wfrms_plots_cal[2] = new TH2D("Vpol_3face_cal","Vpol_3face_cal",100,-5,5,40,0,40);
-	wfrms_plots_cal[3] = new TH2D("Hpol_3face_cal","Hpol_3face_cal",100,-5,5,40,0,40);
+	TH2D *wfrms_plots_cal[4];
+	wfrms_plots_cal[0] = new TH2D("Vpol_org_cal","Vpol_org_cal",100,-5,5,40,0,40);
+	wfrms_plots_cal[1] = new TH2D("Hpol_org_cal","Hpol_org_cal",100,-5,5,40,0,40);
+	wfrms_plots_cal[2] = new TH2D("Vpol_alt_cal","Vpol_alt_cal",100,-5,5,40,0,40);
+	wfrms_plots_cal[3] = new TH2D("Hpol_alt_cal","Hpol_alt_cal",100,-5,5,40,0,40);
+
+	TH2D *wfrms_plots_rf[4];
+	wfrms_plots_rf[0] = new TH2D("Vpol_org_rf","Vpol_org_rf",100,-5,5,40,0,40);
+	wfrms_plots_rf[1] = new TH2D("Hpol_org_rf","Hpol_org_rf",100,-5,5,40,0,40);
+	wfrms_plots_rf[2] = new TH2D("Vpol_alt_rf","Vpol_alt_rf",100,-5,5,40,0,40);
+	wfrms_plots_rf[3] = new TH2D("Hpol_alt_rf","Hpol_alt_rf",100,-5,5,40,0,40);
 
 	double num_total=0.;
 	double num_thermal=0.;
@@ -104,15 +111,27 @@ int main(int argc, char **argv)
 			return -1;
 		}
 		double thirdVPeakOverRMS[3]; //the third highest vpeak over RMS
-		double rms_pol_thresh_face[2][15][12];
-		double rms_pol_thresh_face_alternate[2][15][3];
+		int numFaces_new_V;
+		int numFaces_new_H;
+		if(station==2){
+			numFaces_new_V = numFaces;
+			numFaces_new_H = numFaces_A2_drop;
+		}
+		else if(station==3){
+			numFaces_new_V = numFaces_A3_drop;
+			numFaces_new_H = numFaces_A3_drop;
+		}
+		double rms_pol_thresh_face_alternate_V[thresholdSteps][numFaces_new_V];
+		double rms_pol_thresh_face_alternate_H[thresholdSteps][numFaces_new_H];
 		bool isCalPulser;
 		bool isSoftTrigger;
 		int waveformLength[16];
 		double weight;
 		inputTree_filter->SetBranchAddress("thirdVPeakOverRMS", &thirdVPeakOverRMS);
-		inputTree_filter->SetBranchAddress("rms_pol_thresh_face", &rms_pol_thresh_face);
-		inputTree_filter->SetBranchAddress("rms_pol_thresh_face_alternate", &rms_pol_thresh_face_alternate);
+		inputTree_filter->SetBranchAddress("rms_pol_thresh_face_V", &rms_pol_thresh_face_V);
+		inputTree_filter->SetBranchAddress("rms_pol_thresh_face_H", &rms_pol_thresh_face_H);
+		inputTree_filter->SetBranchAddress("rms_pol_thresh_face_alternate_V", &rms_pol_thresh_face_alternate_V);
+		inputTree_filter->SetBranchAddress("rms_pol_thresh_face_alternate_H", &rms_pol_thresh_face_alternate_H);
 		inputTree_filter->SetBranchAddress("isCalpulser",&isCalPulser);
 		inputTree_filter->SetBranchAddress("isSoftTrigger",&isSoftTrigger);
 		inputTree_filter->SetBranchAddress("waveformLength",&waveformLength);
@@ -123,9 +142,7 @@ int main(int argc, char **argv)
 		if(starEvery==0) starEvery++;
 
 		//now to loop over events
-		numEntries=3;
 		for(int event=0; event<numEntries; event++){
-
 			inputTree_filter->GetEvent(event);
 
 			num_total+=weight;
@@ -135,7 +152,7 @@ int main(int argc, char **argv)
 			failWavefrontRMS[0]=false;
 			failWavefrontRMS[1]=false;
 
-			for(int i=0;i<16;i++){ if(waveformLength[i]<550) isShort=true; }
+			for(int i=0;i<16;i++){ if(waveformLength[i]<64) isShort=true; }
 
 			//filter associated parameters
 			double SNRs[2];
@@ -149,19 +166,22 @@ int main(int argc, char **argv)
 			vector <double> rms_faces_H;
 			rms_faces_H.resize(12);
 
-			vector <double>  rms_faces_V_alt;
-			rms_faces_V_alt.resize(3);
+			vector <double> rms_faces_V_alt;
 			vector <double> rms_faces_H_alt;
-			rms_faces_H_alt.resize(3);
+
+			rms_faces_V_alt.resize(numFaces_new_V);
+			rms_faces_H_alt.resize(numFaces_new_H);
 
 			//now, we must loop over the faces
 			for(int i=0; i<12; i++){
-				rms_faces_V[i] = rms_pol_thresh_face[0][thresholdBin_pol[0]][i];  //this is right RMS for this polarization, threshold requirement, and face
-				rms_faces_H[i] = rms_pol_thresh_face[1][thresholdBin_pol[1]][i];
+				rms_faces_V[i] = rms_pol_thresh_face_V[thresholdBin_pol[0]][i];  //this is right RMS for this polarization, threshold requirement, and face
+				rms_faces_H[i] = rms_pol_thresh_face_H[thresholdBin_pol[1]][i];
 			}
-			for(int i=0; i<3; i++){
-				rms_faces_V_alt[i] = rms_pol_thresh_face_alternate[0][thresholdBin_pol[0]][i];  //this is right RMS for this polarization, threshold requirement, and face
-				rms_faces_H_alt[i] = rms_pol_thresh_face_alternate[1][thresholdBin_pol[1]][i];
+			for(int i=0; i<numFaces_new_V; i++){
+				rms_faces_V_alt[i] = rms_pol_thresh_face_alternate_V[thresholdBin_pol[0]][i];  //this is right RMS for this polarization, threshold requirement, and face
+			}
+			for(int i=0; i<numFaces_new_H; i++){
+				rms_faces_H_alt[i] = rms_pol_thresh_face_alternate_H[thresholdBin_pol[1]][i];  //this is right RMS for this polarization, threshold requirement, and face
 			}
 
 			//now to sort them smallest to largest; lowest RMS is best
@@ -183,14 +203,16 @@ int main(int argc, char **argv)
 			}
 
 			for(int pol=0; pol<2; pol++){
-				if(!isShort){
-					wfrms_plots[pol]->Fill(TMath::Log10(bestFaceRMS[pol]), SNRs[pol], weight);
-					wfrms_plots[pol+2]->Fill(TMath::Log10(bestFaceRMS_alt[pol]), SNRs[pol], weight);
+				if(!isShort && !isSoftTrigger){
 					if(isCalPulser){
 						wfrms_plots_cal[pol]->Fill(TMath::Log10(bestFaceRMS[pol]), SNRs[pol], weight);
 						wfrms_plots_cal[pol+2]->Fill(TMath::Log10(bestFaceRMS_alt[pol]), SNRs[pol], weight);
 					}
 					if(!isCalPulser){
+						wfrms_plots[pol]->Fill(TMath::Log10(bestFaceRMS[pol]), SNRs[pol], weight);
+						wfrms_plots[pol+2]->Fill(TMath::Log10(bestFaceRMS_alt[pol]), SNRs[pol], weight);
+						wfrms_plots_rf[pol]->Fill(TMath::Log10(bestFaceRMS[pol]), SNRs[pol], weight);
+						wfrms_plots_rf[pol+2]->Fill(TMath::Log10(bestFaceRMS[pol]), SNRs[pol], weight);						
 						if(TMath::Log10(bestFaceRMS[pol]) < wavefrontRMScut[pol]){
 							num_passing[pol]+=(weight);
 						}
@@ -213,8 +235,8 @@ int main(int argc, char **argv)
 	for(int pol=0; pol<2; pol++){
 		printf("Pol %d \n", pol);
 		printf("-----------------------\n");
-		printf("	12 face: Num passing pol %d: %.3f events, %.3f rate \n", pol, num_passing[pol], 100.*num_passing[pol]/num_total);
-		printf("	3  face: Num passing pol %d: %.3f events, %.3f rate \n", pol, num_passing_alt[pol], 100.*num_passing_alt[pol]/num_total);
+		printf("	Org : Num passing pol %d: %.3f events, %.3f rate \n", pol, num_passing[pol], 100.*num_passing[pol]/num_total);
+		printf("	Alt  face: Num passing pol %d: %.3f events, %.3f rate \n", pol, num_passing_alt[pol], 100.*num_passing_alt[pol]/num_total);
 	}
 	cout<<""<<endl;
 	cout<<""<<endl;
@@ -226,24 +248,27 @@ int main(int argc, char **argv)
 	for(int pol=0; pol<2; pol++){
 		printf("Pol %d \n", pol);
 		printf("-----------------------\n");
-		printf("	12 face: Num thermal passing pol %d: %.3f events, %.3f rate \n", pol, num_passing[pol], 100.*num_passing[pol]/num_thermal);
-		printf("	3  face: Num thermal passing pol %d: %.3f events, %.3f rate \n", pol, num_passing_alt[pol], 100.*num_passing_alt[pol]/num_thermal);
+		printf("	Org face: Num thermal passing pol %d: %.3f events, %.3f rate \n", pol, num_passing[pol], 100.*num_passing[pol]/num_thermal);
+		printf("	Alt  face: Num thermal passing pol %d: %.3f events, %.3f rate \n", pol, num_passing_alt[pol], 100.*num_passing_alt[pol]/num_thermal);
 	}
 
 	TH1D *projections[4];
 	TH1D *projections_cal[4];
+	TH1D *projections_rf[4];
 
 	for(int pol=0; pol<2; pol++){
 		projections[pol] = wfrms_plots[pol]->ProjectionX();
 		projections[pol+2] = wfrms_plots[pol+2]->ProjectionX();
 		projections_cal[pol] = wfrms_plots_cal[pol]->ProjectionX();
 		projections_cal[pol+2] = wfrms_plots_cal[pol+2]->ProjectionX();
+		projections_rf[pol] = wfrms_plots_rf[pol]->ProjectionX();
+		projections_rf[pol+2] = wfrms_plots_rf[pol+2]->ProjectionX();
 	}
 
-	for(int pol=0; pol<2; pol++){
-		projections[pol] = wfrms_plots[pol]->ProjectionX();
-		projections[pol+2] = wfrms_plots[pol+2]->ProjectionX();
-	}
+	// for(int pol=0; pol<2; pol++){
+	// 	projections[pol] = wfrms_plots[pol]->ProjectionX();
+	// 	projections[pol+2] = wfrms_plots[pol+2]->ProjectionX();
+	// }
 
 	TCanvas *c = new TCanvas("","",2.1*850,3.1*850);
 	c->Divide(2,4);
@@ -252,37 +277,43 @@ int main(int argc, char **argv)
 			wfrms_plots[pol]->Draw("colz");
 			wfrms_plots[pol]->GetXaxis()->SetTitle("log10(Wavefront RMS)");
 			wfrms_plots[pol]->GetYaxis()->SetTitle("3rd Highest VPeak/RMS");
-			wfrms_plots[pol]->GetZaxis()->SetRangeUser(1.,7e6);
+			wfrms_plots[pol]->GetZaxis()->SetRangeUser(0.1,7e6);
 			gPad->SetLogz();
 		c->cd(pol+3);		
 			wfrms_plots[pol+2]->Draw("colz");
 			wfrms_plots[pol+2]->GetXaxis()->SetTitle("log10(Wavefront RMS)");
 			wfrms_plots[pol+2]->GetYaxis()->SetTitle("3rd Highest VPeak/RMS");
-			wfrms_plots[pol+2]->GetZaxis()->SetRangeUser(1.,7e6);
+			wfrms_plots[pol+2]->GetZaxis()->SetRangeUser(0.1,7e6);
 			gPad->SetLogz();
 		c->cd(pol+5);		
 			projections[pol]->Draw();
 			projections[pol]->SetLineWidth(3);
-			if(pol==0){
-				projections_cal[pol]->Draw("same");
-				projections_cal[pol]->SetLineWidth(2);
-				projections_cal[pol]->SetLineColor(kRed);
-			}
+			// if(pol==0 || pol==1){
+			// 	projections_cal[pol]->Draw("same");
+			// 	projections_cal[pol]->SetLineWidth(2);
+			// 	projections_cal[pol]->SetLineColor(kRed);
+			// }
+			// projections_rf[pol]->Draw("same");
+			// projections_rf[pol]->SetLineWidth(2);
+			// projections_rf[pol]->SetLineColor(kRed);
 			projections[pol]->GetYaxis()->SetTitle("Counts");
 			projections[pol]->GetXaxis()->SetTitle("log10(Wavefront RMS)");
-			projections[pol]->GetYaxis()->SetRangeUser(1.,1e7);
+			projections[pol]->GetYaxis()->SetRangeUser(0.1,1e7);
 			gPad->SetLogy();
 		c->cd(pol+7);		
 			projections[pol+2]->Draw();
 			projections[pol+2]->SetLineWidth(3);
-			if(pol==0){
-				projections_cal[pol+2]->Draw("same");
-				projections_cal[pol+2]->SetLineWidth(2);
-				projections_cal[pol+2]->SetLineColor(kRed);
-			}
+			// if(pol==0 || pol==1){
+			// 	projections_cal[pol+2]->Draw("same");
+			// 	projections_cal[pol+2]->SetLineWidth(2);
+			// 	projections_cal[pol+2]->SetLineColor(kRed);
+			// }
+			// projections_rf[pol+2]->Draw("same");
+			// projections_rf[pol+2]->SetLineWidth(2);
+			// projections_rf[pol+2]->SetLineColor(kRed);
 			projections[pol+2]->GetYaxis()->SetTitle("Counts");
 			projections[pol+2]->GetXaxis()->SetTitle("log10(Wavefront RMS)");
-			projections[pol+2]->GetYaxis()->SetRangeUser(1.,1e7);
+			projections[pol+2]->GetYaxis()->SetRangeUser(0.1,1e7);
 			gPad->SetLogy();
 	}
 	char title[300];
