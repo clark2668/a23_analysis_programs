@@ -151,7 +151,7 @@ int main(int argc, char **argv)
 
 	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
 	
-	if (argc == 7){
+	if (argc==8){
 		cout << "Trying to load named pedestal" << endl;
 		calibrator->setAtriPedFile(argv[7], station_num);
 		cout << "Loaded named pedestal" << endl;
