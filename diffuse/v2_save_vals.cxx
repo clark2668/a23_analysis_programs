@@ -126,6 +126,7 @@ int main(int argc, char **argv)
 		int isCW;
 		int isNewBox;
 		int isSurfEvent;
+		int isBadEvent;
 
 		trees[2]->Branch("cal",&isCal);
 		trees[2]->Branch("soft",&isSoft);
@@ -133,6 +134,7 @@ int main(int argc, char **argv)
 		trees[2]->Branch("CW",&isCW);
 		trees[2]->Branch("box",&isNewBox);
 		trees[2]->Branch("surf",&isSurfEvent);
+		trees[2]->Branch("bad",&isBadEvent);
 
 		cout << "Run " << file_num << " :: " << argv[file_num] << endl;
 		
@@ -158,12 +160,14 @@ int main(int argc, char **argv)
 		bool isCalPulser;
 		bool isSoftTrigger;
 		int waveformLength[16];
+		bool hasDigitizerError;
 		inputTree_filter->SetBranchAddress("thirdVPeakOverRMS", &thirdVPeakOverRMS);
 		inputTree_filter->SetBranchAddress("rms_pol_thresh_face", &rms_pol_thresh_face);
 		inputTree_filter->SetBranchAddress("rms_pol_thresh_face_drop", &rms_pol_thresh_face_drop);
 		inputTree_filter->SetBranchAddress("isCalpulser",&isCalPulser);
 		inputTree_filter->SetBranchAddress("isSoftTrigger",&isSoftTrigger);
 		inputTree_filter->SetBranchAddress("waveformLength",&waveformLength);
+		inputTree_filter->SetBranchAddress("hasDigitizerError",&hasDigitizerError);
 
 		//next, load the reco tree
 		TTree *inputTree_reco[35];
@@ -217,7 +221,6 @@ int main(int argc, char **argv)
 
 		//now to loop over events
 		for(int event=0; event<numEntries; event++){
-
 			// if(event%starEvery==0) {
 			// 	std::cout << "	On event "<<event<<endl;
 			// }
@@ -250,6 +253,8 @@ int main(int argc, char **argv)
 			bool failWavefrontRMS[2];
 			failWavefrontRMS[0]=false;
 			failWavefrontRMS[1]=false;
+
+			isBadEvent=hasDigitizerError;
 
 			for(int i=0;i<16;i++){ if(waveformLength[i]<550) isShort=true; }
 
@@ -461,6 +466,7 @@ int main(int argc, char **argv)
 					&& !failWavefrontRMS[pol]
 					&& !isCP5 && !isCP6
 					&& !isSurf
+					&& !isBadEvent
 				){ //cut cal pulsers
 
 					//what happens if we act like it's a *cut*
@@ -619,7 +625,6 @@ int main(int argc, char **argv)
 							}
 						}
 
-
 						TH2D *map_30m;
 						TH2D *map_300m;
 						if(pol==0){
@@ -668,7 +673,6 @@ int main(int argc, char **argv)
 						}
 						vector<TGraph*> grWaveformsPowerSpectrum = makePowerSpectrumGraphs(grWaveformsPadded, xLabel, yLabel, titlesForGraphs);
 						vector<TGraph*> grWaveformsPowerSpectrum_notched = makePowerSpectrumGraphs(grNotched, xLabel, yLabel, titlesForGraphs);
-
 						int istart, istop;
 						if(pol==0){ istart=0; istop=8; }
 						else if(pol==1){ istart=8; istop=16; }
@@ -745,7 +749,6 @@ int main(int argc, char **argv)
 							vVPeakOverRMS_new[i] = VPeak_new[i]/waveformRMS_new[i];
 							vVPeakOverRMS_new[i] = VPeak_new[i]/waveformRMS_new[i];
 						}
-
 						AraGeomTool * geomTool = new AraGeomTool();
 						vector<int> polarizations;
 						polarizations.resize(16);
@@ -861,15 +864,15 @@ int main(int argc, char **argv)
 							int num_faces_for_V_loop;
 							int num_faces_for_H_loop;
 							if(station==2){
-								rms_faces_V.resize(numFaces);
+								rms_faces_V_new.resize(numFaces);
 								num_faces_for_V_loop=numFaces;
-								rms_faces_H.resize(numFaces_A2_drop);
+								rms_faces_H_new.resize(numFaces_A2_drop);
 								num_faces_for_H_loop=numFaces_A2_drop;
 							}
 							else if(station==3 && (year==2014 || year==2015 || year==2016)){
-								rms_faces_V.resize(numFaces_A3_drop);
+								rms_faces_V_new.resize(numFaces_A3_drop);
 								num_faces_for_V_loop=numFaces_A3_drop;
-								rms_faces_H.resize(numFaces_A3_drop);
+								rms_faces_H_new.resize(numFaces_A3_drop);
 								num_faces_for_H_loop=numFaces_A3_drop;
 							}
 							//now we loop over the faces
@@ -881,12 +884,12 @@ int main(int argc, char **argv)
 							}
 						}
 						else{
-							rms_faces_V.resize(12);
-							rms_faces_H.resize(12);
+							rms_faces_V_new.resize(12);
+							rms_faces_H_new.resize(12);
 							//now, we must loop over the faces
 							for(int i=0; i<12; i++){
-								rms_faces_V[i] = rms_pol_thresh_face_new[0][thresholdBin_pol_new[0]][i];  //this is right RMS for this polarization, threshold requirement, and face
-								rms_faces_H[i] = rms_pol_thresh_face_new[1][thresholdBin_pol_new[1]][i];
+								rms_faces_V_new[i] = rms_pol_thresh_face_new[0][thresholdBin_pol_new[0]][i];  //this is right RMS for this polarization, threshold requirement, and face
+								rms_faces_H_new[i] = rms_pol_thresh_face_new[1][thresholdBin_pol_new[1]][i];
 							}
 						}
 
@@ -907,15 +910,13 @@ int main(int argc, char **argv)
 						if(SNRs_new[1]>29.) SNRs_new[1]=29.;
 
 						//cleanup
-						for(int i=0; i<16; i++){
-							delete grWaveformsRaw[i];
-							delete grWaveformsInt[i];
-							delete grWaveformsPadded[i];
-							delete grIntPower[i];
-							delete grNotched[i];
-							grWaveformsPowerSpectrum[i];
-							grWaveformsPowerSpectrum_notched[i];
-						}
+						deleteGraphVector(grWaveformsRaw);
+						deleteGraphVector(grWaveformsInt);
+						deleteGraphVector(grWaveformsPadded);
+						deleteGraphVector(grIntPower);
+						deleteGraphVector(grNotched);
+						deleteGraphVector(grWaveformsPowerSpectrum);
+						deleteGraphVector(grWaveformsPowerSpectrum_notched);
 						summaryFile->Close();
 						delete summaryFile;
 						// printf("				old vs new logrms calc in pol %d: %.2f vs %.2f \n",pol,log(bestFaceRMS[pol])/log(10),log(bestFaceRMS_new[pol])/log(10));
@@ -931,68 +932,9 @@ int main(int argc, char **argv)
 							if(log(bestFaceRMS_new[pol])/log(10) < wavefrontRMScut[pol]){ //recheck if it *passes* the WRMS cut
 								// cout<<"new wavefront RMS is "<<log(bestFaceRMS_new[pol])/log(10)<<endl;
 								WFRMS[pol]=0; //actually, it passes!
-
 								//save this out for use in optimization later
 								corr_val[pol]=PeakCorr_Recompute_300m;
 								snr_val[pol]=SNRs_new[pol];
-
-								//printf("Still passes log rms cut of %.2f \n", wavefrontRMScut[pol]);
-								// if(PeakCorr_Recompute_300m>=0.14){
-								// 	stringstream ss1;
-								// 	string xLabel, yLabel;
-								// 	xLabel = "Time (ns)"; yLabel = "Voltage (mV)";
-								// 	vector<string> titlesForGraphs;
-								// 	for (int i = 0; i < 16; i++){
-								// 		ss1.str("");
-								// 		ss << "Channel " << i;
-								// 		titlesForGraphs.push_back(ss1.str());
-								// 	}
-								// 	vector <TGraph*> waveforms = makeGraphsFromRF(realAtriEvPtr,16,xLabel,yLabel,titlesForGraphs);
-								// 	vector<TGraph*> grWaveformsInt = makeInterpolatedGraphs(waveforms, interpolationTimeStep, xLabel, yLabel, titlesForGraphs);
-								// 	vector<TGraph*> grWaveformsPadded = makePaddedGraphs(grWaveformsInt, 0, xLabel, yLabel, titlesForGraphs);
-								// 	xLabel = "Frequency (Hz)"; yLabel = "Power Spectral Density (mV/Hz)";
-								// 	vector<TGraph*> grWaveformsPowerSpectrum = makePowerSpectrumGraphs(grWaveformsPadded, xLabel, yLabel, titlesForGraphs);
-
-								// 	char save_temp_title[300];
-								// 	sprintf(save_temp_title,"/home/brianclark/results/A23/%d.%d.%d_YesCWIssues_Waveforms_Run%d_Ev%d_pol%d.png",year_now,month_now,day_now,runNum,event,pol);
-								// 	TCanvas *cWave = new TCanvas("","",4*1100,4*850);
-								// 	cWave->Divide(4,4);
-								// 	for(int i=0; i<16; i++){
-								// 		cWave->cd(i+1);
-								// 		waveforms[i]->Draw("AL");
-								// 		waveforms[i]->SetLineWidth(3);
-								// 	}
-								// 	cWave->SaveAs(save_temp_title);
-								// 	delete cWave;
-
-								// 	TCanvas *cMaps = new TCanvas("","",2*1100,850);
-								// 	cMaps->Divide(2,1);
-								// 		cMaps->cd(1);
-								// 		map_30m->Draw("colz");
-								// 		cMaps->cd(2);
-								// 		map_300m->Draw("colz");
-								// 	sprintf(save_temp_title,"/home/brianclark/results/A23/%d.%d.%d_YesCWIssues_Maps_Run%d_Ev%d_pol%d.png",year_now,month_now,day_now,runNum,event,pol);
-								// 	cMaps->SaveAs(save_temp_title);
-								// 	delete cMaps;
-
-								// 	sprintf(save_temp_title,"/home/brianclark/results/A23/%d.%d.%d_YesCWIssues_Spectra_Run%d_Ev%d_pol%d.png",year_now,month_now,day_now,runNum,event,pol);
-								// 	TCanvas *cSpec = new TCanvas("","",4*1100,4*850);
-								// 	cSpec->Divide(4,4);
-								// 	for(int i=0; i<16; i++){
-								// 		cSpec->cd(i+1);
-								// 		grWaveformsPowerSpectrum[i]->Draw("AL");
-								// 		grWaveformsPowerSpectrum[i]->SetLineWidth(3);
-								// 		gPad->SetLogy();
-								// 	}
-								// 	cSpec->SaveAs(save_temp_title);
-								// 	delete cSpec;
-								// 	for(int i=0; i<16; i++){
-								// 		delete waveforms[i];
-								// 		delete grWaveformsInt[i];
-								// 		delete grWaveformsPadded[i];
-								// 		delete grWaveformsPowerSpectrum[i];
-								// 	}
-								// } //check if it's still in the signal box for some reason
 							} //WFRMS cut on new event
 						} //recheck the surface cut
 						delete map_300m;
