@@ -144,19 +144,20 @@ int main(int argc, char **argv)
 
 		eventTree->GetEntry(event);
 
+
 		if (isSimulation == false){
 			realAtriEvPtr = new UsefulAtriStationEvent(rawAtriEvPtr, AraCalType::kLatestCalib);
 		}
-
 		if (isSimulation){
 			isCalpulser = false;
 			isSoftTrigger = false;
+			hasDigitizerError=false;
 		} else{
 			isCalpulser = rawAtriEvPtr->isCalpulserEvent();
 			isSoftTrigger = rawAtriEvPtr->isSoftwareTrigger();
+			hasDigitizerError = !(qualCut->isGoodEvent(realAtriEvPtr));	
 		}
 
-		hasDigitizerError = !(qualCut->isGoodEvent(realAtriEvPtr));
 		//if the event has a  digitizer error, skip it
 		if(hasDigitizerError){
 			if (isSimulation == false) {
