@@ -141,6 +141,7 @@ int main(int argc, char **argv)
 		if(event%starEvery==0) {
 			std::cerr << "*";       
 		}
+		cout<<"on event "<<event<<endl;
 
 		eventTree->GetEntry(event);
 
@@ -228,10 +229,10 @@ int main(int argc, char **argv)
 		}	 
 	}
 
-	cout << numSoftTriggers << " : ";
+	cout << numRFTriggers << " : ";
 	for (int i = 0; i < nGraphs; i++){
 		RMS_RFTrigger_total[i] = RMS_RFTrigger_total[i]/(double)numRFTriggers;
-		cout << RMS_SoftTrigger_total[i] << " : "; 
+		cout << RMS_RFTrigger_total[i] << " : "; 
 		RMS_SoftTrigger_total[i] = RMS_SoftTrigger_total[i]/(double)numSoftTriggers;
 		RMS_Calpulser_total[i] = RMS_Calpulser_total[i]/(double)numCalpulsers;
 		RMS_All_total[i] = RMS_All_total[i]/(double)numEvents;
