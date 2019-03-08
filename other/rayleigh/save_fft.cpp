@@ -82,7 +82,7 @@ int main(int argc, char **argv)
 	double chan_spec[16][512]={{0}};
 	double freqs[16][512]={0};
 	outTree->Branch("chan_spec", &chan_spec, "chan_spec[16][512]/D");
-	outTree->Branch("freqs", &freqs, "freqs[512]/D");
+	outTree->Branch("freqs", &freqs, "freqs[16][512]/D");
 
 	fpIn->cd();
 	double numEntries = eventTree -> GetEntries(); //get the number of entries in this file
