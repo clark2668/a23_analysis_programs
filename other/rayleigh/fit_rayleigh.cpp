@@ -80,6 +80,12 @@ int main(int argc, char **argv)
 	double chi2 = f->GetChisquare()/f->GetNDF(); //Reduced
 	delete f;
 
+	char title_txt[200];
+	sprintf(title_txt,"/users/PAS0654/osu0673/A23_analysis_new2/AraRoot/analysis/a23_analysis_programs/other/rayleigh/sigmavsfreq_ch%d.txt",chan);
+	FILE *fout = fopen(title_txt, "a");
+	fprintf(fout,"%2.4f,%d,%2.4f,%2.4f  \n",freqs[chan][freq_bin],chan,p1,chi2);
+	fclose(fout);//close sigmavsfreq.txt file
+
 	TCanvas *c = new TCanvas("","",1100,850);
 	h->Draw("E");
 	char hist_title[300];
