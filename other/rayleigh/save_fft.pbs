@@ -1,0 +1,23 @@
+#!/bin/bash
+
+#PBS -A PCON0003
+#PBS -N save_fft
+#PBS -l walltime=02:00:00
+#PBS -l nodes=1:ppn=40
+#PBS -o /fs/scratch/PAS0654/ara/10pct/Rayleigh/err_out_logs
+#PBS -e /fs/scratch/PAS0654/ara/10pct/Rayleigh/err_out_logs
+
+source /users/PAS0654/osu0673/A23_analysis_new2/env.sh
+
+cd $TMPDIR
+touch commandfile
+while read line
+do
+	line="/users/PAS0654/osu0673/A23_analysis_new2/AraRoot/analysis/a23_analysis_programs/other/rayleigh/save_fft $TMPDIR $line"
+	echo ${line}>>commandfile
+done < /users/PAS0654/osu0673/A23_analysis_new2/AraRoot/analysis/a23_analysis_programs/other/rayleigh/A2List_1in10_2014_short.txt
+
+module load pcp
+mpiexec parallel-command-processor commandfile
+
+cp $TMPDIR/*.root /fs/scratch/PAS0654/ara/10pct/Rayleigh/output_files/
