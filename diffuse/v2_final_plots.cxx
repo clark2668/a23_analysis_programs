@@ -159,7 +159,10 @@ int main(int argc, char **argv)
 			trees[0]->GetEvent(event);
 			trees[1]->GetEvent(event);
 			trees[2]->GetEvent(event);
-			if(isBadEvent) continue;
+			if(isBadEvent){
+				continue;
+			}
+
 			num_total++;
 
 			for(int pol=0; pol<2; pol++){
@@ -368,6 +371,7 @@ int main(int argc, char **argv)
 		PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->GetXaxis()->SetTitle("3rd Highest VPeak/RMS");
 		PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->SetTitle(graph_title[pol]);
 		gPad->SetLogz();
+		PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->GetZaxis()->SetRangeUser(1.,5e4);		
 		// PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->GetXaxis()->SetRangeUser(0,10);
 		// PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->GetYaxis()->SetRangeUser(0,0.5);
 	}

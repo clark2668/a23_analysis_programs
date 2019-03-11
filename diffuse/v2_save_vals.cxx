@@ -162,6 +162,7 @@ int main(int argc, char **argv)
 		inputTree_filter->SetBranchAddress("thirdVPeakOverRMS", &thirdVPeakOverRMS);
 		inputTree_filter->SetBranchAddress("rms_pol_thresh_face_V", &rms_pol_thresh_face_V);
 		inputTree_filter->SetBranchAddress("rms_pol_thresh_face_H", &rms_pol_thresh_face_H);
+
 		int numFaces_new_V;
 		int numFaces_new_H;
 		if(station==2){
@@ -174,12 +175,8 @@ int main(int argc, char **argv)
 		}
 		double rms_pol_thresh_face_alternate_V[thresholdSteps][numFaces_new_V];
 		double rms_pol_thresh_face_alternate_H[thresholdSteps][numFaces_new_H];
-		char rms_title_V[300];
-		char rms_title_H[300];
-		sprintf(rms_title_V,"rms_pol_thresh_face_alternate_V[15][%d]/D",numFaces_new_V); 
-		sprintf(rms_title_H,"rms_pol_thresh_face_alternate_H[15][%d]/D",numFaces_new_H); 
-		inputTree_filter->Branch("rms_pol_thresh_face_alternate_V", &rms_pol_thresh_face_alternate_V,rms_title_V);
-		inputTree_filter->Branch("rms_pol_thresh_face_alternate_H", &rms_pol_thresh_face_alternate_H,rms_title_H);
+		inputTree_filter->SetBranchAddress("rms_pol_thresh_face_alternate_V", &rms_pol_thresh_face_alternate_V);
+		inputTree_filter->SetBranchAddress("rms_pol_thresh_face_alternate_H", &rms_pol_thresh_face_alternate_H);
 		
 		inputTree_filter->SetBranchAddress("isCalpulser",&isCalPulser);
 		inputTree_filter->SetBranchAddress("isSoftTrigger",&isSoftTrigger);
@@ -493,7 +490,8 @@ int main(int argc, char **argv)
 					// } //not cut by any CW
 
 					//and now to do *filtering*
-					if(isCutonCW_fwd[pol] || isCutonCW_back[pol] || isCutonCW_baseline[pol]){
+					if(isCutonCW_baseline[pol]){
+					// if(isCutonCW_fwd[pol] || isCutonCW_back[pol] || isCutonCW_baseline[pol]){
 						isCW=1;
 						Refilt[pol]=1;
 
