@@ -114,7 +114,7 @@ int main(int argc, char **argv)
 		gPad->SetLogy();
 	}
 	char title[300];
-	sprintf(title, "%s/A%d_%d_%dEvents_NumSamps.png",plotPath,station,year,int(num_total));
+	sprintf(title, "%s/%d.%d.%d_A%d_%d_%dEvents_NumSamps.png",year_now,month_now,day_now, plotPath,station,year,int(num_total));
 	c->SaveAs(title);
 	delete c;
 }
