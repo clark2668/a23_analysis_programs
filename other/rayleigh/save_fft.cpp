@@ -32,6 +32,7 @@
 using namespace std;
 
 TGraph *makeFFTPlot(TGraph *grWave);
+TGraph *makeFreqV_MilliVoltsNanoSeconds ( TGraph *grWave );
 
 int main(int argc, char **argv)
 {
@@ -99,7 +100,8 @@ int main(int argc, char **argv)
 					TGraph *grRaw = realAtriEvPtr->getGraphFromRFChan(chan);
 					TGraph *grInt = FFTtools::getInterpolatedGraph(grRaw, 0.5);
 					TGraph *grPad = FFTtools::padWaveToLength(grInt,1024);
-					TGraph *spec = makeFFTPlot(grPad);
+					// TGraph *spec = makeFFTPlot(grPad);
+					TGraph *spec = makeFreqV_MilliVoltsNanoSeconds(grPad);
 					for(int samp=0; samp<512; samp++){
 						chan_spec[chan][samp]=spec->GetY()[samp];
 						freqs[chan][samp]=spec->GetX()[samp];
@@ -156,3 +158,28 @@ TGraph *makeFFTPlot(TGraph *grWave)
 	delete [] newX;
 	return grPower;
 }
+
+TGraph *makeFreqV_MilliVoltsNanoSeconds ( TGraph *grWave ) {
+	double *oldY = grWave->GetY(); // mV
+	double *oldX = grWave->GetX(); // ns
+	int length=grWave->GetN();
+	double deltaT = (oldX[1]-oldX[0]) * 1.e-9; // deltaT in s
+	FFTWComplex *theFFT=FFTtools::doFFT(length,oldY); // FFT with mV unit
+	int newLength=(length/2)+1;
+	double *newY = new double [newLength];
+	double *newX = new double [newLength];
+	double deltaF=1./(deltaT*(double)length); //Hz
+	deltaF*=1e-6; //from Hz to MHz
+	double tempF=0;
+	for(int i=0;i<newLength;i++) {
+		newY[i] = FFTtools::getAbs(theFFT[i]) * 1.e-3; // from mV to V
+		newX[i]=tempF;
+		tempF+=deltaF;
+	}
+	TGraph *grPower = new TGraph(newLength,newX,newY);
+	delete [] theFFT;
+	delete [] newY;
+	delete [] newX;
+	return grPower;
+}
+
