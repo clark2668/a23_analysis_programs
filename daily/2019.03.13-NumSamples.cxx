@@ -46,9 +46,11 @@ int main(int argc, char **argv)
 	
 	TH1D *num_samps[16];
 	for(int i=0; i<16; i++){
-		num_samps[i] = new TH1D("","",200,0,2000);
+		num_samps[i] = new TH1D("","",100,0,2000);
 	}
 	int num_total=0;
+	int num_less_550=0;
+	int num_less_500=0;
 
 	for(int file_num=3; file_num<argc; file_num++){
 
@@ -83,13 +85,22 @@ int main(int argc, char **argv)
 			// if(event%starEvery==0) { std::cout << "	On event "<<event<<endl;}
 			inputTree_filter->GetEvent(event);
 			num_total++;
+			bool this_less_500=false;
+			bool this_less_550=false;
 			for(int i=0; i<16; i++){
 				num_samps[i]->Fill(waveformLength[i]);
+				if(waveformLength[i]<550) this_less_550=true;
+				if(waveformLength[i]<500) this_less_500=true;
 			}
+			if(this_less_550) num_less_550++;
+			if(this_less_500) num_less_500++;
 		}//loop over events
 		inputFile->Close();
 		delete inputFile;
 	} //end loop over input files
+
+	printf("Num less 550 is %d -- %.2f %\n", num_less_550, double(num_less_550)/double(num_total)*100.);
+	printf("Num less 500 is %d -- %.2f %\n", num_less_500, double(num_less_500)/double(num_total)*100.);
 
 	gStyle->SetOptStat(0);
 	gStyle->SetStatY(0.9);
@@ -102,6 +113,8 @@ int main(int argc, char **argv)
 	for(int i=0; i<16; i++){
 		c->cd(i+1);
 		configure(num_samps[i]);
+		num_samps[i]->GetYaxis()->SetRangeUser(0.1,2e7);
+		num_samps[i]->GetXaxis()->SetRangeUser(0,750);
 
 		gPad->SetTopMargin(0.1);
 		gPad->SetRightMargin(0.03);
@@ -109,8 +122,8 @@ int main(int argc, char **argv)
 		gPad->SetBottomMargin(0.11);
 
 		num_samps[i]->Draw("");
-		num_samps[i]->GetXaxis()->SetTitle("Numer of Samples");
-		num_samps[i]->GetYaxis()->SetTitle("Counts");
+		num_samps[i]->GetXaxis()->SetTitle("Number of Samples");
+		num_samps[i]->GetYaxis()->SetTitle("Number of Events");
 		gPad->SetLogy();
 	}
 	char title[300];
@@ -129,5 +142,5 @@ void configure(TH1D *gr){
 	
 	gStyle->SetTitleFontSize(0.07);
 	gr->GetXaxis()->SetNdivisions(4,0,0,false);
-	gr->SetLineWidth(3);
+	gr->SetLineWidth(2);
 }
