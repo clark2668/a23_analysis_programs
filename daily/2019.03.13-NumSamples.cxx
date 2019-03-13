@@ -33,6 +33,7 @@ int main(int argc, char **argv)
 	int day_now = time -> tm_mday;
 
 	char *plotPath(getenv("PLOT_PATH"));
+	if (plotPath == NULL) std::cout << "Warning! $PLOT_PATH is not set!" << endl;
 
 	stringstream ss;
 	
