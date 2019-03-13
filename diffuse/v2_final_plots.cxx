@@ -83,6 +83,10 @@ int main(int argc, char **argv)
 	int num_total=0;
 	int num_in_final_plot=0;
 	int num_refilt=0;
+	int num_cal;
+	int num_soft;
+	int num_short;
+	int num_box;
 
 	for(int file_num=3; file_num<argc; file_num++){
 
@@ -165,6 +169,11 @@ int main(int argc, char **argv)
 
 			num_total++;
 
+			if(isCal) num_cal++;
+			if(isSoft) num_soft++;
+			if(isShort) num_short++;
+			if(isNewBox) num_box++;
+
 			for(int pol=0; pol<2; pol++){
 				PeakCorr_vs_SNR_all[pol]->Fill(snr_val[pol],corr_val[pol]);
 				
@@ -226,6 +235,11 @@ int main(int argc, char **argv)
 	cout<<"Num total is "<<num_total<<endl;
 	cout<<"Num in final plot "<<num_in_final_plot<<endl;
 	cout<<"Num re-filtered is "<<num_refilt<<endl;
+
+	cout<<"Num cal "<<num_cal<<endl;
+	cout<<"Num box "<<num_box<<endl;
+	cout<<"Num soft "<<num_soft<<endl;
+	cout<<"Num short "<<num_short<<endl;
 
 	gStyle->SetOptStat(0);
 	gStyle->SetStatY(0.9);
