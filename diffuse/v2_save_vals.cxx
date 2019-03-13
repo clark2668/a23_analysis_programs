@@ -270,7 +270,7 @@ int main(int argc, char **argv)
 
 			isBadEvent=hasDigitizerError;
 
-			for(int i=0;i<16;i++){ if(waveformLength[i]<550) isShort=true; }
+			for(int i=0;i<16;i++){ if(waveformLength[i]<500) isShort=true; }
 
 			for (int i = 0; i < 35; i++){
 				if (i == recoBinSelect || i == recoBinCalpulser){
