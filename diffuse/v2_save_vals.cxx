@@ -48,6 +48,11 @@ int main(int argc, char **argv)
 	int month_now = time -> tm_mon + 1;
 	int day_now = time -> tm_mday;
 
+	char *DataDirPath(getenv("DATA_DIR"));
+	if (DataDirPath == NULL) std::cout << "Warning! $DATA_DIR is not set!" << endl;
+	char *PedDirPath(getenv("PED_DIR"));
+	if (PedDirPath == NULL) std::cout << "Warning! $DATA_DIR is not set!" << endl;
+
 	stringstream ss;
 	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
 	
@@ -206,7 +211,7 @@ int main(int argc, char **argv)
 		}
 
 		char summary_file_name[400];
-		sprintf(summary_file_name,"/fs/scratch/PAS0654/ara/10pct/CWID/A%d/%d/CWID_station_%d_run_%d.root",station,year,station,runNum);
+		sprintf(summary_file_name,"%s/CWID/A%d/%d/CWID_station_%d_run_%d.root",DataDirPath,station,year,station,runNum);
 		TFile *NewCWFile = TFile::Open(summary_file_name);
 		if(!NewCWFile) {
 			std::cerr << "Can't open new CW file\n";
@@ -490,8 +495,8 @@ int main(int argc, char **argv)
 					// } //not cut by any CW
 
 					//and now to do *filtering*
-					if(isCutonCW_baseline[pol]){
-					// if(isCutonCW_fwd[pol] || isCutonCW_back[pol] || isCutonCW_baseline[pol]){
+					// if(isCutonCW_baseline[pol]){
+					if(isCutonCW_fwd[pol] || isCutonCW_back[pol] || isCutonCW_baseline[pol]){
 						isCW=1;
 						Refilt[pol]=1;
 
@@ -499,10 +504,10 @@ int main(int argc, char **argv)
 
 						char run_file_name[400];
 						if(year==2013){
-							sprintf(run_file_name,"/fs/scratch/PAS0654/ara/10pct/RawData/A%d/%d/run%d/event%d.root",station,year,runNum,runNum);
+							sprintf(run_file_name,"%s/RawData/A%d/%d/run%d/event%d.root",DataDirPath,station,year,runNum,runNum);
 						}
 						else if(year==2014 || year==2015 || year==2016){
-							sprintf(run_file_name,"/fs/scratch/PAS0654/ara/10pct/RawData/A%d/%d/sym_links/event00%d.root",station,year,runNum,runNum);
+							sprintf(run_file_name,"%s/RawData/A%d/%d/sym_links/event00%d.root",DataDirPath,station,year,runNum,runNum);
 						}
 						TFile *mapFile = TFile::Open(run_file_name);
 						if(!mapFile){
@@ -523,10 +528,10 @@ int main(int argc, char **argv)
 						char ped_file_name[400];
 
 						if(year==2013){
-							sprintf(ped_file_name,"/fs/scratch/PAS0654/ara/peds/run_specific_peds/A%d/%d/event%d_specificPeds.dat",station,year,runNum);
+							sprintf(ped_file_name,"%s/run_specific_peds/A%d/%d/event%d_specificPeds.dat",PedDirPath,station,year,runNum);
 						}
 						else if(year==2014 || year==2015 || year==2016){
-							sprintf(ped_file_name,"/fs/scratch/PAS0654/ara/peds/run_specific_peds/A%d/%d/event00%d_specificPeds.dat",station,year,runNum);
+							sprintf(ped_file_name,"%s/run_specific_peds/A%d/%d/event00%d_specificPeds.dat",PedDirPath,station,year,runNum);
 						}
 						calibrator->setAtriPedFile(ped_file_name,stationID); //because someone had a brain (!!), this will error handle itself if the pedestal doesn't exist
 						
@@ -721,7 +726,7 @@ int main(int argc, char **argv)
 						//get run summary information
 						
 						char run_summary_name[400];
-						sprintf(run_summary_name,"/fs/scratch/PAS0654/ara/10pct/RunSummary/A%d/%d/run_summary_station_%d_run_%d.root",station,year,station,runNum);
+						sprintf(run_summary_name,"%s/RunSummary/A%d/%d/run_summary_station_%d_run_%d.root",DataDirPath,station,year,station,runNum);
 						TFile *summaryFile = TFile::Open(run_summary_name);
 						if(!summaryFile){
 							cout<<"Can't open summary file!"<<endl;
@@ -980,12 +985,19 @@ int PlotThisEvent(int station, int year, int runNum, int event, Settings *settin
 	int month_now = time -> tm_mon + 1;
 	int day_now = time -> tm_mday;
 
+	char *DataDirPath(getenv("DATA_DIR"));
+	if (DataDirPath == NULL) std::cout << "Warning! $DATA_DIR is not set!" << endl;
+	char *PedDirPath(getenv("PED_DIR"));
+	if (PedDirPath == NULL) std::cout << "Warning! $DATA_DIR is not set!" << endl;
+	char *plotPath(getenv("PLOT_PATH"));
+	if (plotPath == NULL) std::cout << "Warning! $PLOT_PATH is not set!" << endl;
+
 	char run_file_name[400];
 	if(year==2013){
-		sprintf(run_file_name,"/fs/scratch/PAS0654/ara/10pct/RawData/A%d/%d/run%d/event%d.root",station,year,runNum,runNum);
+		sprintf(run_file_name,"%s/RawData/A%d/%d/run%d/event%d.root",DataDirPath,station,year,runNum,runNum);
 	}
 	else if(year==2014 || year==2015 || year==2016){
-		sprintf(run_file_name,"/fs/scratch/PAS0654/ara/10pct/RawData/A%d/%d/sym_links/event00%d.root",station,year,runNum,runNum);
+		sprintf(run_file_name,"%s/RawData/A%d/%d/sym_links/event00%d.root",DataDirPath,station,year,runNum,runNum);
 	}
 	TFile *mapFile = TFile::Open(run_file_name);
 	if(!mapFile){
@@ -1006,10 +1018,10 @@ int PlotThisEvent(int station, int year, int runNum, int event, Settings *settin
 	char ped_file_name[400];
 
 	if(year==2013){
-		sprintf(ped_file_name,"/fs/scratch/PAS0654/ara/peds/run_specific_peds/A%d/%d/event%d_specificPeds.dat",station,year,runNum);
+		sprintf(ped_file_name,"%s/run_specific_peds/A%d/%d/event%d_specificPeds.dat",PedDirPath,station,year,runNum);
 	}
 	else if(year==2014 || year==2015 || year==2016){
-		sprintf(ped_file_name,"/fs/scratch/PAS0654/ara/peds/run_specific_peds/A%d/%d/event00%d_specificPeds.dat",station,year,runNum);
+		sprintf(ped_file_name,"%s/run_specific_peds/A%d/%d/event00%d_specificPeds.dat",PedDirPath,station,year,runNum);
 	}
 	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
 	calibrator->setAtriPedFile(ped_file_name,stationID); //because someone had a brain (!!), this will error handle itself if the pedestal doesn't exist
@@ -1044,10 +1056,32 @@ int PlotThisEvent(int station, int year, int runNum, int event, Settings *settin
 		TH2D *map_300m_H;
 		TH2D *map_30m_V_select;
 
-		map_30m_V = theCorrelators[0]->getInterferometricMap_RT(settings, detector, realAtriEvPtr, Vpol, 0, 0);
-		map_300m_V = theCorrelators[1]->getInterferometricMap_RT(settings, detector, realAtriEvPtr, Vpol, 0, 0);
-		map_30m_H = theCorrelators[0]->getInterferometricMap_RT(settings, detector, realAtriEvPtr, Hpol, 0, 0);
-		map_300m_H = theCorrelators[1]->getInterferometricMap_RT(settings, detector, realAtriEvPtr, Hpol, 0, 0);
+		vector <int> chan_list_V;
+		vector <int> chan_list_H;
+		for(int chan=0; chan<=7; chan++){
+			chan_list_V.push_back(chan);
+			chan_list_H.push_back(chan+8);
+		}
+
+		if(station==2){
+			//for station 2, we need to exclude channel 15 from the analysis
+			chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 15), chan_list_H.end());
+		}
+		else if(station==3){
+			//for station 3 years 2014 and 2015, we need to drop string 4 (channels 3, 7, 11, 15) altogether
+			if(year==2014 || year==2015 || year==2016){
+				chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 3), chan_list_V.end());
+				chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 7), chan_list_V.end());
+
+				chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 11), chan_list_H.end());
+				chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 15), chan_list_H.end());
+			}
+		}
+
+		map_30m_V = theCorrelators[0]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Vpol, false,chan_list_V) ;
+		map_300m_V = theCorrelators[1]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Vpol, false,chan_list_V);
+		map_30m_H = theCorrelators[0]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Hpol, false,chan_list_H);
+		map_300m_H = theCorrelators[1]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Hpol, false,chan_list_H);
 
 		int PeakTheta_Recompute_30m;
 		int PeakTheta_Recompute_300m;
@@ -1069,13 +1103,6 @@ int PlotThisEvent(int station, int year, int runNum, int event, Settings *settin
 		printf("30m theta and phi %d and %d \n", PeakTheta_Recompute_30m, PeakPhi_Recompute_30m);
 		printf("300m theta and phi %d and %d \n", PeakTheta_Recompute_300m, PeakPhi_Recompute_300m);
 
-		// vector <int> chan_list;
-		// chan_list.push_back(5);
-		// chan_list.push_back(6);
-		// chan_list.push_back(7);
-		// map_30m_V_select = theCorrelators[0]->getInterferometricMap_RT_select(settings,detector,realAtriEvPtr,Vpol,0,chan_list,0);
-
-
 		TCanvas *cMaps = new TCanvas("","",2*1100,2*850);
 		cMaps->Divide(2,2);
 			cMaps->cd(1);
@@ -1086,19 +1113,15 @@ int PlotThisEvent(int station, int year, int runNum, int event, Settings *settin
 			map_300m_V->Draw("colz");
 			cMaps->cd(4);
 			map_300m_H->Draw("colz");
-			// cMaps->cd(5);
-			// map_30m_V_select->Draw("colz");
 		char save_temp_title[400];		
-		sprintf(save_temp_title,"/users/PAS0654/osu0673/A23_analysis/results/trouble_events/%d.%d.%d_Run%d_Ev%d_Maps_.png",year_now,month_now,day_now,runNum,event);
+		sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_Maps_.png",plotPath,year_now,month_now,day_now,runNum,event);
 		cMaps->SaveAs(save_temp_title);
 		delete cMaps;
 		delete map_30m_V; delete map_300m_V; delete map_30m_H; delete map_300m_H; 
-		// delete map_30m_V_select;
 	}
 
-
 	char save_temp_title[300];
-	sprintf(save_temp_title,"/users/PAS0654/osu0673/A23_analysis/results/trouble_events/%d.%d.%d_Run%d_Ev%d_Waveforms.png",year_now,month_now,day_now,runNum,event);
+	sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_Waveforms.png",plotPath,year_now,month_now,day_now,runNum,event);
 	TCanvas *cWave = new TCanvas("","",4*1100,4*850);
 	cWave->Divide(4,4);
 	for(int i=0; i<16; i++){
@@ -1109,7 +1132,7 @@ int PlotThisEvent(int station, int year, int runNum, int event, Settings *settin
 	cWave->SaveAs(save_temp_title);
 	delete cWave;
 
-	sprintf(save_temp_title,"/users/PAS0654/osu0673/A23_analysis/results/trouble_events/%d.%d.%d_Run%d_Ev%d_Spectra.png",year_now,month_now,day_now,runNum,event);
+	sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_Spectra.png",plotPath,year_now,month_now,day_now,runNum,event);
 	TCanvas *cSpec = new TCanvas("","",4*1100,4*850);
 	cSpec->Divide(4,4);
 	for(int i=0; i<16; i++){

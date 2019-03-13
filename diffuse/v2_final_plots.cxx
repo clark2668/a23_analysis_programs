@@ -83,11 +83,11 @@ int main(int argc, char **argv)
 	int num_total=0;
 	int num_in_final_plot=0;
 	int num_refilt=0;
-	int num_cal;
-	int num_soft;
-	int num_short;
-	int num_box;
-	int num_surf;
+	int num_cal=0;
+	int num_soft=0;
+	int num_short=0;
+	int num_box=0;
+	int num_surf=0;
 
 	for(int file_num=3; file_num<argc; file_num++){
 
