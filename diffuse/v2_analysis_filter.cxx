@@ -393,23 +393,25 @@ int main(int argc, char **argv)
 
 			weight_out = weight;
 			hasDigitizerError = !(qualCut->isGoodEvent(realAtriEvPtr));
-			//if the event has a  digitizer error, skip it
-			//note that exiting this far up will prevent any errors with the averaging
-			//because we don't count contributions to the average until the numEvents++ later
-			if(hasDigitizerError){
-				OutputTree->Fill(); //fill this anyway with garbage
-				if (isSimulation == false) {
-					delete realAtriEvPtr;
-				}
-				continue; //don't do any further processing on this event
-			}
-
 			xLabel = "Time (ns)"; yLabel = "Voltage (mV)";
 			vector<TGraph*> grWaveformsRaw = makeGraphsFromRF(realAtriEvPtr, nGraphs, xLabel, yLabel, titlesForGraphs);
 			ss.str("");
 
 			for (int i = 0; i < 16; i++){
 				waveformLength[i] = grWaveformsRaw[i]->GetN();
+				cout<<"channel "<<i<<" has length "<<waveformLength[i]<<endl;
+			}
+
+			//if the event has a  digitizer error, skip it
+			//note that exiting this far up will prevent any errors with the averaging
+			//because we don't count contributions to the average until the numEvents++ later
+			if(hasDigitizerError){
+				OutputTree->Fill(); //fill this anyway with garbage
+				deleteGraphVector(grWaveformsRaw);
+				if (isSimulation == false) {
+					delete realAtriEvPtr;
+				}
+				continue; //don't do any further processing on this event
 			}
 	
 			double qualArray[4];
