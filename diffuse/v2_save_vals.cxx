@@ -114,7 +114,7 @@ int main(int argc, char **argv)
 		trees[1]->Branch("corr_val_H",&corr_val[1]);
 		trees[1]->Branch("snr_val_H",&snr_val[1]);
 		trees[1]->Branch("wfrms_val_H",&WFRMS[1]);
-		trees[0]->Branch("Refilt_H",&Refilt[1]);
+		trees[1]->Branch("Refilt_H",&Refilt[1]);
 		for(int i=0; i<8; i++){
 			ss.str("");
 			ss<<"PowerNotch_Chan"<<i;
@@ -275,7 +275,9 @@ int main(int argc, char **argv)
 
 			isBadEvent=hasDigitizerError;
 
-			for(int i=0;i<16;i++){ if(waveformLength[i]<500) isShort=true; }
+			for(int i=0;i<16;i++){ 
+				if(waveformLength[i]<500) isShort=true;
+			}
 
 			for (int i = 0; i < 35; i++){
 				if (i == recoBinSelect || i == recoBinCalpulser){
@@ -313,7 +315,7 @@ int main(int argc, char **argv)
 
 
 			for(int pol=0; pol<2; pol++){
-				if(bestTheta[pol] > 37) isSurf=true;
+				if(bestTheta[pol] >= 37) isSurf=true;
 			}
 
 			//figure out which reconstruction map (vpol or hpol) is best
@@ -428,7 +430,6 @@ int main(int argc, char **argv)
 					num_faces_for_H_loop=numFaces_A2_drop;
 				}
 				else if(station==3 && (year==2014 || year==2015 || year==2016)){
-					cout<<"Gonna drop bad chans!"<<endl;
 					rms_faces_V.resize(numFaces_A3_drop);
 					num_faces_for_V_loop=numFaces_A3_drop;
 					rms_faces_H.resize(numFaces_A3_drop);
