@@ -55,6 +55,9 @@ int main(int argc, char **argv)
 	int month_now = time -> tm_mon + 1;
 	int day_now = time -> tm_mday;
 
+	char *plotPath(getenv("PLOT_PATH"));
+	if (plotPath == NULL) std::cout << "Warning! $PLOT_PATH is not set!" << endl;
+
 	stringstream ss;
 
 	gStyle->SetOptStat(11);
@@ -148,7 +151,7 @@ int main(int argc, char **argv)
 		trees[1]->SetBranchAddress("corr_val_H",&corr_val[1]);
 		trees[1]->SetBranchAddress("snr_val_H",&snr_val[1]);
 		trees[1]->SetBranchAddress("wfrms_val_H",&WFRMS[1]);
-		trees[0]->SetBranchAddress("Refilt_H",&Refilt[1]);
+		trees[1]->SetBranchAddress("Refilt_H",&Refilt[1]);
 
 		int isCal;
 		int isSoft;
@@ -156,6 +159,7 @@ int main(int argc, char **argv)
 		int isCW;
 		int isNewBox;
 		int isSurf;
+		int isBadEvent;
 
 		trees[2]->SetBranchAddress("cal",&isCal);
 		trees[2]->SetBranchAddress("soft",&isSoft);
@@ -163,6 +167,7 @@ int main(int argc, char **argv)
 		trees[2]->SetBranchAddress("CW",&isCW);
 		trees[2]->SetBranchAddress("box",&isNewBox);
 		trees[2]->SetBranchAddress("surf",&isSurf);
+		trees[2]->SetBranchAddress("bad",&isBadEvent);
 
 		stringstream ss;
 		for(int i=0; i<8; i++){
@@ -179,15 +184,17 @@ int main(int argc, char **argv)
 		int numEntries = trees[0]->GetEntries();
 
 		//now to loop over events
-		for(int event=0; event<trees[0]->GetEntries(); event++){
-		//for(int event=0; event<25; event++){
-
-			if(isBadEvent(station, year, runNum, event)) continue;
+		for(int event=0; event<numEntries; event++){
 
 			trees[0]->GetEvent(event);
 			trees[1]->GetEvent(event);
 			trees[2]->GetEvent(event);
+
 			num_total++;
+
+			if(isBadEvent){
+				continue;
+			}
 
 			for(int pol=0; pol<2; pol++){
 				PeakCorr_vs_SNR_all[pol]->Fill(snr_val[pol],corr_val[pol]);
@@ -210,7 +217,7 @@ int main(int argc, char **argv)
 									if(!isSurf){
 
 										bool condition = false;
-										if(snr_val[pol]>=10. && pol==1) condition=true;
+										if(snr_val[pol]>=25.) condition=true;
 										// if(corr_val[pol]>0.12) condition=true;
 										// condition=false;
 
@@ -230,23 +237,23 @@ int main(int argc, char **argv)
 											}
 											sort(frac.begin(), frac.end(), std::greater<double>());
 											fracs_power_cut[pol]->Fill(frac[2]);
-											if(frac[2]<=0.06){ //&& event!=1 && event!=2 && event!=3)
-												1==1;
+											if(frac[2]<=0.06){
 												PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol]);
 												if(condition){
-													PlotThisEvent(station,year,runNum,event, settings, detector, theCorrelators);
+													printf("		Event %d is refiltered in pol %d \n", event,pol);
+													cout<<"			Frac of power notched is "<<frac[2]<<endl;
+													// PlotThisEvent(station,year,runNum,event, settings, detector, theCorrelators);
 												}
 											}
 										} //refiltered?
 										else{
 											PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol]);
 											if(condition){
-												PlotThisEvent(station,year,runNum,event, settings, detector, theCorrelators);
+												printf("		Event %d is NOT refiltered in pol %d \n", event,pol);
+												// PlotThisEvent(station,year,runNum,event, settings, detector, theCorrelators);
 											}
 										}
 										num_in_final_plot++;
-
-
 									}
 								}
 							}
@@ -280,6 +287,7 @@ int main(int argc, char **argv)
 	int surf=0;
 	int cw=0;
 
+	/*
 	//save out the Corr vs SNR plot for all 
 	sprintf(graph_title[0],"VPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
 	sprintf(graph_title[1],"HPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
@@ -293,7 +301,7 @@ int main(int argc, char **argv)
 		PeakCorr_vs_SNR_all[pol]->SetTitle(graph_title[pol]);
 		gPad->SetLogz();
 	}
-	sprintf(title, "/users/PAS0654/osu0673/A23_analysis/results/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
+	sprintf(title, "%s/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
 	c2->SaveAs(title);
 	delete c2;
 	delete PeakCorr_vs_SNR_all[0]; delete PeakCorr_vs_SNR_all[1];
@@ -312,7 +320,7 @@ int main(int argc, char **argv)
 		PeakCorr_vs_SNR_cutCal[pol]->SetTitle(graph_title[pol]);
 		gPad->SetLogz();
 	}
-	sprintf(title, "/users/PAS0654/osu0673/A23_analysis/results/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
+	sprintf(title, "%s/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
 	c3->SaveAs(title);
 	delete c3;
 	delete PeakCorr_vs_SNR_cutCal[0]; delete PeakCorr_vs_SNR_cutCal[1];
@@ -331,7 +339,7 @@ int main(int argc, char **argv)
 		PeakCorr_vs_SNR_cutCal_cutSoft[pol]->SetTitle(graph_title[pol]);
 		gPad->SetLogz();
 	}
-	sprintf(title, "/users/PAS0654/osu0673/A23_analysis/results/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
+	sprintf(title, "%s/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
 	c4->SaveAs(title);
 	delete c4;
 	delete PeakCorr_vs_SNR_cutCal_cutSoft[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft[1];
@@ -350,7 +358,7 @@ int main(int argc, char **argv)
 		PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[pol]->SetTitle(graph_title[pol]);
 		gPad->SetLogz();
 	}
-	sprintf(title, "/users/PAS0654/osu0673/A23_analysis/results/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
+	sprintf(title, "%s/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
 	c5->SaveAs(title);
 	delete c5;
 	delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[1];
@@ -369,7 +377,7 @@ int main(int argc, char **argv)
 		PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[pol]->SetTitle(graph_title[pol]);
 		gPad->SetLogz();
 	}
-	sprintf(title, "/users/PAS0654/osu0673/A23_analysis/results/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
+	sprintf(title, "%s/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
 	c6->SaveAs(title);
 	delete c6;
 	delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[1];
@@ -388,7 +396,7 @@ int main(int argc, char **argv)
 		PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[pol]->SetTitle(graph_title[pol]);
 		gPad->SetLogz();
 	}
-	sprintf(title, "/users/PAS0654/osu0673/A23_analysis/results/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
+	sprintf(title, "%s/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
 	c7->SaveAs(title);
 	delete c7;
 	delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[1];
@@ -408,10 +416,11 @@ int main(int argc, char **argv)
 		// PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->GetXaxis()->SetRangeUser(0,10);
 		// PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->GetYaxis()->SetRangeUser(0,0.5);
 	}
-	sprintf(title, "/users/PAS0654/osu0673/A23_analysis/results/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
+	sprintf(title, "%s/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
 	c8->SaveAs(title);
 	delete c8;
 	delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[1];
+	*/
 
 }
 
@@ -422,12 +431,19 @@ int PlotThisEvent(int station, int year, int runNum, int event, Settings *settin
 	int month_now = time -> tm_mon + 1;
 	int day_now = time -> tm_mday;
 
+	char *DataDirPath(getenv("DATA_DIR"));
+	if (DataDirPath == NULL) std::cout << "Warning! $DATA_DIR is not set!" << endl;
+	char *PedDirPath(getenv("PED_DIR"));
+	if (PedDirPath == NULL) std::cout << "Warning! $DATA_DIR is not set!" << endl;
+	char *plotPath(getenv("PLOT_PATH"));
+	if (plotPath == NULL) std::cout << "Warning! $PLOT_PATH is not set!" << endl;
+
 	char run_file_name[400];
 	if(year==2013){
-		sprintf(run_file_name,"/fs/scratch/PAS0654/ara/10pct/RawData/A%d/%d/run%d/event%d.root",station,year,runNum,runNum);
+		sprintf(run_file_name,"%s/RawData/A%d/%d/run%d/event%d.root",DataDirPath,station,year,runNum,runNum);
 	}
 	else if(year==2014 || year==2015 || year==2016){
-		sprintf(run_file_name,"/fs/scratch/PAS0654/ara/10pct/RawData/A%d/%d/sym_links/event00%d.root",station,year,runNum,runNum);
+		sprintf(run_file_name,"%s/RawData/A%d/%d/sym_links/event00%d.root",DataDirPath,station,year,runNum,runNum);
 	}
 	TFile *mapFile = TFile::Open(run_file_name);
 	if(!mapFile){
@@ -448,14 +464,14 @@ int PlotThisEvent(int station, int year, int runNum, int event, Settings *settin
 	char ped_file_name[400];
 
 	if(year==2013){
-		sprintf(ped_file_name,"/fs/scratch/PAS0654/ara/peds/run_specific_peds/A%d/%d/event%d_specificPeds.dat",station,year,runNum);
+		sprintf(ped_file_name,"%s/run_specific_peds/A%d/%d/event%d_specificPeds.dat",PedDirPath,station,year,runNum);
 	}
 	else if(year==2014 || year==2015 || year==2016){
-		sprintf(ped_file_name,"/fs/scratch/PAS0654/ara/peds/run_specific_peds/A%d/%d/event00%d_specificPeds.dat",station,year,runNum);
+		sprintf(ped_file_name,"%s/run_specific_peds/A%d/%d/event00%d_specificPeds.dat",PedDirPath,station,year,runNum);
 	}
 	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
 	calibrator->setAtriPedFile(ped_file_name,stationID); //because someone had a brain (!!), this will error handle itself if the pedestal doesn't exist
-	
+
 	UsefulAtriStationEvent *realAtriEvPtr = new UsefulAtriStationEvent(rawPtr,AraCalType::kLatestCalib);
 
 	int unixTime = (int)rawPtr->unixTime;
@@ -474,6 +490,210 @@ int PlotThisEvent(int station, int year, int runNum, int event, Settings *settin
 		ss1 << "Channel " << i;
 		titlesForGraphs.push_back(ss1.str());
 	}
+
+	char cw_file_name[400];
+	sprintf(cw_file_name,"%s/CWID/A%d/%d/CWID_station_%d_run_%d.root",DataDirPath,station,year,station,runNum);
+	TFile *NewCWFile = TFile::Open(cw_file_name);
+	if(!NewCWFile) {
+		std::cerr << "Can't open new CW file\n";
+		return -1;
+	}
+	TTree* NewCWTree = (TTree*) NewCWFile->Get("NewCWTree");   
+	if(!NewCWTree) {
+		std::cerr << "Can't find NewCWTree\n";
+		return -1;
+	}
+	vector<vector<double> > *badFreqs_fwd =0;
+	vector<vector<double> > *badFreqs_back=0;
+	vector<vector<double> > *badSigmas_fwd=0;
+	vector<vector<double> > *badSigmas_back=0;
+	vector<vector<double> > *badFreqs_baseline=0;
+
+	NewCWTree->SetBranchAddress("badFreqs_fwd",&badFreqs_fwd);
+	NewCWTree->SetBranchAddress("badSigmas_fwd",&badSigmas_fwd);
+	NewCWTree->SetBranchAddress("badFreqs_back",&badFreqs_back);
+	NewCWTree->SetBranchAddress("badSigmas_back",&badSigmas_back);
+	NewCWTree->SetBranchAddress("badFreqs_baseline",&badFreqs_baseline);
+
+	//deal w/ CW cut
+	//inputTree_CW->GetEntry(event);
+	NewCWTree->GetEntry(event);
+
+	bool isCutonCW_fwd[2]; isCutonCW_fwd[0]=false; isCutonCW_fwd[1]=false;
+	bool isCutonCW_back[2]; isCutonCW_back[0]=false; isCutonCW_back[1]=false;
+	bool isCutonCW_baseline[2]; isCutonCW_baseline[0]=false; isCutonCW_baseline[1]=false;
+	
+	for(int pol=0; pol<badFreqs_baseline->size(); pol++){
+		vector<double> badFreqListLocal_baseline = badFreqs_baseline->at(pol);
+		if(badFreqListLocal_baseline.size()>0) isCutonCW_baseline[pol]=true;
+	}
+
+	double threshCW = 1.0;
+	vector<double> badFreqList_fwd;
+	vector<double> badSigmaList_fwd;
+	for(int pol=0; pol<badFreqs_fwd->size(); pol++){
+		badFreqList_fwd=badFreqs_fwd->at(pol);
+		badSigmaList_fwd=badSigmas_fwd->at(pol);
+		for(int iCW=0; iCW<badFreqList_fwd.size(); iCW++){
+			if(
+				badSigmaList_fwd[iCW] > threshCW 
+				&& 
+				abs(300. - badFreqList_fwd[iCW]) > 2.
+				&&
+				abs(500. - badFreqList_fwd[iCW]) > 2.
+				&&
+				abs(125. - badFreqList_fwd[iCW]) > 2.
+			){
+				isCutonCW_fwd[pol] = true;
+			}
+		}
+	}
+	vector<double> badFreqList_back;
+	vector<double> badSigmaList_back;
+	for(int pol=0; pol<badFreqs_back->size(); pol++){
+		badFreqList_back=badFreqs_back->at(pol);
+		badSigmaList_back=badSigmas_back->at(pol);
+		for(int iCW=0; iCW<badFreqList_back.size(); iCW++){
+			if(
+				badSigmaList_back[iCW] > threshCW 
+				&& 
+				abs(300. - badFreqList_back[iCW]) > 2.
+				&&
+				abs(500. - badFreqList_back[iCW]) > 2.
+				&&
+				abs(125. - badFreqList_back[iCW]) > 2.
+			){
+				isCutonCW_back[pol] = true;
+			}
+		}
+	}
+	for(int pol=0; pol<2; pol++){
+		if(isCutonCW_fwd[pol] || isCutonCW_back[pol] || isCutonCW_baseline[pol]){
+			printf("Has CW issue in pol %d \n", pol);
+			printf("CW in FWD %d, BWD %d, or baseline %d? \n", isCutonCW_fwd[pol], isCutonCW_back[pol], isCutonCW_baseline[pol]);
+			//get the frequencies to notch
+			vector<double> badFreqListLocal_fwd;
+			vector <double> badFreqListLocal_back;
+			vector <double> mergedFreqList;
+
+			//merge the two lists of frequencies
+			//if it's cut going both forward and backward
+			if(isCutonCW_fwd[pol] && isCutonCW_back[pol]){
+				badFreqListLocal_fwd=badFreqs_fwd->at(pol);
+				badFreqListLocal_back=badFreqs_back->at(pol);
+				for(int iFreq=0; iFreq<badFreqListLocal_fwd.size(); iFreq++){
+					mergedFreqList.push_back(badFreqListLocal_fwd[iFreq]);
+				}
+				for(int iFreq=0; iFreq<badFreqListLocal_back.size(); iFreq++){
+					double new_freq=badFreqListLocal_back[iFreq];
+					for(int iFreqOld=0; iFreqOld<badFreqListLocal_fwd.size(); iFreqOld++){
+						if(abs(new_freq-mergedFreqList[iFreqOld])>0.1){
+							mergedFreqList.push_back(new_freq);
+						}
+					}
+				}
+			}
+			//if it's cut only going forward
+			else if(isCutonCW_fwd[pol] && !isCutonCW_back[pol]){
+				badFreqListLocal_fwd=badFreqs_fwd->at(pol);
+				for(int iFreq=0; iFreq<badFreqListLocal_fwd.size(); iFreq++){
+					mergedFreqList.push_back(badFreqListLocal_fwd[iFreq]);
+				}
+			}
+			//if it's cut only going backward
+			else if(!isCutonCW_fwd[pol] && isCutonCW_back[pol]){
+				badFreqListLocal_back=badFreqs_back->at(pol);
+				for(int iFreq=0; iFreq<badFreqListLocal_back.size(); iFreq++){
+					mergedFreqList.push_back(badFreqListLocal_back[iFreq]);
+				}
+			}
+
+			vector<double> more_freqs_to_add;
+			vector<double> badFreqListLocal_baseline = badFreqs_baseline->at(pol);
+			if(mergedFreqList.size()>0){ //do we already have frequencies to check against?
+				//loop over everything identified by the CW baseline cut
+				for(int newFreq=0; newFreq<badFreqListLocal_baseline.size(); newFreq++){
+					double new_freq = badFreqListLocal_baseline[newFreq];
+					//now, loop over everything already in the list
+					for(int oldFreq=0; oldFreq<mergedFreqList.size(); oldFreq++){
+						//if there's a genuinely new frequency, add it to the list of things to be adde
+						if(abs(new_freq-mergedFreqList[oldFreq])>0.1){
+							more_freqs_to_add.push_back(new_freq);
+						}
+					}
+				}
+			}
+			else{ //otherwise we take only those found by the CW ID cut
+				for(int newFreq=0; newFreq<badFreqListLocal_baseline.size(); newFreq++){
+					double new_freq = badFreqListLocal_baseline[newFreq];
+					more_freqs_to_add.push_back(new_freq);
+				}
+			}
+
+			//now actually add it to the merged freq list
+			for(int iFreq=0; iFreq<more_freqs_to_add.size(); iFreq++){
+				mergedFreqList.push_back(more_freqs_to_add[iFreq]);
+			}
+
+			//they need to be in smaller -> larger order for notching
+			sort(mergedFreqList.begin(), mergedFreqList.end());
+			vector <double> uniqueNotchFreqs;
+			vector <double> uniqueNotchBands;			
+			theCorrelators[0]->pickFreqsAndBands(mergedFreqList,uniqueNotchFreqs,uniqueNotchBands);
+			for (int i = 0; i < uniqueNotchFreqs.size(); ++i)
+			{
+				printf("Unique freq to be notched is %.2f with width %.2f \n", uniqueNotchFreqs[i],uniqueNotchBands[i]);
+			}
+			vector <TGraph*> grWaveformsRaw = makeGraphsFromRF(realAtriEvPtr,16,xLabel,yLabel,titlesForGraphs);
+			vector<TGraph*> grWaveformsInt = makeInterpolatedGraphs(grWaveformsRaw, 0.6, xLabel, yLabel, titlesForGraphs);
+			vector<TGraph*> grWaveformsPadded = makePaddedGraphs(grWaveformsInt, 0, xLabel, yLabel, titlesForGraphs);
+			vector <TGraph*> grNotched;
+			for(int i=0; i<16; i++){
+				TGraph *grNotchAmp = theCorrelators[0]->applyAdaptiveFilter_singleAnt_FiltMany(grWaveformsPadded[i],uniqueNotchFreqs,uniqueNotchBands);
+				grNotched.push_back(theCorrelators[0]->GeometricFilter(grNotchAmp,uniqueNotchFreqs,uniqueNotchBands,uniqueNotchFreqs));
+				delete grNotchAmp;
+			}
+			vector<TGraph*> grWaveformsPowerSpectrum = makePowerSpectrumGraphs(grWaveformsPadded, xLabel, yLabel, titlesForGraphs);
+			vector<TGraph*> grWaveformsPowerSpectrum_notched = makePowerSpectrumGraphs(grNotched, xLabel, yLabel, titlesForGraphs);
+			
+			char save_temp_title[300];
+			sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_WaveformsNotch.png",plotPath,year_now,month_now,day_now,runNum,event);
+			TCanvas *cWave = new TCanvas("","",4*1100,4*850);
+			cWave->Divide(4,4);
+			for(int i=0; i<16; i++){
+				cWave->cd(i+1);
+				grWaveformsRaw[i]->Draw("AL");
+				grWaveformsRaw[i]->SetLineWidth(3);
+				grNotched[i]->Draw("same");
+				grNotched[i]->SetLineWidth(3);
+				grNotched[i]->SetLineColor(kRed);
+			}
+			// cWave->SaveAs(save_temp_title);
+			delete cWave;
+
+			sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_SpectraNotch.png",plotPath,year_now,month_now,day_now,runNum,event);
+			TCanvas *cSpec = new TCanvas("","",4*1100,4*850);
+			cSpec->Divide(4,4);
+			for(int i=0; i<16; i++){
+				cSpec->cd(i+1);
+				grWaveformsPowerSpectrum[i]->Draw("AL");
+				grWaveformsPowerSpectrum[i]->SetLineWidth(3);
+				grWaveformsPowerSpectrum_notched[i]->Draw("same");
+				grWaveformsPowerSpectrum_notched[i]->SetLineWidth(3);
+				grWaveformsPowerSpectrum_notched[i]->SetLineColor(kRed);
+				gPad->SetLogy();
+			}
+			// cSpec->SaveAs(save_temp_title);
+			delete cSpec;
+			deleteGraphVector(grWaveformsRaw);
+			deleteGraphVector(grWaveformsInt);
+			deleteGraphVector(grWaveformsPadded);
+			deleteGraphVector(grNotched);
+			deleteGraphVector(grWaveformsPowerSpectrum);
+			deleteGraphVector(grWaveformsPowerSpectrum_notched);
+		}
+	}
+
 	vector <TGraph*> waveforms = makeGraphsFromRF(realAtriEvPtr,16,xLabel,yLabel,titlesForGraphs);
 	vector<TGraph*> grWaveformsInt = makeInterpolatedGraphs(waveforms, 0.5, xLabel, yLabel, titlesForGraphs);
 	vector<TGraph*> grWaveformsPadded = makePaddedGraphs(grWaveformsInt, 0, xLabel, yLabel, titlesForGraphs);
@@ -535,22 +755,6 @@ int PlotThisEvent(int station, int year, int runNum, int event, Settings *settin
 		printf("30m theta and phi %d and %d \n", PeakTheta_Recompute_30m, PeakPhi_Recompute_30m);
 		printf("300m theta and phi %d and %d \n", PeakTheta_Recompute_300m, PeakPhi_Recompute_300m);
 
-		// vector <int> chan_list;
-		// chan_list.push_back(0);
-		// chan_list.push_back(1);
-		// chan_list.push_back(2);
-		// chan_list.push_back(4);
-		// chan_list.push_back(5);
-		// chan_list.push_back(6);
-		// chan_list.push_back(8);
-		// chan_list.push_back(9);
-		// chan_list.push_back(10);
-		// chan_list.push_back(12);
-		// chan_list.push_back(13);
-		// chan_list.push_back(14);
-		// map_300m_V = theCorrelators[1]->getInterferometricMap_RT_select(settings,detector,realAtriEvPtr,Vpol,0,chan_list,0);
-		// map_300m_H = theCorrelators[1]->getInterferometricMap_RT_select(settings,detector,realAtriEvPtr,Hpol,0,chan_list,0);
-
 		TCanvas *cMaps = new TCanvas("","",2*1100,2*850);
 		cMaps->Divide(2,2);
 			cMaps->cd(3);
@@ -564,8 +768,8 @@ int PlotThisEvent(int station, int year, int runNum, int event, Settings *settin
 			// cMaps->cd(5);
 			// map_30m_V_select->Draw("colz");
 		char save_temp_title[400];		
-		sprintf(save_temp_title,"/users/PAS0654/osu0673/A23_analysis/results/trouble_events/%d.%d.%d_Run%d_Ev%d_Maps.png",year_now,month_now,day_now,runNum,event);
-		cMaps->SaveAs(save_temp_title);
+		sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_Maps.png",plotPath,year_now,month_now,day_now,runNum,event);
+		// cMaps->SaveAs(save_temp_title);
 		delete cMaps;
 		delete map_30m_V; delete map_300m_V; delete map_30m_H; delete map_300m_H; 
 		// delete map_30m_V_select;
@@ -573,7 +777,7 @@ int PlotThisEvent(int station, int year, int runNum, int event, Settings *settin
 
 
 	char save_temp_title[300];
-	sprintf(save_temp_title,"/users/PAS0654/osu0673/A23_analysis/results/trouble_events/%d.%d.%d_Run%d_Ev%d_Waveforms.png",year_now,month_now,day_now,runNum,event);
+	sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_Waveforms.png",plotPath,year_now,month_now,day_now,runNum,event);
 	TCanvas *cWave = new TCanvas("","",4*1100,4*850);
 	cWave->Divide(4,4);
 	for(int i=0; i<16; i++){
@@ -581,10 +785,10 @@ int PlotThisEvent(int station, int year, int runNum, int event, Settings *settin
 		waveforms[i]->Draw("AL");
 		waveforms[i]->SetLineWidth(3);
 	}
-	cWave->SaveAs(save_temp_title);
+	// cWave->SaveAs(save_temp_title);
 	delete cWave;
 
-	sprintf(save_temp_title,"/users/PAS0654/osu0673/A23_analysis/results/trouble_events/%d.%d.%d_Run%d_Ev%d_Spectra.png",year_now,month_now,day_now,runNum,event);
+	sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_Spectra.png",plotPath,year_now,month_now,day_now,runNum,event);
 	TCanvas *cSpec = new TCanvas("","",4*1100,4*850);
 	cSpec->Divide(4,4);
 	for(int i=0; i<16; i++){
@@ -593,7 +797,7 @@ int PlotThisEvent(int station, int year, int runNum, int event, Settings *settin
 		grWaveformsPowerSpectrum[i]->SetLineWidth(3);
 		gPad->SetLogy();
 	}
-	cSpec->SaveAs(save_temp_title);
+	// cSpec->SaveAs(save_temp_title);
 	delete cSpec;
 	for(int i=0; i<16; i++){
 		delete waveforms[i];
