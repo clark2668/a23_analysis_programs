@@ -694,11 +694,8 @@ int main(int argc, char **argv)
 						}
 						vector<TGraph*> grWaveformsPowerSpectrum = makePowerSpectrumGraphs(grWaveformsPadded, xLabel, yLabel, titlesForGraphs);
 						vector<TGraph*> grWaveformsPowerSpectrum_notched = makePowerSpectrumGraphs(grNotched, xLabel, yLabel, titlesForGraphs);
-						int istart, istop;
-						if(pol==0){ istart=0; istop=8; }
-						else if(pol==1){ istart=8; istop=16; }
 
-						for(int i=istart; i<istop; i++){
+						for(int i=0; i<16; i++){
 							double original_power=0.;
 							double final_power=0.;
 							for(int samp=0; samp<grWaveformsPowerSpectrum[i]->GetN(); samp++){
@@ -707,9 +704,9 @@ int main(int argc, char **argv)
 							for(int samp=0; samp<grWaveformsPowerSpectrum_notched[i]->GetN(); samp++){
 								final_power+=grWaveformsPowerSpectrum_notched[i]->GetY()[samp];
 							}
-							if(pol==0)
+							if(i<8)
 								frac_of_power_notched_V[i]=(original_power-final_power)/original_power;
-							else if(pol==1)
+							else
 								frac_of_power_notched_H[i-8]=(original_power-final_power)/original_power;
 						}
 
