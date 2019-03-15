@@ -125,7 +125,7 @@ int main(int argc, char **argv)
 		trees[1]->SetBranchAddress("corr_val_H",&corr_val[1]);
 		trees[1]->SetBranchAddress("snr_val_H",&snr_val[1]);
 		trees[1]->SetBranchAddress("wfrms_val_H",&WFRMS[1]);
-		trees[0]->SetBranchAddress("Refilt_H",&Refilt[1]);
+		trees[1]->SetBranchAddress("Refilt_H",&Refilt[1]);
 
 		int isCal;
 		int isSoft;
