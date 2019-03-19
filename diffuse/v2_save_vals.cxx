@@ -123,7 +123,7 @@ int main(int argc, char **argv)
 		for(int i=8; i<16; i++){
 			ss.str("");
 			ss<<"PowerNotch_Chan"<<i;
-			trees[1]->Branch(ss.str().c_str(),&frac_of_power_notched_H[i]);
+			trees[1]->Branch(ss.str().c_str(),&frac_of_power_notched_H[i-8]);
 		}
 
 		int isCal;
