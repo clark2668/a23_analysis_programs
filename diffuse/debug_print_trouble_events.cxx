@@ -178,7 +178,7 @@ int main(int argc, char **argv)
 		for(int i=8; i<16; i++){
 			ss.str("");
 			ss<<"PowerNotch_Chan"<<i;
-			trees[1]->SetBranchAddress(ss.str().c_str(),&frac_of_power_notched_H[i]);
+			trees[1]->SetBranchAddress(ss.str().c_str(),&frac_of_power_notched_H[i-8]);
 		}
 		
 		int numEntries = trees[0]->GetEntries();
@@ -225,32 +225,26 @@ int main(int argc, char **argv)
 											num_refilt++;
 
 											vector<double> frac;
-											if(pol==0){
-												for(int i=0; i<8; i++){
-													frac.push_back(frac_of_power_notched_V[i]);
-												}
-											}
-											else if(pol==1){
-												for(int i=0; i<8; i++){
-													frac.push_back(frac_of_power_notched_H[i]);
-												}
+											for(int i=0; i<8; i++){
+												if(pol==0) frac.push_back(frac_of_power_notched_V[i]);
+												else if(pol==1) frac.push_back(frac_of_power_notched_H[i]);
 											}
 											sort(frac.begin(), frac.end(), std::greater<double>());
 											fracs_power_cut[pol]->Fill(frac[2]);
 											if(frac[2]<=0.06){
 												PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol]);
 												if(condition){
-													printf("		Event %d is refiltered in pol %d \n", event,pol);
-													cout<<"			Frac of power notched is "<<frac[2]<<endl;
-													// PlotThisEvent(station,year,runNum,event, settings, detector, theCorrelators);
+													// printf("		Event %d is refiltered in pol %d \n", event,pol);
+													// cout<<"			Frac of power notched is "<<frac[2]<<endl;
+													PlotThisEvent(station,year,runNum,event, settings, detector, theCorrelators);
 												}
 											}
 										} //refiltered?
 										else{
 											PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol]);
 											if(condition){
-												printf("		Event %d is NOT refiltered in pol %d \n", event,pol);
-												// PlotThisEvent(station,year,runNum,event, settings, detector, theCorrelators);
+												// printf("		Event %d is NOT refiltered in pol %d \n", event,pol);
+												PlotThisEvent(station,year,runNum,event, settings, detector, theCorrelators);
 											}
 										}
 										num_in_final_plot++;
@@ -287,7 +281,7 @@ int main(int argc, char **argv)
 	int surf=0;
 	int cw=0;
 
-	/*
+	
 	//save out the Corr vs SNR plot for all 
 	sprintf(graph_title[0],"VPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
 	sprintf(graph_title[1],"HPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
@@ -420,7 +414,7 @@ int main(int argc, char **argv)
 	c8->SaveAs(title);
 	delete c8;
 	delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[1];
-	*/
+	
 
 }
 
@@ -668,7 +662,7 @@ int PlotThisEvent(int station, int year, int runNum, int event, Settings *settin
 				grNotched[i]->SetLineWidth(3);
 				grNotched[i]->SetLineColor(kRed);
 			}
-			// cWave->SaveAs(save_temp_title);
+			cWave->SaveAs(save_temp_title);
 			delete cWave;
 
 			sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_SpectraNotch.png",plotPath,year_now,month_now,day_now,runNum,event);
@@ -683,7 +677,7 @@ int PlotThisEvent(int station, int year, int runNum, int event, Settings *settin
 				grWaveformsPowerSpectrum_notched[i]->SetLineColor(kRed);
 				gPad->SetLogy();
 			}
-			// cSpec->SaveAs(save_temp_title);
+			cSpec->SaveAs(save_temp_title);
 			delete cSpec;
 			deleteGraphVector(grWaveformsRaw);
 			deleteGraphVector(grWaveformsInt);
@@ -765,14 +759,11 @@ int PlotThisEvent(int station, int year, int runNum, int event, Settings *settin
 			map_300m_V->Draw("colz");
 			cMaps->cd(2);
 			map_300m_H->Draw("colz");
-			// cMaps->cd(5);
-			// map_30m_V_select->Draw("colz");
 		char save_temp_title[400];		
 		sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_Maps.png",plotPath,year_now,month_now,day_now,runNum,event);
-		// cMaps->SaveAs(save_temp_title);
+		cMaps->SaveAs(save_temp_title);
 		delete cMaps;
 		delete map_30m_V; delete map_300m_V; delete map_30m_H; delete map_300m_H; 
-		// delete map_30m_V_select;
 	}
 
 
@@ -785,7 +776,7 @@ int PlotThisEvent(int station, int year, int runNum, int event, Settings *settin
 		waveforms[i]->Draw("AL");
 		waveforms[i]->SetLineWidth(3);
 	}
-	// cWave->SaveAs(save_temp_title);
+	cWave->SaveAs(save_temp_title);
 	delete cWave;
 
 	sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_Spectra.png",plotPath,year_now,month_now,day_now,runNum,event);
@@ -797,7 +788,7 @@ int PlotThisEvent(int station, int year, int runNum, int event, Settings *settin
 		grWaveformsPowerSpectrum[i]->SetLineWidth(3);
 		gPad->SetLogy();
 	}
-	// cSpec->SaveAs(save_temp_title);
+	cSpec->SaveAs(save_temp_title);
 	delete cSpec;
 	for(int i=0; i<16; i++){
 		delete waveforms[i];
