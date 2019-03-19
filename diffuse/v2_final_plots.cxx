@@ -152,7 +152,7 @@ int main(int argc, char **argv)
 		for(int i=8; i<16; i++){
 			ss.str("");
 			ss<<"PowerNotch_Chan"<<i;
-			trees[1]->SetBranchAddress(ss.str().c_str(),&frac_of_power_notched_H[i]);
+			trees[1]->SetBranchAddress(ss.str().c_str(),&frac_of_power_notched_H[i-8]);
 		}
 		
 		int numEntries = trees[0]->GetEntries();
@@ -198,20 +198,13 @@ int main(int argc, char **argv)
 											num_refilt++;
 
 											vector<double> frac;
-											if(pol==0){
-												for(int i=0; i<8; i++){
-													frac.push_back(frac_of_power_notched_V[i]);
-												}
-											}
-											else if(pol==1){
-												for(int i=0; i<8; i++){
-													frac.push_back(frac_of_power_notched_H[i]);
-												}
+											for(int i=0; i<8; i++){
+												if(pol==0) frac.push_back(frac_of_power_notched_V[i]);
+												else if(pol==1) frac.push_back(frac_of_power_notched_H[i]);
 											}
 											sort(frac.begin(), frac.end(), std::greater<double>());
 											fracs_power_cut[pol]->Fill(frac[2]);
 											if(frac[2]<=0.06){ //&& event!=1 && event!=2 && event!=3)
-												1==1;
 												PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol]);
 											}
 										} //refiltered?
