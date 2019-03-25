@@ -73,14 +73,32 @@ int main(int argc, char **argv)
 		TGraph *padded_waveform = FFTtools::padWaveToLength(interpolated_waveform,1024);
 
 		TGraph *grOut = doConvolve(padded_waveform);
-		TCanvas *c = new TCanvas("","",1100,850);
+		TCanvas *c = new TCanvas("","",2*800,2*800);
 		c->Divide(1,2);
 		c->cd(1);
 			padded_waveform->Draw("ALP");
-			padded_waveform->SetTitle("padded waveform");
+			padded_waveform->SetLineWidth(2);
+			padded_waveform->SetTitle("Waveform (padded)");
+			padded_waveform->GetXaxis()->SetTitle("Time (ns)");
+			padded_waveform->GetYaxis()->SetTitle("Voltage (mV)");
+			padded_waveform->GetYaxis()->SetRangeUser(-800,800);
+			padded_waveform->GetXaxis()->SetLabelSize(0.05);
+			padded_waveform->GetXaxis()->SetTitleSize(0.05);
+			padded_waveform->GetYaxis()->SetLabelSize(0.05);
+			padded_waveform->GetYaxis()->SetTitleSize(0.05);
+			gPad->SetRightMargin(0.05);
 		c->cd(2);
 			grOut->Draw("ALP");
-			grOut->SetTitle("diode output");
+			grOut->SetLineWidth(2);
+			grOut->SetTitle("Diode Output");
+			grOut->GetXaxis()->SetTitle("Time (ns)");
+			grOut->GetYaxis()->SetTitle("Diode Output (arb. units.)");
+			grOut->GetYaxis()->SetRangeUser(-0.04e-3,0.02e-3);
+			grOut->GetXaxis()->SetLabelSize(0.05);
+			grOut->GetXaxis()->SetTitleSize(0.05);
+			grOut->GetYaxis()->SetLabelSize(0.05);
+			grOut->GetYaxis()->SetTitleSize(0.05);
+			gPad->SetRightMargin(0.05);
 		c->SaveAs("waveform_and_diode.png");
 		delete c;
 
