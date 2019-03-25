@@ -152,7 +152,9 @@ void getDiodeModel(int NFOUR, double TIMESTEP, vector<double>&fdiode_real, vecto
 	for (int i=0; i<NFOUR; i++) {
 		fdiode_real.push_back( diode_real_fft[i] );
 	}
-
+	delete fdown1;
+	delete fdown2;
+	delete f_up;
 }
 
 TGraph* doConvolve(TGraph *grIn){
