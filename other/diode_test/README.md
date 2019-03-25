@@ -10,7 +10,7 @@ Compile like `make run_diode`
 
 `diode_include.h` is a copy and clean-up of all the necessary functions from AraSim to make the diode convlution work.
 
-The result will look like ![diode_photo](https://github.com/clark2668/a23_analysis_programs/blob/master/other/diode_test/waveform_and_diode.png)
+The result will look like ![](waveform_and_diode.png)
 
 # Python Version
 
