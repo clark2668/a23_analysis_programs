@@ -116,9 +116,9 @@ void getDiodeModel(int NFOUR, double TIMESTEP, vector<double>&fdiode_real, vecto
 	fdown2->SetParameter(3,0.);
 
 	TF1 *f_up=new TF1("f_up","[0]*([3]*(x-[1]))^2*exp(-(x-[1])/[2])",-200.E-9,100.E-9);
-	f_up->SetParameter(2,7.0E-9);
 	f_up->SetParameter(0,1.);
 	f_up->SetParameter(1,18.E-9);
+	f_up->SetParameter(2,7.0E-9);
 	f_up->SetParameter(3,1.E9);
 	f_up->SetParameter(0,-1.*sqrt(2.*TMath::Pi())*(fdown1->GetParameter(0)*fdown1->GetParameter(2)+fdown2->GetParameter(0)*fdown2->GetParameter(2))/(2.*pow(f_up->GetParameter(2),3.)*1.E18));
 
@@ -172,6 +172,7 @@ TGraph* doConvolve(TGraph *grIn){
 	vector<double> diode_real; //time domain of diode response
 	getDiodeModel(NFOUR, TIMESTEP, fdiode_real, diode_real);
 	
+	//this would print out the time-domain tunnel diode response
 	/*
 	vector<double> xes;
 	for(int i=0; i<diode_real.size(); i++){
@@ -213,15 +214,17 @@ TGraph* doConvolve(TGraph *grIn){
 	realft(ans_copy,-1,length*2);
 
 	vector<double> diodeconv;
-	for(int i=0; i<length+maxt_diode_bin; i++){
+	// for(int i=0; i<length+maxt_diode_bin; i++){
+	for(int i=0; i<length; i++){
 		diodeconv.push_back(ans_copy[i]);
 	}
 
 	vector<double> diodeX;
 	for(int i=0; i<diodeconv.size(); i++){
-		diodeX.push_back(double(i));
+		diodeX.push_back(grIn->GetX()[i]);
 	}
 	TGraph *grDiode = new TGraph(diodeX.size(), &diodeX[0], &diodeconv[0]);
+	delete grClone;
 	return grDiode;
 }
 

@@ -58,7 +58,7 @@ int main(int argc, char **argv)
 		eventTree->GetEntry(event); //get the event
 		bool isCalpulser = rawAtriEvPtr->isCalpulserEvent();
 		bool isSoftwareTrigger = rawAtriEvPtr->isSoftwareTrigger();
-		if(!isSoftwareTrigger) continue;
+		if(!isCalpulser) continue;
 		UsefulAtriStationEvent *realAtriEvPtr = new UsefulAtriStationEvent(rawAtriEvPtr, AraCalType::kLatestCalib);
 		bool this_qual = qual->isGoodEvent(realAtriEvPtr); //get the quality
 		if(!this_qual){
@@ -77,7 +77,7 @@ int main(int argc, char **argv)
 		c->Divide(1,2);
 		c->cd(1);
 			padded_waveform->Draw("ALP");
-			padded_waveform->SetTitle("padded_waveform");
+			padded_waveform->SetTitle("padded waveform");
 		c->cd(2);
 			grOut->Draw("ALP");
 			grOut->SetTitle("diode output");
@@ -88,6 +88,7 @@ int main(int argc, char **argv)
 		delete interpolated_waveform;
 		delete padded_waveform;
 		delete waveform;
+		delete grOut;
 		delete realAtriEvPtr;
 	}
 }
