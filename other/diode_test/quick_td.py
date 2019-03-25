@@ -37,7 +37,6 @@ def tunnel_diode(self, dt, trace):
 	t_max = 1e-7
 	n_pts = int(t_max / dt)
 	times = np.linspace(0, t_max, n_pts + 1)
-	print times
 	diode_resp = td_fdown1(times) + td_fdown2(times)
 	t_slice = times > td_args['up'][1]
 	diode_resp[t_slice] += td_fup(times[t_slice])
@@ -45,7 +44,6 @@ def tunnel_diode(self, dt, trace):
 	fig = plt.figure(figsize=(11,8.5)) #make a figure object
 	ax = fig.add_subplot(1,1,1) #make a subplot for the limit
 	ax.plot(times,diode_resp)
-	print diode_resp
 	fig.savefig("diode_resp.png",edgecolor='none',bbox_inches="tight") #save the figure       
 
 	conv = scipy.signal.convolve(trace ** 2 , diode_resp, mode='full')
