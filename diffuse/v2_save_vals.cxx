@@ -662,16 +662,8 @@ int main(int argc, char **argv)
 						int PeakPhi_Recompute_300m;
 						double PeakCorr_Recompute_30m;
 						double PeakCorr_Recompute_300m;
-						double MinCorr_Recompute_30m;
-						double MinCorr_Recompute_300m;
-						double MeanCorr_Recompute_30m;
-						double MeanCorr_Recompute_300m;
-						double RMSCorr_Recompute_30m;
-						double RMSCorr_Recompute_300m;
-						double PeakSigma_Recompute_30m;
-						double PeakSigma_Recompute_300m;
-						getCorrMapPeak_wStats(map_30m,PeakTheta_Recompute_30m,PeakPhi_Recompute_30m,PeakCorr_Recompute_30m,MinCorr_Recompute_30m,MeanCorr_Recompute_30m,RMSCorr_Recompute_30m,PeakSigma_Recompute_30m);
-						getCorrMapPeak_wStats(map_300m,PeakTheta_Recompute_300m,PeakPhi_Recompute_300m,PeakCorr_Recompute_300m,MinCorr_Recompute_300m,MeanCorr_Recompute_300m,RMSCorr_Recompute_300m,PeakSigma_Recompute_300m);
+						getCorrMapPeak(map_30m,PeakTheta_Recompute_30m,PeakPhi_Recompute_30m,PeakCorr_Recompute_30m);
+						getCorrMapPeak(map_300m,PeakTheta_Recompute_300m,PeakPhi_Recompute_300m,PeakCorr_Recompute_300m);
 
 						//and we must also redo the WRMS calculation
 						stringstream ss1;
