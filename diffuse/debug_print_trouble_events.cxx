@@ -37,17 +37,17 @@ AraAntPol::AraAntPol_t Hpol = AraAntPol::kHorizontal;
 
 using namespace std;
 
-int PlotThisEvent(int station, int year, int runNum, int event, Settings *settings, Detector *detector, RayTraceCorrelator *theCorrelators[2]);
+int PlotThisEvent(int station, int config, int runNum, int event, Settings *settings, Detector *detector, RayTraceCorrelator *theCorrelators[2]);
 
 int main(int argc, char **argv)
 {
 
 	if(argc<3){
-		cout<< "Usage\n" << argv[0] << " <station> <year> <ValForCuts filename>"<<endl;;
+		cout<< "Usage\n" << argv[0] << " <station> <config> <ValForCuts filename>"<<endl;;
 		return -1;
 	}
 	int station = atoi(argv[1]);
-	int year = atoi(argv[2]);
+	int config = atoi(argv[2]);
 	
 	time_t time_now = time(0); //get the time now                                                                                                                                                                  
 	tm *time = localtime(&time_now);
@@ -234,7 +234,7 @@ int main(int argc, char **argv)
 												if(condition){
 													// printf("		Event %d is refiltered in pol %d \n", event,pol);
 													// cout<<"			Frac of power notched is "<<frac[2]<<endl;
-													PlotThisEvent(station,year,runNum,event, settings, detector, theCorrelators);
+													PlotThisEvent(station,config,runNum,event, settings, detector, theCorrelators);
 												}
 											}
 										} //refiltered?
@@ -242,7 +242,7 @@ int main(int argc, char **argv)
 											PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol]);
 											if(condition){
 												// printf("		Event %d is NOT refiltered in pol %d \n", event,pol);
-												PlotThisEvent(station,year,runNum,event, settings, detector, theCorrelators);
+												PlotThisEvent(station,config,runNum,event, settings, detector, theCorrelators);
 											}
 										}
 										num_in_final_plot++;
@@ -295,7 +295,7 @@ int main(int argc, char **argv)
 			PeakCorr_vs_SNR_all[pol]->SetTitle(graph_title[pol]);
 			gPad->SetLogz();
 		}
-		sprintf(title, "%s/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
+		sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,num_total,cal,soft,Short,wrms,box,surf);
 		c2->SaveAs(title);
 		delete c2;
 		delete PeakCorr_vs_SNR_all[0]; delete PeakCorr_vs_SNR_all[1];
@@ -314,7 +314,7 @@ int main(int argc, char **argv)
 			PeakCorr_vs_SNR_cutCal[pol]->SetTitle(graph_title[pol]);
 			gPad->SetLogz();
 		}
-		sprintf(title, "%s/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
+		sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,num_total,cal,soft,Short,wrms,box,surf);
 		c3->SaveAs(title);
 		delete c3;
 		delete PeakCorr_vs_SNR_cutCal[0]; delete PeakCorr_vs_SNR_cutCal[1];
@@ -333,7 +333,7 @@ int main(int argc, char **argv)
 			PeakCorr_vs_SNR_cutCal_cutSoft[pol]->SetTitle(graph_title[pol]);
 			gPad->SetLogz();
 		}
-		sprintf(title, "%s/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
+		sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,num_total,cal,soft,Short,wrms,box,surf);
 		c4->SaveAs(title);
 		delete c4;
 		delete PeakCorr_vs_SNR_cutCal_cutSoft[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft[1];
@@ -352,7 +352,7 @@ int main(int argc, char **argv)
 			PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[pol]->SetTitle(graph_title[pol]);
 			gPad->SetLogz();
 		}
-		sprintf(title, "%s/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
+		sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,num_total,cal,soft,Short,wrms,box,surf);
 		c5->SaveAs(title);
 		delete c5;
 		delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[1];
@@ -371,7 +371,7 @@ int main(int argc, char **argv)
 			PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[pol]->SetTitle(graph_title[pol]);
 			gPad->SetLogz();
 		}
-		sprintf(title, "%s/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
+		sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,num_total,cal,soft,Short,wrms,box,surf);
 		c6->SaveAs(title);
 		delete c6;
 		delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[1];
@@ -390,7 +390,7 @@ int main(int argc, char **argv)
 			PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[pol]->SetTitle(graph_title[pol]);
 			gPad->SetLogz();
 		}
-		sprintf(title, "%s/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
+		sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,num_total,cal,soft,Short,wrms,box,surf);
 		c7->SaveAs(title);
 		delete c7;
 		delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[1];
@@ -410,7 +410,7 @@ int main(int argc, char **argv)
 			// PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->GetXaxis()->SetRangeUser(0,10);
 			// PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->GetYaxis()->SetRangeUser(0,0.5);
 		}
-		sprintf(title, "%s/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
+		sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,num_total,cal,soft,Short,wrms,box,surf);
 		c8->SaveAs(title);
 		delete c8;
 		delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[1];
@@ -418,7 +418,7 @@ int main(int argc, char **argv)
 
 }
 
-int PlotThisEvent(int station, int year, int runNum, int event, Settings *settings, Detector *detector, RayTraceCorrelator *theCorrelators[2]){
+int PlotThisEvent(int station, int config, int runNum, int event, Settings *settings, Detector *detector, RayTraceCorrelator *theCorrelators[2]){
 	time_t time_now = time(0); //get the time now                                                                                                                                                                  
 	tm *time = localtime(&time_now);
 	int year_now = time -> tm_year + 1900;
@@ -433,12 +433,7 @@ int PlotThisEvent(int station, int year, int runNum, int event, Settings *settin
 	if (plotPath == NULL) std::cout << "Warning! $PLOT_PATH is not set!" << endl;
 
 	char run_file_name[400];
-	if(year==2013){
-		sprintf(run_file_name,"%s/RawData/A%d/%d/run%d/event%d.root",DataDirPath,station,year,runNum,runNum);
-	}
-	else if(year==2014 || year==2015 || year==2016){
-		sprintf(run_file_name,"%s/RawData/A%d/%d/sym_links/event00%d.root",DataDirPath,station,year,runNum,runNum);
-	}
+	sprintf(run_file_name,"%s/RawData/A%d/by_config/c%d/event%d.root",DataDirPath,station,config,runNum);
 	TFile *mapFile = TFile::Open(run_file_name);
 	if(!mapFile){
 		cout<<"Can't open data file for map!"<<endl;
@@ -456,13 +451,7 @@ int PlotThisEvent(int station, int year, int runNum, int event, Settings *settin
 
 	int stationID = rawPtr->stationId;
 	char ped_file_name[400];
-
-	if(year==2013){
-		sprintf(ped_file_name,"%s/run_specific_peds/A%d/%d/event%d_specificPeds.dat",PedDirPath,station,year,runNum);
-	}
-	else if(year==2014 || year==2015 || year==2016){
-		sprintf(ped_file_name,"%s/run_specific_peds/A%d/%d/event00%d_specificPeds.dat",PedDirPath,station,year,runNum);
-	}
+	sprintf(ped_file_name,"%s/run_specific_peds/A%d/all_peds/event%d_specificPeds.dat",PedDirPath,station,runNum);
 	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
 	calibrator->setAtriPedFile(ped_file_name,stationID); //because someone had a brain (!!), this will error handle itself if the pedestal doesn't exist
 
@@ -486,7 +475,7 @@ int PlotThisEvent(int station, int year, int runNum, int event, Settings *settin
 	}
 
 	char cw_file_name[400];
-	sprintf(cw_file_name,"%s/CWID/A%d/%d/CWID_station_%d_run_%d.root",DataDirPath,station,year,station,runNum);
+	sprintf(cw_file_name,"%s/CWID/A%d/by_config/c%d/CWID_station_%d_run_%d.root",DataDirPath,station,config,station,runNum);
 	TFile *NewCWFile = TFile::Open(cw_file_name);
 	if(!NewCWFile) {
 		std::cerr << "Can't open new CW file\n";
@@ -715,7 +704,7 @@ int PlotThisEvent(int station, int year, int runNum, int event, Settings *settin
 		}
 		else if(station==3){
 			//for station 3 years 2014 and 2015, we need to drop string 4 (channels 3, 7, 11, 15) altogether
-			if(year==2014 || year==2015 || year==2016){
+			if(runNum>2972){
 				chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 3), chan_list_V.end());
 				chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 7), chan_list_V.end());
 
