@@ -55,14 +55,21 @@ int main(int argc, char **argv)
 	int month_now = time -> tm_mon + 1;
 	int day_now = time -> tm_mday;
 
+	char *plotPath(getenv("PLOT_PATH"));
+	if (plotPath == NULL) std::cout << "Warning! $PLOT_PATH is not set!" << endl;
+	char *DataDirPath(getenv("DATA_DIR"));
+	if (DataDirPath == NULL) std::cout << "Warning! $DATA_DIR is not set!" << endl;
+	char *PedDirPath(getenv("PED_DIR"));
+	if (PedDirPath == NULL) std::cout << "Warning! $DATA_DIR is not set!" << endl;
+
 	gStyle->SetOptStat(11);
 
 	char run_file_name[400];
 	if(year==2013){
-		sprintf(run_file_name,"/fs/scratch/PAS0654/ara/10pct/RawData/A%d/%d/run%d/event%d.root",station,year,runNum,runNum);
+		sprintf(run_file_name,"%s/RawData/A%d/%d/run%d/event%d.root",DataDirPath,station,year,runNum,runNum);
 	}
 	else if(year==2014 || year==2015 || year==2016){
-		sprintf(run_file_name,"/fs/scratch/PAS0654/ara/10pct/RawData/A%d/%d/sym_links/event00%d.root",station,year,runNum,runNum);
+		sprintf(run_file_name,"%s/RawData/A%d/%d/sym_links/event00%d.root",DataDirPath,station,year,runNum,runNum);
 	}
 	TFile *mapFile = TFile::Open(run_file_name);
 	if(!mapFile){
@@ -83,10 +90,10 @@ int main(int argc, char **argv)
 	char ped_file_name[400];
 
 	if(year==2013){
-		sprintf(ped_file_name,"/fs/scratch/PAS0654/ara/peds/run_specific_peds/A%d/%d/event%d_specificPeds.dat",station,year,runNum);
+		sprintf(ped_file_name,"%s/run_specific_peds/A%d/%d/event%d_specificPeds.dat",PedDirPath,station,year,runNum);
 	}
 	else if(year==2014 || year==2015 || year==2016){
-		sprintf(ped_file_name,"/fs/scratch/PAS0654/ara/peds/run_specific_peds/A%d/%d/event00%d_specificPeds.dat",station,year,runNum);
+		sprintf(ped_file_name,"%s/run_specific_peds/A%d/%d/event00%d_specificPeds.dat",PedDirPath,station,year,runNum);
 	}
 	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
 	calibrator->setAtriPedFile(ped_file_name,stationID); //because someone had a brain (!!), this will error handle itself if the pedestal doesn't exist
@@ -172,7 +179,7 @@ int main(int argc, char **argv)
 			// cMaps->cd(5);
 			// map_30m_V_select->Draw("colz");
 		char save_temp_title[400];		
-		sprintf(save_temp_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/single_events/%d.%d.%d_Run%d_Ev%d_Maps.png",year_now,month_now,day_now,runNum,event);
+		sprintf(save_temp_title,"%s/single_events/%d.%d.%d_Run%d_Ev%d_Maps.png",plotPath,year_now,month_now,day_now,runNum,event);
 		cMaps->SaveAs(save_temp_title);
 		delete cMaps;
 		delete map_30m_V; delete map_300m_V; delete map_30m_H; delete map_300m_H; 
@@ -181,7 +188,7 @@ int main(int argc, char **argv)
 
 
 	char save_temp_title[300];
-	sprintf(save_temp_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/single_events/%d.%d.%d_Run%d_Ev%d_Waveforms.png",year_now,month_now,day_now,runNum,event);
+	sprintf(save_temp_title,"%s/single_events/%d.%d.%d_Run%d_Ev%d_Waveforms.png",plotPath,year_now,month_now,day_now,runNum,event);
 	TCanvas *cWave = new TCanvas("","",4*1100,4*850);
 	cWave->Divide(4,4);
 	for(int i=0; i<16; i++){
@@ -192,7 +199,7 @@ int main(int argc, char **argv)
 	cWave->SaveAs(save_temp_title);
 	delete cWave;
 
-	sprintf(save_temp_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/single_events/%d.%d.%d_Run%d_Ev%d_Spectra.png",year_now,month_now,day_now,runNum,event);
+	sprintf(save_temp_title,"%s/single_events/%d.%d.%d_Run%d_Ev%d_Spectra.png",plotPath,year_now,month_now,day_now,runNum,event);
 	TCanvas *cSpec = new TCanvas("","",4*1100,4*850);
 	cSpec->Divide(4,4);
 	for(int i=0; i<16; i++){
@@ -220,7 +227,7 @@ int main(int argc, char **argv)
 		cnow->cd(i);
 		more_spec[i]->Draw("AL");
 	}
-	sprintf(save_temp_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/single_events/%d.%d.%d_Run%d_Ev%d_Spectra_Special.png",year_now,month_now,day_now,runNum,event);
+	sprintf(save_temp_title,"%s/single_events/%d.%d.%d_Run%d_Ev%d_Spectra_Special.png",plotPath,year_now,month_now,day_now,runNum,event);
 	cnow->SaveAs(save_temp_title);
 	delete cnow;
 
