@@ -37,8 +37,6 @@ AraAntPol::AraAntPol_t Hpol = AraAntPol::kHorizontal;
 
 using namespace std;
 
-int PlotThisEvent(int station, int year, int runNum, int event, Settings *settings, Detector *detector, RayTraceCorrelator *theCorrelators[2]);
-
 int main(int argc, char **argv)
 {
 	gStyle->SetOptStat(0);
