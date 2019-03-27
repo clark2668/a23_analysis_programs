@@ -123,7 +123,7 @@ int main(int argc, char **argv)
 		string strRunNum = file.substr(foundRun+4,4);
 		int runNum = atoi(strRunNum.c_str());
 
-		if(isBadRun(station,year,runNum)) continue;
+		if(isBadRun(station,runNum)) continue;
 
 		TFile *inputFile = TFile::Open(argv[file_num]);
 		if(!inputFile){
@@ -217,7 +217,7 @@ int main(int argc, char **argv)
 									if(!isSurf){
 
 										bool condition = false;
-										if(snr_val[pol]>=28.) condition=true;
+										if(snr_val[pol]>=9.) condition=true;
 
 										if(Refilt[pol]){
 											num_refilt++;
@@ -257,162 +257,164 @@ int main(int argc, char **argv)
 		inputFile->Close();
 		delete inputFile;
 	}
-	cout<<"Num total is "<<num_total<<endl;
-	cout<<"Num in final plot "<<num_in_final_plot<<endl;
-	cout<<"Num re-filtered is "<<num_refilt<<endl;
+	bool print_summary=false;
+	if(print_summary){
 
-	gStyle->SetOptStat(11);
-	gStyle->SetStatY(0.9);
-	gStyle->SetStatX(0.9);
-	gStyle->SetStatW(0.2);
-	gStyle->SetStatH(0.2);
+		cout<<"Num total is "<<num_total<<endl;
+		cout<<"Num in final plot "<<num_in_final_plot<<endl;
+		cout<<"Num re-filtered is "<<num_refilt<<endl;
 
-	//save out SNR vs WavefrontRMS plot
-	char graph_title[2][300];
-	char title[300];
+		gStyle->SetOptStat(11);
+		gStyle->SetStatY(0.9);
+		gStyle->SetStatX(0.9);
+		gStyle->SetStatW(0.2);
+		gStyle->SetStatH(0.2);
 
-	int cal=0;
-	int soft=0;
-	int Short=0;
-	int wrms=0;
-	int box = 0;
-	int surf=0;
-	int cw=0;
+		//save out SNR vs WavefrontRMS plot
+		char graph_title[2][300];
+		char title[300];
 
-	
-	//save out the Corr vs SNR plot for all 
-	// sprintf(graph_title[0],"VPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
-	// sprintf(graph_title[1],"HPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
-	// TCanvas *c2 = new TCanvas("","",2.1*850,850);
-	// c2->Divide(2,1);
-	// for(int pol=0; pol<2; pol++){
-	// 	c2->cd(pol+1);
-	// 	PeakCorr_vs_SNR_all[pol]->Draw("colz");
-	// 	PeakCorr_vs_SNR_all[pol]->GetYaxis()->SetTitle("Peak Correlation Value");
-	// 	PeakCorr_vs_SNR_all[pol]->GetXaxis()->SetTitle("3rd Highest VPeak/RMS");
-	// 	PeakCorr_vs_SNR_all[pol]->SetTitle(graph_title[pol]);
-	// 	gPad->SetLogz();
-	// }
-	// sprintf(title, "%s/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
-	// c2->SaveAs(title);
-	// delete c2;
-	// delete PeakCorr_vs_SNR_all[0]; delete PeakCorr_vs_SNR_all[1];
+		int cal=0;
+		int soft=0;
+		int Short=0;
+		int wrms=0;
+		int box = 0;
+		int surf=0;
+		int cw=0;
 
-	// //turn on cal
-	// cal=1;
-	// sprintf(graph_title[0],"VPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
-	// sprintf(graph_title[1],"HPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
-	// TCanvas *c3 = new TCanvas("","",2.1*850,850);
-	// c3->Divide(2,1);
-	// for(int pol=0; pol<2; pol++){
-	// 	c3->cd(pol+1);
-	// 	PeakCorr_vs_SNR_cutCal[pol]->Draw("colz");
-	// 	PeakCorr_vs_SNR_cutCal[pol]->GetYaxis()->SetTitle("Peak Correlation Value");
-	// 	PeakCorr_vs_SNR_cutCal[pol]->GetXaxis()->SetTitle("3rd Highest VPeak/RMS");
-	// 	PeakCorr_vs_SNR_cutCal[pol]->SetTitle(graph_title[pol]);
-	// 	gPad->SetLogz();
-	// }
-	// sprintf(title, "%s/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
-	// c3->SaveAs(title);
-	// delete c3;
-	// delete PeakCorr_vs_SNR_cutCal[0]; delete PeakCorr_vs_SNR_cutCal[1];
+		//save out the Corr vs SNR plot for all 
+		sprintf(graph_title[0],"VPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
+		sprintf(graph_title[1],"HPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
+		TCanvas *c2 = new TCanvas("","",2.1*850,850);
+		c2->Divide(2,1);
+		for(int pol=0; pol<2; pol++){
+			c2->cd(pol+1);
+			PeakCorr_vs_SNR_all[pol]->Draw("colz");
+			PeakCorr_vs_SNR_all[pol]->GetYaxis()->SetTitle("Peak Correlation Value");
+			PeakCorr_vs_SNR_all[pol]->GetXaxis()->SetTitle("3rd Highest VPeak/RMS");
+			PeakCorr_vs_SNR_all[pol]->SetTitle(graph_title[pol]);
+			gPad->SetLogz();
+		}
+		sprintf(title, "%s/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
+		c2->SaveAs(title);
+		delete c2;
+		delete PeakCorr_vs_SNR_all[0]; delete PeakCorr_vs_SNR_all[1];
 
-	// //turn on cal, soft
-	// soft=1;
-	// sprintf(graph_title[0],"VPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
-	// sprintf(graph_title[1],"HPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
-	// TCanvas *c4 = new TCanvas("","",2.1*850,850);
-	// c4->Divide(2,1);
-	// for(int pol=0; pol<2; pol++){
-	// 	c4->cd(pol+1);
-	// 	PeakCorr_vs_SNR_cutCal_cutSoft[pol]->Draw("colz");
-	// 	PeakCorr_vs_SNR_cutCal_cutSoft[pol]->GetYaxis()->SetTitle("Peak Correlation Value");
-	// 	PeakCorr_vs_SNR_cutCal_cutSoft[pol]->GetXaxis()->SetTitle("3rd Highest VPeak/RMS");
-	// 	PeakCorr_vs_SNR_cutCal_cutSoft[pol]->SetTitle(graph_title[pol]);
-	// 	gPad->SetLogz();
-	// }
-	// sprintf(title, "%s/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
-	// c4->SaveAs(title);
-	// delete c4;
-	// delete PeakCorr_vs_SNR_cutCal_cutSoft[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft[1];
+		//turn on cal
+		cal=1;
+		sprintf(graph_title[0],"VPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
+		sprintf(graph_title[1],"HPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
+		TCanvas *c3 = new TCanvas("","",2.1*850,850);
+		c3->Divide(2,1);
+		for(int pol=0; pol<2; pol++){
+			c3->cd(pol+1);
+			PeakCorr_vs_SNR_cutCal[pol]->Draw("colz");
+			PeakCorr_vs_SNR_cutCal[pol]->GetYaxis()->SetTitle("Peak Correlation Value");
+			PeakCorr_vs_SNR_cutCal[pol]->GetXaxis()->SetTitle("3rd Highest VPeak/RMS");
+			PeakCorr_vs_SNR_cutCal[pol]->SetTitle(graph_title[pol]);
+			gPad->SetLogz();
+		}
+		sprintf(title, "%s/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
+		c3->SaveAs(title);
+		delete c3;
+		delete PeakCorr_vs_SNR_cutCal[0]; delete PeakCorr_vs_SNR_cutCal[1];
 
-	// //turn on cal, soft, short
-	// Short=1;
-	// sprintf(graph_title[0],"VPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
-	// sprintf(graph_title[1],"HPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
-	// TCanvas *c5 = new TCanvas("","",2.1*850,850);
-	// c5->Divide(2,1);
-	// for(int pol=0; pol<2; pol++){
-	// 	c5->cd(pol+1);
-	// 	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[pol]->Draw("colz");
-	// 	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[pol]->GetYaxis()->SetTitle("Peak Correlation Value");
-	// 	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[pol]->GetXaxis()->SetTitle("3rd Highest VPeak/RMS");
-	// 	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[pol]->SetTitle(graph_title[pol]);
-	// 	gPad->SetLogz();
-	// }
-	// sprintf(title, "%s/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
-	// c5->SaveAs(title);
-	// delete c5;
-	// delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[1];
+		//turn on cal, soft
+		soft=1;
+		sprintf(graph_title[0],"VPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
+		sprintf(graph_title[1],"HPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
+		TCanvas *c4 = new TCanvas("","",2.1*850,850);
+		c4->Divide(2,1);
+		for(int pol=0; pol<2; pol++){
+			c4->cd(pol+1);
+			PeakCorr_vs_SNR_cutCal_cutSoft[pol]->Draw("colz");
+			PeakCorr_vs_SNR_cutCal_cutSoft[pol]->GetYaxis()->SetTitle("Peak Correlation Value");
+			PeakCorr_vs_SNR_cutCal_cutSoft[pol]->GetXaxis()->SetTitle("3rd Highest VPeak/RMS");
+			PeakCorr_vs_SNR_cutCal_cutSoft[pol]->SetTitle(graph_title[pol]);
+			gPad->SetLogz();
+		}
+		sprintf(title, "%s/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
+		c4->SaveAs(title);
+		delete c4;
+		delete PeakCorr_vs_SNR_cutCal_cutSoft[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft[1];
 
-	// //turn on cal, soft, short, wmrs
-	// wrms=1;
-	// sprintf(graph_title[0],"VPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
-	// sprintf(graph_title[1],"HPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
-	// TCanvas *c6 = new TCanvas("","",2.1*850,850);
-	// c6->Divide(2,1);
-	// for(int pol=0; pol<2; pol++){
-	// 	c6->cd(pol+1);
-	// 	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[pol]->Draw("colz");
-	// 	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[pol]->GetYaxis()->SetTitle("Peak Correlation Value");
-	// 	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[pol]->GetXaxis()->SetTitle("3rd Highest VPeak/RMS");
-	// 	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[pol]->SetTitle(graph_title[pol]);
-	// 	gPad->SetLogz();
-	// }
-	// sprintf(title, "%s/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
-	// c6->SaveAs(title);
-	// delete c6;
-	// delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[1];
+		//turn on cal, soft, short
+		Short=1;
+		sprintf(graph_title[0],"VPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
+		sprintf(graph_title[1],"HPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
+		TCanvas *c5 = new TCanvas("","",2.1*850,850);
+		c5->Divide(2,1);
+		for(int pol=0; pol<2; pol++){
+			c5->cd(pol+1);
+			PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[pol]->Draw("colz");
+			PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[pol]->GetYaxis()->SetTitle("Peak Correlation Value");
+			PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[pol]->GetXaxis()->SetTitle("3rd Highest VPeak/RMS");
+			PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[pol]->SetTitle(graph_title[pol]);
+			gPad->SetLogz();
+		}
+		sprintf(title, "%s/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
+		c5->SaveAs(title);
+		delete c5;
+		delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[1];
 
-	// //turn on cal, soft, short, wmrs, box
-	// box=1;
-	// sprintf(graph_title[0],"VPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
-	// sprintf(graph_title[1],"HPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
-	// TCanvas *c7 = new TCanvas("","",2.1*850,850);
-	// c7->Divide(2,1);
-	// for(int pol=0; pol<2; pol++){
-	// 	c7->cd(pol+1);
-	// 	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[pol]->Draw("colz");
-	// 	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[pol]->GetYaxis()->SetTitle("Peak Correlation Value");
-	// 	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[pol]->GetXaxis()->SetTitle("3rd Highest VPeak/RMS");
-	// 	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[pol]->SetTitle(graph_title[pol]);
-	// 	gPad->SetLogz();
-	// }
-	// sprintf(title, "%s/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
-	// c7->SaveAs(title);
-	// delete c7;
-	// delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[1];
+		//turn on cal, soft, short, wmrs
+		wrms=1;
+		sprintf(graph_title[0],"VPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
+		sprintf(graph_title[1],"HPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
+		TCanvas *c6 = new TCanvas("","",2.1*850,850);
+		c6->Divide(2,1);
+		for(int pol=0; pol<2; pol++){
+			c6->cd(pol+1);
+			PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[pol]->Draw("colz");
+			PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[pol]->GetYaxis()->SetTitle("Peak Correlation Value");
+			PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[pol]->GetXaxis()->SetTitle("3rd Highest VPeak/RMS");
+			PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[pol]->SetTitle(graph_title[pol]);
+			gPad->SetLogz();
+		}
+		sprintf(title, "%s/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
+		c6->SaveAs(title);
+		delete c6;
+		delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[1];
 
-	// surf=1;
-	// sprintf(graph_title[0],"VPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
-	// sprintf(graph_title[1],"HPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
-	// TCanvas *c8 = new TCanvas("","",2.1*850,850);
-	// c8->Divide(2,1);
-	// for(int pol=0; pol<2; pol++){
-	// 	c8->cd(pol+1);
-	// 	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Draw("colz");
-	// 	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->GetYaxis()->SetTitle("Peak Correlation Value");
-	// 	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->GetXaxis()->SetTitle("3rd Highest VPeak/RMS");
-	// 	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->SetTitle(graph_title[pol]);
-	// 	gPad->SetLogz();
-	// 	// PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->GetXaxis()->SetRangeUser(0,10);
-	// 	// PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->GetYaxis()->SetRangeUser(0,0.5);
-	// }
-	// sprintf(title, "%s/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
-	// c8->SaveAs(title);
-	// delete c8;
-	// delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[1];
-	
+		//turn on cal, soft, short, wmrs, box
+		box=1;
+		sprintf(graph_title[0],"VPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
+		sprintf(graph_title[1],"HPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
+		TCanvas *c7 = new TCanvas("","",2.1*850,850);
+		c7->Divide(2,1);
+		for(int pol=0; pol<2; pol++){
+			c7->cd(pol+1);
+			PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[pol]->Draw("colz");
+			PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[pol]->GetYaxis()->SetTitle("Peak Correlation Value");
+			PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[pol]->GetXaxis()->SetTitle("3rd Highest VPeak/RMS");
+			PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[pol]->SetTitle(graph_title[pol]);
+			gPad->SetLogz();
+		}
+		sprintf(title, "%s/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
+		c7->SaveAs(title);
+		delete c7;
+		delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[1];
+
+		surf=1;
+		sprintf(graph_title[0],"VPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
+		sprintf(graph_title[1],"HPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
+		TCanvas *c8 = new TCanvas("","",2.1*850,850);
+		c8->Divide(2,1);
+		for(int pol=0; pol<2; pol++){
+			c8->cd(pol+1);
+			PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Draw("colz");
+			PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->GetYaxis()->SetTitle("Peak Correlation Value");
+			PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->GetXaxis()->SetTitle("3rd Highest VPeak/RMS");
+			PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->SetTitle(graph_title[pol]);
+			gPad->SetLogz();
+			// PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->GetXaxis()->SetRangeUser(0,10);
+			// PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->GetYaxis()->SetRangeUser(0,0.5);
+		}
+		sprintf(title, "%s/%d.%d.%d_A%d_%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,year,num_total,cal,soft,Short,wrms,box,surf);
+		c8->SaveAs(title);
+		delete c8;
+		delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[1];
+	}	
 
 }
 
@@ -722,17 +724,17 @@ int PlotThisEvent(int station, int year, int runNum, int event, Settings *settin
 			}
 		}
 
-		// chan_list_V.clear();
-		// chan_list_V.push_back(0);
-		// chan_list_V.push_back(1);
-		// chan_list_V.push_back(2);
-		// chan_list_V.push_back(3);
+		chan_list_V.clear();
+		chan_list_V.push_back(0);
+		chan_list_V.push_back(1);
+		chan_list_V.push_back(2);
+		chan_list_V.push_back(3);
 
-		// chan_list_H.clear();
-		// chan_list_H.push_back(8);
-		// chan_list_H.push_back(9);
-		// chan_list_H.push_back(10);
-		// chan_list_H.push_back(11);
+		chan_list_H.clear();
+		chan_list_H.push_back(8);
+		chan_list_H.push_back(9);
+		chan_list_H.push_back(10);
+		chan_list_H.push_back(11);
 
 		map_30m_V = theCorrelators[0]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Vpol, false,chan_list_V) ;
 		map_300m_V = theCorrelators[1]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Vpol, false,chan_list_V);
@@ -762,7 +764,7 @@ int PlotThisEvent(int station, int year, int runNum, int event, Settings *settin
 		map_30m_H->SetTitle(ss30H.str().c_str());
 		printf("300m H theta and phi %d and %d \n", PeakTheta_Recompute_300m_H, PeakPhi_Recompute_300m_H);
 		stringstream ss300H;
-		ss30H<<" Peak Theta, Phi is "<<PeakTheta_Recompute_300m_H<<" , "<<PeakPhi_Recompute_300m_H;
+		ss300H<<" Peak Theta, Phi is "<<PeakTheta_Recompute_300m_H<<" , "<<PeakPhi_Recompute_300m_H;
 		map_300m_H->SetTitle(ss300H.str().c_str());
 		printf("30m V theta and phi %d and %d \n", PeakTheta_Recompute_30m_V, PeakPhi_Recompute_30m_V);
 		stringstream ss30V;
@@ -790,6 +792,17 @@ int PlotThisEvent(int station, int year, int runNum, int event, Settings *settin
 		delete map_30m_V; delete map_300m_V; delete map_30m_H; delete map_300m_H; 
 	}
 
+	// vector<TGraph*> dummy;
+	// for(int i=0; i<16; i++){
+	// 	vector<double> thisX;
+	// 	vector<double> thisY;
+	// 	thisX.push_back(300);
+	// 	thisX.push_back(600);
+	// 	thisY.push_back(-700);
+	// 	thisY.push_back(700);
+	// 	dummy.push_back(new TGraph(2,&thisX[0], &thisY[0]));
+	// }
+
 
 	char save_temp_title[300];
 	sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_Waveforms.png",plotPath,year_now,month_now,day_now,runNum,event);
@@ -797,8 +810,13 @@ int PlotThisEvent(int station, int year, int runNum, int event, Settings *settin
 	cWave->Divide(4,4);
 	for(int i=0; i<16; i++){
 		cWave->cd(i+1);
+		// dummy[i]->Draw("AL");
+		// dummy[i]->SetLineColor(kWhite);
+		// dummy[i]->GetXaxis()->SetRangeUser(300.,500.);
+
 		waveforms[i]->Draw("AL");
 		waveforms[i]->SetLineWidth(3);
+		// waveforms[i]->GetXaxis()->SetRangeUser(300.,500.);
 	}
 	cWave->SaveAs(save_temp_title);
 	delete cWave;
