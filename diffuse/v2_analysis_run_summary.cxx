@@ -153,7 +153,6 @@ int main(int argc, char **argv)
 		if(event%starEvery==0) {
 			std::cerr << "*";       
 		}
-		cout<<"on event "<<event<<endl;
 
 		eventTree->GetEntry(event);
 
