@@ -354,7 +354,10 @@ int main(int argc, char **argv)
 		if (analyzeEvent == true){
 
 			weight_out = weight;
-			hasDigitizerError = !(qualCut->isGoodEvent(realAtriEvPtr));
+			if(!isSimulation)
+				hasDigitizerError = !(qualCut->isGoodEvent(realAtriEvPtr));
+			else
+				hasDigitizerError=false;
 			//if the event has a  digitizer error, skip it
 			if(hasDigitizerError){
 				OutputTree->Fill(); //fill this anyway with garbage
