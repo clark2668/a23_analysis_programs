@@ -267,6 +267,8 @@ int main(int argc, char **argv)
 	OutputTree->Branch("rms_pol_thresh_face_V", &rms_pol_thresh_face_V, "rms_pol_thresh_face_V[15][12]/D");
 	OutputTree->Branch("rms_pol_thresh_face_H", &rms_pol_thresh_face_H, "rms_pol_thresh_face_H[15][12]/D");
 
+	cout<<"got here"<<endl;
+
 	int dropBadChans=1;
 	int numFaces_new_V;
 	int numFaces_new_H;
@@ -392,14 +394,16 @@ int main(int argc, char **argv)
 		if (analyzeEvent == true){
 
 			weight_out = weight;
-			hasDigitizerError = !(qualCut->isGoodEvent(realAtriEvPtr));
+			if(!isSimulation)
+				hasDigitizerError = !(qualCut->isGoodEvent(realAtriEvPtr));
+			else
+				hasDigitizerError=false;
 			xLabel = "Time (ns)"; yLabel = "Voltage (mV)";
 			vector<TGraph*> grWaveformsRaw = makeGraphsFromRF(realAtriEvPtr, nGraphs, xLabel, yLabel, titlesForGraphs);
 			ss.str("");
 
 			for (int i = 0; i < 16; i++){
 				waveformLength[i] = grWaveformsRaw[i]->GetN();
-				cout<<"channel "<<i<<" has length "<<waveformLength[i]<<endl;
 			}
 
 			//if the event has a  digitizer error, skip it
