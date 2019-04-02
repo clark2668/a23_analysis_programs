@@ -244,7 +244,7 @@ int main(int argc, char **argv)
 	OutputTree->Branch("eventNumber", &eventNumber);
 	OutputTree->Branch("maxPeakVfromSim", &maxPeakVfromSim);
 	OutputTree->Branch("PeakVfromSim", &PeakVfromSim, "peakVfromSim[16][2]/D");
-	OutputTree->Branch("Trig_Pass", &Trig_Pass, "Trig_Pass[16]/O");
+	OutputTree->Branch("Trig_Pass", &Trig_Pass, "Trig_Pass[16]/I");
 
 
 	// simulation parameters
