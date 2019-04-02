@@ -168,6 +168,7 @@ int main(int argc, char **argv)
 	int eventNumber;
 	double maxPeakVfromSim;
 	double PeakVfromSim[16][2];
+	int Trig_Pass[16] = {0};
 
 	if(isSimulation){
 		eventTree->SetBranchAddress("UsefulAtriStationEvent", &realAtriEvPtr);
@@ -243,6 +244,8 @@ int main(int argc, char **argv)
 	OutputTree->Branch("eventNumber", &eventNumber);
 	OutputTree->Branch("maxPeakVfromSim", &maxPeakVfromSim);
 	OutputTree->Branch("PeakVfromSim", &PeakVfromSim, "peakVfromSim[16][2]/D");
+	OutputTree->Branch("Trig_Pass", &Trig_Pass, "Trig_Pass[16]/O");
+
 
 	// simulation parameters
 	OutputTree->Branch("weight", &weight_out, "weight/D");
@@ -266,8 +269,6 @@ int main(int argc, char **argv)
 	OutputTree->Branch("TSQualParam", &TSQualParam, "TSQualParam/D");   
 	OutputTree->Branch("rms_pol_thresh_face_V", &rms_pol_thresh_face_V, "rms_pol_thresh_face_V[15][12]/D");
 	OutputTree->Branch("rms_pol_thresh_face_H", &rms_pol_thresh_face_H, "rms_pol_thresh_face_H[15][12]/D");
-
-	cout<<"got here"<<endl;
 
 	int dropBadChans=1;
 	int numFaces_new_V;
@@ -317,6 +318,10 @@ int main(int argc, char **argv)
 			while (foundNextSimEvent == false){
 				simTree->GetEntry(eventSim);
 				if (reportPtr->stations[0].Global_Pass != 0 ){
+					// cout<<"Size of passed channels is "<<reportPtr->Passed_chs.size()<<endl;
+					// for(int j=0; j<reportPtr->Passed_chs.size(); j++){
+					// 	cout<<"Passed channel "<<j<<" is "<<reportPtr->Passed_chs[j]<<endl;
+					// }
 					flavor = eventPtr->nuflavorint;
 					nu_nubar = eventPtr->nu_nubar;
 					energy = eventPtr->pnu;
@@ -332,6 +337,7 @@ int main(int argc, char **argv)
 							for (int j = 0; j < reportPtr->stations[0].strings[ii].antennas[i].PeakV.size(); j++){
 								PeakVfromSim[chan][j] = reportPtr->stations[0].strings[ii].antennas[i].PeakV[j];
 							}
+							Trig_Pass[chan] = reportPtr->stations[0].strings[ii].antennas[i].Trig_Pass; //store if this channel triggered based on simulation
 						}
 					}
 
