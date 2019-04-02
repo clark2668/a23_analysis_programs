@@ -78,9 +78,18 @@ int main(int argc, char **argv)
 	wfrms_plots_rf[2] = new TH2D("Vpol_alt_rf","Vpol_alt_rf",100,-5,5,40,0,40);
 	wfrms_plots_rf[3] = new TH2D("Hpol_alt_rf","Hpol_alt_rf",100,-5,5,40,0,40);
 
+	TH1D *all_events[2];
+	TH1D *passed_events[2];
+	TH1D *eff[2];
+	for(int i=0; i<2; i++){
+		all_events[i] = new TH1D("","",30,0,30);
+		passed_events[i] = new TH1D("","",30,0,30);
+		eff[i] = new TH1D("","",30,0,30);
+	}
+
 	double num_total=0.;
-	double num_thermal=0.;
-	double num_passing[] = {0.,0.};
+	double num_thermal[] = {0., 0.};
+	double num_passing[] = {0., 0.};
 	double num_passing_alt[] = {0.,0.};
 
 	for(int file_num=6; file_num<argc; file_num++){
@@ -127,6 +136,9 @@ int main(int argc, char **argv)
 		bool isSoftTrigger;
 		int waveformLength[16];
 		double weight;
+		double SNR_theory;
+		int Trig_Pass[16] = {0};
+
 		inputTree_filter->SetBranchAddress("thirdVPeakOverRMS", &thirdVPeakOverRMS);
 		inputTree_filter->SetBranchAddress("rms_pol_thresh_face_V", &rms_pol_thresh_face_V);
 		inputTree_filter->SetBranchAddress("rms_pol_thresh_face_H", &rms_pol_thresh_face_H);
@@ -136,14 +148,17 @@ int main(int argc, char **argv)
 		inputTree_filter->SetBranchAddress("isSoftTrigger",&isSoftTrigger);
 		inputTree_filter->SetBranchAddress("waveformLength",&waveformLength);
 		inputTree_filter->SetBranchAddress("weight",&weight);
+		inputTree_filter->SetBranchAddress("maxPeakVfromSim", &SNR_theory);
+		inputTree_filter->SetBranchAddress("Trig_Pass", &Trig_Pass);
 
 		int numEntries = inputTree_filter->GetEntries();
 		Long64_t starEvery=numEntries/200;
 		if(starEvery==0) starEvery++;
 
 		//now to loop over events
+		// numEntries=2;
 		for(int event=0; event<numEntries; event++){
-			inputTree_filter->GetEvent(event);
+			inputTree_filter->GetEvent(event, weight);
 
 			num_total+=weight;
 
@@ -198,8 +213,46 @@ int main(int argc, char **argv)
 			bestFaceRMS_alt[0]=rms_faces_V_alt[0];
 			bestFaceRMS_alt[1]=rms_faces_H_alt[0];
 
+			bool trig_pol[2];
+			trig_pol[0]=false;
+			trig_pol[1]=false;
+
+			int num_trig_V=0;
+			int num_trig_H=0;
+			for(int string=0; string<4; string++){
+				for(int ant=0; ant<4; ant++){
+					int chan = string + 4*ant;
+					// printf("Trig pass for string %d ant %d is %d \n", string, ant, Trig_Pass[chan]);
+					if(Trig_Pass[chan]>0){
+						if(ant==0 || ant==2)
+							num_trig_V++;
+						else if(ant==1 || ant==3)
+							num_trig_H++;
+					}
+				}
+			}
+			if(num_trig_V>2){
+				trig_pol[0]=true;
+			}
+			if(num_trig_H>2){
+				trig_pol[1]=true;
+			}
+
 			if(!isCalPulser && !isShort){
-				num_thermal+=weight;
+				if(!isSim){
+					num_thermal[0]+=weight;
+					num_thermal[1]+=weight;
+				}
+				else if(isSim){
+					if(trig_pol[0]){
+						num_thermal[0]+=weight;
+						all_events[0]->Fill(SNR_theory/0.035,weight);
+					}
+					else if (trig_pol[1]){
+						num_thermal[1]+=weight;
+						all_events[1]->Fill(SNR_theory/0.035,weight);
+					}
+				}
 			}
 
 			for(int pol=0; pol<2; pol++){
@@ -216,8 +269,12 @@ int main(int argc, char **argv)
 						if(TMath::Log10(bestFaceRMS[pol]) < wavefrontRMScut[pol]){
 							num_passing[pol]+=(weight);
 						}
-						if(TMath::Log10(bestFaceRMS_alt[pol]) < wavefrontRMScut[pol]){
+						// if(TMath::Log10(bestFaceRMS_alt[pol]) < wavefrontRMScut[pol] && !trig_pol[pol]){
+						// 	cout<<"Passes WFRMS but didn't trigger in pol "<<pol<<" with weight "<<weight<<endl;
+						// }
+						if(TMath::Log10(bestFaceRMS_alt[pol]) < wavefrontRMScut[pol] && trig_pol[pol]){
 							num_passing_alt[pol]+=(weight);
+							passed_events[pol]->Fill(SNR_theory/0.035, weight);
 						}
 					}
 				}
@@ -229,27 +286,27 @@ int main(int argc, char **argv)
 		delete inputFile;
 	} //end loop over input files
 
-	printf("Total Events: %.2f \n", num_total);
-	printf("-----------------------\n");
-	printf("-----------------------\n");
-	for(int pol=0; pol<2; pol++){
-		printf("Pol %d \n", pol);
-		printf("-----------------------\n");
-		printf("	Org : Num passing pol %d: %.3f events, %.3f rate \n", pol, num_passing[pol], 100.*num_passing[pol]/num_total);
-		printf("	Alt  face: Num passing pol %d: %.3f events, %.3f rate \n", pol, num_passing_alt[pol], 100.*num_passing_alt[pol]/num_total);
-	}
-	cout<<""<<endl;
-	cout<<""<<endl;
-	cout<<""<<endl;
+	// printf("Total Events: %.2f \n", num_total);
+	// printf("-----------------------\n");
+	// printf("-----------------------\n");
+	// for(int pol=0; pol<2; pol++){
+	// 	printf("Pol %d \n", pol);
+	// 	printf("-----------------------\n");
+	// 	printf("	Org : Num passing pol %d: %.3f events, %.3f rate \n", pol, num_passing[pol], 100.*num_passing[pol]/num_total);
+	// 	printf("	Alt  face: Num passing pol %d: %.3f events, %.3f rate \n", pol, num_passing_alt[pol], 100.*num_passing_alt[pol]/num_total);
+	// }
+	// cout<<""<<endl;
+	// cout<<""<<endl;
+	// cout<<""<<endl;
 
-	printf("Total Thermal Events: %.2f \n", num_thermal);
-	printf("-----------------------\n");
-	printf("-----------------------\n");
+	// printf("Total Thermal Events: %.2f \n", num_thermal);
+	// printf("-----------------------\n");
+	// printf("-----------------------\n");
 	for(int pol=0; pol<2; pol++){
 		printf("Pol %d \n", pol);
 		printf("-----------------------\n");
-		printf("	Org face: Num thermal passing pol %d: %.3f events, %.3f rate \n", pol, num_passing[pol], 100.*num_passing[pol]/num_thermal);
-		printf("	Alt  face: Num thermal passing pol %d: %.3f events, %.3f rate \n", pol, num_passing_alt[pol], 100.*num_passing_alt[pol]/num_thermal);
+		// printf("	Org face: Num thermal passing pol %d: %.3f events, %.3f rate \n", pol, num_passing[pol], 100.*num_passing[pol]/num_thermal);
+		printf("	Alt  face: Num thermal passing pol %d: %.3f events, %.3f rate \n", pol, num_passing_alt[pol], 100.*num_passing_alt[pol]/num_thermal[pol]);
 	}
 
 	TH1D *projections[4];
@@ -323,4 +380,35 @@ int main(int argc, char **argv)
 	delete c;
 	delete wfrms_plots[0]; delete wfrms_plots[1]; delete wfrms_plots[2]; delete wfrms_plots[3];
 	for(int i=0; i<4; i++) delete projections[i];
+
+	for(int pol=0; pol<2; pol++){
+		for(int i=0; i<passed_events[pol]->GetNbinsX(); i++){
+			double thrown = all_events[pol]->GetBinContent(i);
+			double passed = passed_events[pol] -> GetBinContent(i);
+			if(passed > 1E-3)
+				eff[pol]->SetBinContent(i, passed/thrown);
+			else
+				eff[pol]->SetBinContent(i,0.);
+		}
+	}
+
+	TCanvas *c2 = new TCanvas("","",2*1100,2*850);
+	c2->Divide(2,3);
+	for(int pol=0; pol<2; pol++){
+		//pol 0 -> canvas 1,3,5
+		//pol 1 -> canvas 2, 4, 6
+		c2->cd(pol+1);
+			all_events[pol]->Draw("");
+			all_events[pol]->SetLineWidth(3.);
+			gPad->SetLogy();
+		c2->cd(pol+3);
+			passed_events[pol]->Draw("");
+			passed_events[pol]->SetLineWidth(3.);
+			gPad->SetLogy();
+		c2->cd(pol+5);
+			eff[pol]->Draw("");
+			eff[pol]->SetLineWidth(3.);
+	}
+	c2->SaveAs("/users/PAS0654/osu0673/A23_analysis_new2/results/all_events.png");
+
 }
