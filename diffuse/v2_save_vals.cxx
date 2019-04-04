@@ -55,13 +55,14 @@ int main(int argc, char **argv)
 	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
 	
 	if(argc<6){
-		cout<< "Usage\n" << argv[0] << " <station> <config> <drop_bad_chan> <output_location> <joined filename 1> <joined filename 2 > ... <joined filename x>"<<endl;
+		cout<< "Usage\n" << argv[0] << " <isSim?> <station> <config> <drop_bad_chan> <output_location> <joined filename 1> <joined filename 2 > ... <joined filename x>"<<endl;
 		return 0;
 	}
-	int station = atoi(argv[1]);
-	int config = atoi(argv[2]);
-	int dropBadChans = atoi(argv[3]);
-	string output_location = argv[4];
+	int isSimulation = atoi(argv[1]);
+	int station = atoi(argv[2]);
+	int config = atoi(argv[3]);
+	int dropBadChans = atoi(argv[4]);
+	string output_location = argv[5];
 
 	//just to have the cut parameters up front and easy to find
 	int thresholdBin_pol[]={3,5}; //bin 3 = 2.3, bin 5 = 2.5 //what is the faceRMS inclusion threshold?
@@ -78,7 +79,7 @@ int main(int argc, char **argv)
 	theCorrelators[0] =  new RayTraceCorrelator(station, 41., settings, 1, 4); //41 m, cal puser
 	theCorrelators[1] =  new RayTraceCorrelator(station, 300., settings, 1, 4);//300 m, far reco
 
-	for(int file_num=5; file_num<argc; file_num++){
+	for(int file_num=6; file_num<argc; file_num++){
 
 		string chRun = "run";
 		string file = string(argv[file_num]);
