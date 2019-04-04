@@ -54,15 +54,16 @@ int main(int argc, char **argv)
 	stringstream ss;
 	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
 	
-	if(argc<6){
-		cout<< "Usage\n" << argv[0] << " <isSim?> <station> <config> <drop_bad_chan> <output_location> <joined filename 1> <joined filename 2 > ... <joined filename x>"<<endl;
+	if(argc<8){
+		cout<< "Usage\n" << argv[0] << " <isSim?> <station> <config> <year_or_energy> <drop_bad_chan> <output_location> <joined filename 1> <joined filename 2 > ... <joined filename x>"<<endl;
 		return 0;
 	}
 	int isSimulation = atoi(argv[1]);
 	int station = atoi(argv[2]);
 	int config = atoi(argv[3]);
-	int dropBadChans = atoi(argv[4]);
-	string output_location = argv[5];
+	int year_or_energy = atoi(argv[4]);
+	int dropBadChans = atoi(argv[5]);
+	string output_location = argv[6];
 
 	//just to have the cut parameters up front and easy to find
 	int thresholdBin_pol[]={3,5}; //bin 3 = 2.3, bin 5 = 2.5 //what is the faceRMS inclusion threshold?
@@ -79,7 +80,7 @@ int main(int argc, char **argv)
 	theCorrelators[0] =  new RayTraceCorrelator(station, 41., settings, 1, 4); //41 m, cal puser
 	theCorrelators[1] =  new RayTraceCorrelator(station, 300., settings, 1, 4);//300 m, far reco
 
-	for(int file_num=6; file_num<argc; file_num++){
+	for(int file_num=7; file_num<argc; file_num++){
 
 		string chRun = "run";
 		string file = string(argv[file_num]);
@@ -212,7 +213,10 @@ int main(int argc, char **argv)
 		}
 
 		char summary_file_name[400];
-		sprintf(summary_file_name,"%s/CWID/A%d/by_config/c%d/CWID_station_%d_run_%d.root",DataDirPath,station,config,station,runNum);
+		if(isSimulation)
+			sprintf(summary_file_name,"/users/PAS0654/osu0673/A23_analysis_new2/AraRoot/try_on_MC/CWID_station_%d_run_%d.root",station,runNum);
+		else
+			sprintf(summary_file_name,"%s/CWID/A%d/by_config/c%d/CWID_station_%d_run_%d.root",DataDirPath,station,config,station,runNum);
 		TFile *NewCWFile = TFile::Open(summary_file_name);
 		if(!NewCWFile) {
 			std::cerr << "Can't open new CW file\n";
@@ -505,9 +509,14 @@ int main(int argc, char **argv)
 					if it's not in need of re-filtering, check the "top" reco again
 					*/
 
-					if(!isCutonCW_fwd[pol] && !isCutonCW_back[pol] && !isCutonCW_baseline[pol]){
+					if(!isCutonCW_fwd[pol] && !isCutonCW_back[pol] && !isCutonCW_baseline[pol] && 2==1){
+						cout<<"You're simulation, why are you in here..."<<endl;
+						return -1;
 						char run_file_name[400];
-						sprintf(run_file_name,"%s/RawData/A%d/by_config/c%d/event%d.root",DataDirPath,station,config,runNum);
+						if(isSimulation)
+							cout<<"uhhh..."<<endl;
+						else
+							sprintf(run_file_name,"%s/RawData/A%d/by_config/c%d/event%d.root",DataDirPath,station,config,runNum);
 						TFile *mapFile = TFile::Open(run_file_name);
 						if(!mapFile){
 							cout<<"Can't open data file for map!"<<endl;
