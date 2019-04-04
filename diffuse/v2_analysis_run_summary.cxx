@@ -51,7 +51,7 @@ int main(int argc, char **argv)
 
 	int numAnts=16;
 	double lowFreqLimit=120;
-	double highFreqLimit=900.;
+	double highFreqLimit=850.;
 	int WaveformLength=2048;
 	int newLength=(WaveformLength/2)+1;
 
@@ -212,9 +212,35 @@ int main(int argc, char **argv)
 
 		if(!isCalpulser && !isSoftTrigger && !hasDigitizerError){
 
+			// TCanvas *c3 = new TCanvas("","",1100,850);
+			// c3->Divide(4,4);
+			// for(int i=0; i<16; i++){
+			// 	c3->cd(i+1);
+			// 	grWaveformsRaw[i]->Draw("ALP");
+			// }
+			// char save_title_this2[150];
+			// sprintf(save_title_this2,"../results/CWissues/run%d_event%d.png",runNum,event);
+			// c3->SaveAs(save_title_this2);
+			// delete c3;
+
 			for(int chan=0; chan<numAnts; chan++){
 				TGraph *grInt = customInterpolation(grWaveformsRaw[chan],interpolationTimeStep);
 				TGraph *grPad = FFTtools::padWaveToLength(grInt,WaveformLength); //pad
+				TGraph *spec = FFTtools::makePowerSpectrumMilliVoltsNanoSecondsdB(grPad);
+				
+				// TCanvas *c = new TCanvas("","",1100,850);
+				// c->Divide(1,2);
+				// c->cd(1);
+				// 	spec->Draw("ALP");
+				// 	spec->GetYaxis()->SetRangeUser(0,50);
+				// c->cd(2);
+				// 	grWaveformsRaw[chan]->Draw("ALP");
+				// char save_title_this[150];
+				// sprintf(save_title_this,"../results/CWissues/run%d_event%d_chan%d.png",runNum,event,chan);
+				// c->SaveAs(save_title_this);
+				// delete c;
+				// delete spec;
+
 				double *getX = grPad->GetX();
 				double deltaT = getX[1]-getX[0];
 				while(grPad->GetN()<WaveformLength){
@@ -276,7 +302,8 @@ int main(int argc, char **argv)
 				FFTre[chan][samp]=FFTre[chan][samp]/double(eventsIncludedCtr);
 				FFTim[chan][samp]=FFTre[chan][samp]/double(eventsIncludedCtr);
 				FFT[chan][samp]=sqrt(FFTre[chan][samp] + FFTim[chan][samp]);
-				if(FFT[chan][samp]>0.) FFT[chan][samp] = 10*log10(FFT[chan][samp]);
+				if(FFT[chan][samp]>0.)
+					FFT[chan][samp] = 10.*log10(FFT[chan][samp]);
 				if(frequencyArray[samp]<lowFreqLimit || frequencyArray[samp]>highFreqLimit){
 					FFT[chan][samp]=0;
 				}
