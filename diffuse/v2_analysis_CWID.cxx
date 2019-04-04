@@ -91,6 +91,7 @@ int main(int argc, char **argv)
   	Long64_t numEntries=eventTree->GetEntries();
 	Long64_t starEvery=numEntries/80;
 	if(starEvery==0) starEvery++;
+	cout<<"This file has a starEvery of "<<starEvery<<endl;
 
 	//first, let's get the baselines loaded in
 	string runSummaryFilename;
@@ -149,6 +150,9 @@ int main(int argc, char **argv)
 	and write them to a local ROOT file which we can delete later
 	This way we dont' have to constantly re-do the FFT's
 	*/
+
+	cout<<"About to make FFTs..."<<endl;
+
 	char del_me_file_name[400];
 	sprintf(del_me_file_name,"%s/delme_run%d.root",output_location.c_str(),runNum);
 	TFile *tempFile = TFile::Open(del_me_file_name,"RECREATE");
@@ -208,6 +212,7 @@ int main(int argc, char **argv)
 		if(!isSimulation) delete realAtriEvPtr;
 	}
 	tempFile->Write();
+	cout<<"Done making FFTs."<<endl;
 
 	temp_phs.clear();
 	temp_phs.resize(16);
