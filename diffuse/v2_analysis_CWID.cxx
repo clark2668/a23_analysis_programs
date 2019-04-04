@@ -24,6 +24,7 @@
 #include "TFile.h"
 #include "TGraph.h"
 
+#include "tools_inputParameters.h"
 #include "tools_WaveformFns.h"
 #include "tools_PlottingFns.h"
 #include "tools_RecoFns.h"
@@ -36,8 +37,8 @@ UsefulAtriStationEvent *realAtriEvPtr;
 int main(int argc, char **argv)
 {
 
-	if(argc<6) {
-		std::cout << "Usage\n" << argv[0] << " <simulation_flag> <station> <year> <output directory> <input file> <pedestal file> \n";
+	if(argc<7) {
+		std::cout << "Usage\n" << argv[0] << " <simulation_flag> <station> <year> <run summary directory> <output directory> <input file> <pedestal file> \n";
 		return -1;
 	}
 
@@ -47,17 +48,18 @@ int main(int argc, char **argv)
 	1: simulation (yes/no)
 	2: station num (2/3)
 	3: year
-	4: output directory
-	5: input file
-	6: pedestal file
+	4: run summary directory
+	5: output directory
+	6: input file
+	7: pedestal file
 	*/
 
 	int isSimulation=atoi(argv[1]);
 	int station_num=atoi(argv[2]);
 	int year=atoi(argv[3]);
 
-	//now, to be as general as possible, we need to check for what kind of event we're up against
-	TFile *fp = TFile::Open(argv[5]);
+	//open the file
+	TFile *fp = TFile::Open(argv[6]);
 	if(!fp) {
 		std::cerr << "Can't open file\n";
 		return -1;
@@ -67,13 +69,13 @@ int main(int argc, char **argv)
 		std::cerr << "Can't find eventTree\n";
 		return -1;
 	}
-	int runNum = getrunNum(argv[5]);
+	int runNum = getrunNum(argv[6]);
 	printf("Run Number %d \n", runNum);
 
 	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();	
-	if(argc==7){
+	if(argc==8){
 		//only if they gave us a pedestal should we fire up the calibrator
-		calibrator->setAtriPedFile(argv[6],station_num);
+		calibrator->setAtriPedFile(argv[7],station_num);
 	}
 	AraQualCuts *qualCut = AraQualCuts::Instance(); //we also need a qual cuts tool
 
@@ -91,9 +93,19 @@ int main(int argc, char **argv)
 	if(starEvery==0) starEvery++;
 
 	//first, let's get the baselines loaded in
-	char summary_file_name[400];
-	sprintf(summary_file_name,"/fs/scratch/PAS0654/ara/10pct/RunSummary/A%d/%d/run_summary_station%d_run_%d.root",station_num,year,station_num, runNum);
-	TFile *SummaryFile = TFile::Open(summary_file_name);
+	string runSummaryFilename;
+	if (!isSimulation){
+		runSummaryFilename = getRunSummaryFilename(station_num, argv[4], argv[6]);
+	}
+	else {
+		if(station_num==2){
+			runSummaryFilename = "/fs/scratch/PAS0654/ara/sim/RunSummary/run_summary_station_2_run_20.root";
+		}
+		else if(station_num==3){
+			runSummaryFilename = "/fs/scratch/PAS0654/ara/sim/RunSummary/run_summary_station_3_run_0.root";
+		}
+	}
+	TFile *SummaryFile = TFile::Open(runSummaryFilename.c_str());
 	if(!SummaryFile) {
 		std::cerr << "Can't open summary file\n";
 		return -1;
@@ -151,7 +163,6 @@ int main(int argc, char **argv)
 		ss.str(""); ss<<"temp_phs_"<<i;
 		tempTree->Branch(ss.str().c_str(),&temp_phs[i]);
 	}
-
 	for(int event=0; event<numEntries; event++){
 		eventTree->GetEntry(event);
 		if (isSimulation == false){
@@ -181,7 +192,7 @@ int main(int argc, char **argv)
 		}
 		else{
 			//otherwise, interpolate, pad, and get the phase
-			vector<TGraph*> grWaveformsInt = makeInterpolatedGraphs(grWaveformsRaw, 0.6, xLabel, yLabel, titlesForGraphs);
+			vector<TGraph*> grWaveformsInt = makeInterpolatedGraphs(grWaveformsRaw, interpolationTimeStep, xLabel, yLabel, titlesForGraphs);
 			vector<TGraph*> grWaveformsPadded = makePaddedGraphs(grWaveformsInt, 0, xLabel, yLabel, titlesForGraphs);
 			for(int chan=0; chan<16; chan++){
 				// temp_phs.push_back(getFFTPhase(grWaveformsPadded[chan],120.,1000.));
@@ -229,17 +240,63 @@ int main(int argc, char **argv)
 		}
 
 		vector<TGraph*> grWaveformsRaw = makeGraphsFromRF(realAtriEvPtr, 16, xLabel, yLabel, titlesForGraphs);
-
 		tempTree->GetEntry(event);
+
+		/*
+		vector <TGraph*> grInt;
+		vector <TGraph*> grPad;
+		vector <TGraph*> grSpectrum;
+
+		for(int i=0; i<16; i++){
+			grInt.push_back(FFTtools::getInterpolatedGraph(grWaveformsRaw[i],interpolationTimeStep));
+			grPad.push_back(FFTtools::padWaveToLength(grInt[i],2048));
+			grSpectrum.push_back(FFTtools::makePowerSpectrumMilliVoltsNanoSecondsdB(grPad[i]));
+		}
+
+		TCanvas *c2 = new TCanvas("","",1100,850);
+		c2->Divide(4,4);
+		for(int i=0; i<16; i++){
+			c2->cd(i+1);
+			grWaveformsRaw[i]->Draw("ALP");
+		}
+		char save_title2[300];
+		sprintf(save_title2,"testgraphs%d.png",event);
+		c2->SaveAs(save_title2);
+
+
+		TCanvas *c = new TCanvas("","",1100,850);
+		c->Divide(4,4);
+		for(int i=0; i<16; i++){
+			c->cd(i+1);
+			grSpectrum[i]->Draw("ALP");
+			average[i]->Draw("Lsame");
+			average[i]->SetLineColor(kRed);
+		}
+		char save_title[300];
+		sprintf(save_title,"test%d.png",event);
+		c->SaveAs(save_title);
+		*/
 	
 		if(!hasError){
 
 			//before we do the phase variance, we should check for baseline violations	
 			vector<double> baseline_CW_cut_V = CWCut_TB(grWaveformsRaw, average, 0, 6., 5.5, station_num, 3);
 			vector<double> baseline_CW_cut_H = CWCut_TB(grWaveformsRaw, average, 1, 6., 5.5, station_num, 3);
+			/*			
 			for(int i=0; i<baseline_CW_cut_V.size(); i++){
-				// printf("Event %d Baseline CW Cut %.2f \n", event, baseline_CW_cut_V[i]);
-			}		
+				printf("V: Event %d Baseline CW Cut %.2f \n", event, baseline_CW_cut_V[i]);
+			}
+			for(int i=0; i<baseline_CW_cut_H.size(); i++){
+				printf("H: Event %d Baseline CW Cut %.2f \n", event, baseline_CW_cut_H[i]);
+			}
+			*/
+
+			//incorrectly for now (!), if is simulation, clear these out
+			if(isSimulation){
+				baseline_CW_cut_V.clear();
+				baseline_CW_cut_H.clear();
+			}
+
 			badFreqs_baseline.push_back(baseline_CW_cut_V);
 			badFreqs_baseline.push_back(baseline_CW_cut_H);
 
@@ -310,7 +367,7 @@ int main(int argc, char **argv)
 					badFreqs_fwd.push_back(badFreqs_temp);
 					badSigmas_fwd.push_back(badSigmas_temp);
 					for(int i=0; i<badFreqs_temp.size(); i++){
-						// cout<<"event "<<event<<" :: " <<pol<<" :: freq "<<badFreqs_temp[i]<<", sigma "<<badSigmas_temp[i]<<endl;
+						// cout<<"Forward event "<<event<<" :: " <<pol<<" :: freq "<<badFreqs_temp[i]<<", sigma "<<badSigmas_temp[i]<<endl;
 					}
 					delete vGrSigmaVarianceAverage_fwd[pol];
 				}
@@ -382,7 +439,7 @@ int main(int argc, char **argv)
 					badFreqs_back.push_back(badFreqs_temp);
 					badSigmas_back.push_back(badSigmas_temp);
 					for(int i=0; i<badFreqs_temp.size(); i++){
-						// cout<<"event "<<event<<" :: " <<pol<<" :: freq "<<badFreqs_temp[i]<<", sigma "<<badSigmas_temp[i]<<endl;
+						// cout<<"Backward event "<<event<<" :: " <<pol<<" :: freq "<<badFreqs_temp[i]<<", sigma "<<badSigmas_temp[i]<<endl;
 					}					
 					delete vGrSigmaVarianceAverage_back[pol];
 				}
@@ -400,6 +457,14 @@ int main(int argc, char **argv)
 				}
 			}
 
+
+			//incorrectly for now (!), if is simulation, clear these out
+			if(isSimulation){
+				badFreqs_fwd.clear();
+				badFreqs_back.clear();
+				badSigmas_fwd.clear();
+				badSigmas_back.clear();
+			}
 		}
 		NewCWTree->Fill();
 		deleteGraphVector(grWaveformsRaw);
