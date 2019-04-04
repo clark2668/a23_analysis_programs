@@ -135,6 +135,7 @@ int main(int argc, char **argv)
 		int isSurfEvent;
 		int isSurfEvent_top[2];
 		int isBadEvent;
+		double outweight;
 
 		trees[2]->Branch("cal",&isCal);
 		trees[2]->Branch("soft",&isSoft);
@@ -145,6 +146,7 @@ int main(int argc, char **argv)
 		trees[2]->Branch("surf_top_V",&isSurfEvent_top[0]);
 		trees[2]->Branch("surf_top_H",&isSurfEvent_top[1]);
 		trees[2]->Branch("bad",&isBadEvent);
+		trees[2]->Branch("weight",&outweight);
 
 		cout << "Run " << file_num << " :: " << argv[file_num] << endl;
 		
@@ -168,9 +170,11 @@ int main(int argc, char **argv)
 		bool isSoftTrigger;
 		int waveformLength[16];
 		bool hasDigitizerError;
+		double inweight;
 		inputTree_filter->SetBranchAddress("thirdVPeakOverRMS", &thirdVPeakOverRMS);
 		inputTree_filter->SetBranchAddress("rms_pol_thresh_face_V", &rms_pol_thresh_face_V);
 		inputTree_filter->SetBranchAddress("rms_pol_thresh_face_H", &rms_pol_thresh_face_H);
+		inputTree_filter->SetBranchAddress("weight", &inweight);
 
 		int numFaces_new_V;
 		int numFaces_new_H;
@@ -242,14 +246,16 @@ int main(int argc, char **argv)
 		NewCWTree->SetBranchAddress("badFreqs_baseline",&badFreqs_baseline);
 
 		int numEntries = inputTree_filter->GetEntries();
+		cout<<"Num entries is "<<numEntries<<endl;
 		Long64_t starEvery=numEntries/200;
 		if(starEvery==0) starEvery++;
+		cout<<"Star every is "<<starEvery<<endl;
 
 		//now to loop over events
 		for(int event=0; event<numEntries; event++){
-			// if(event%starEvery==0) {
-			// 	std::cout << "	On event "<<event<<endl;
-			// }
+			if(event%starEvery==0) {
+				std::cout<<"*";
+			}
 
 			isCal=0;
 			isSoft=0;
@@ -282,7 +288,7 @@ int main(int argc, char **argv)
 			failWavefrontRMS[0]=false;
 			failWavefrontRMS[1]=false;
 
-
+			outweight=inweight;
 			isBadEvent=hasDigitizerError;
 
 			for(int i=0;i<16;i++){ 
@@ -511,9 +517,7 @@ int main(int argc, char **argv)
 					if it's not in need of re-filtering, check the "top" reco again
 					*/
 
-					if(!isCutonCW_fwd[pol] && !isCutonCW_back[pol] && !isCutonCW_baseline[pol] && 2==1){
-						cout<<"You're simulation, why are you in here..."<<endl;
-						return -1;
+					if(!isCutonCW_fwd[pol] && !isCutonCW_back[pol] && !isCutonCW_baseline[pol]){
 						char run_file_name[400];
 						if(isSimulation)
 							sprintf(run_file_name,"%s/RawSim/A%d/c%d/E%2.1f/AraOut.A%d_c%d_E%2.1f.txt.run%d.root",SimDirPath,station,config,year_or_energy,station,config,year_or_energy,runNum);
@@ -533,7 +537,6 @@ int main(int argc, char **argv)
 						UsefulAtriStationEvent *realAtriEvPtr=0;
 						RawAtriStationEvent *rawPtr =0;
 
-						int stationID = rawPtr->stationId;
 						if(isSimulation){
 							eventTree->SetBranchAddress("UsefulAtriStationEvent", &realAtriEvPtr);
 							eventTree->GetEvent(event);
@@ -543,7 +546,7 @@ int main(int argc, char **argv)
 							eventTree->SetBranchAddress("event",&rawPtr);
 							eventTree->GetEvent(event);
 							sprintf(ped_file_name,"%s/run_specific_peds/A%d/all_peds/event%d_specificPeds.dat",PedDirPath,station,runNum);
-							calibrator->setAtriPedFile(ped_file_name,stationID); //because someone had a brain (!!), this will error handle itself if the pedestal doesn't exist
+							calibrator->setAtriPedFile(ped_file_name,station); //because someone had a brain (!!), this will error handle itself if the pedestal doesn't exist
 							realAtriEvPtr = new UsefulAtriStationEvent(rawPtr,AraCalType::kLatestCalib);
 						}
 
@@ -579,7 +582,9 @@ int main(int argc, char **argv)
 						double PeakCorr_Recompute_300m_top;
 						getCorrMapPeak(map_300m_top,PeakTheta_Recompute_300m_top,PeakPhi_Recompute_300m_top,PeakCorr_Recompute_300m_top);
 
-						if(PeakTheta_Recompute_300m_top>=37) isSurfEvent_top[pol]=1;
+						if(PeakTheta_Recompute_300m_top>=37){
+							isSurfEvent_top[pol]=1;
+						}
 
 						delete map_300m_top;
 						if(!isSimulation) delete realAtriEvPtr;
@@ -614,7 +619,6 @@ int main(int argc, char **argv)
 						UsefulAtriStationEvent *realAtriEvPtr=0;
 						RawAtriStationEvent *rawPtr =0;
 
-						int stationID = rawPtr->stationId;
 						if(isSimulation){
 							eventTree->SetBranchAddress("UsefulAtriStationEvent", &realAtriEvPtr);
 							eventTree->GetEvent(event);
@@ -624,7 +628,7 @@ int main(int argc, char **argv)
 							eventTree->SetBranchAddress("event",&rawPtr);
 							eventTree->GetEvent(event);
 							sprintf(ped_file_name,"%s/run_specific_peds/A%d/all_peds/event%d_specificPeds.dat",PedDirPath,station,runNum);
-							calibrator->setAtriPedFile(ped_file_name,stationID); //because someone had a brain (!!), this will error handle itself if the pedestal doesn't exist
+							calibrator->setAtriPedFile(ped_file_name,station); //because someone had a brain (!!), this will error handle itself if the pedestal doesn't exist
 							realAtriEvPtr = new UsefulAtriStationEvent(rawPtr,AraCalType::kLatestCalib);
 						}
 
@@ -897,10 +901,10 @@ int main(int argc, char **argv)
 						ant_loc.resize(16);
 						for (int i = 0; i < 16; i++){
 							ant_loc[i].resize(3);
-							ant_loc[i][0] = geomTool->getStationInfo(stationID)->getAntennaInfo(i)->antLocation[0];
-							ant_loc[i][1] = geomTool->getStationInfo(stationID)->getAntennaInfo(i)->antLocation[1];
-							ant_loc[i][2] = geomTool->getStationInfo(stationID)->getAntennaInfo(i)->antLocation[2];
-							polarizations[i] = (int)geomTool->getStationInfo(stationID)->getAntennaInfo(i)->polType;
+							ant_loc[i][0] = geomTool->getStationInfo(station)->getAntennaInfo(i)->antLocation[0];
+							ant_loc[i][1] = geomTool->getStationInfo(station)->getAntennaInfo(i)->antLocation[1];
+							ant_loc[i][2] = geomTool->getStationInfo(station)->getAntennaInfo(i)->antLocation[2];
+							polarizations[i] = (int)geomTool->getStationInfo(station)->getAntennaInfo(i)->polType;
 						}
 
 						vector<double> vThirdVPeakOverRMS_new;
@@ -955,7 +959,7 @@ int main(int argc, char **argv)
 						vector<double> bestCorrs_H_new;
 
 						//now, to set up all the pairs that contribute to the faces
-						vector<vector<vector<vector<int> > > > faces = setupFaces(stationID);
+						vector<vector<vector<vector<int> > > > faces = setupFaces(station);
 
 						//loop over the thresholds that decide if a face is allowed to contribute
 						const int thresholdSteps = 15;
