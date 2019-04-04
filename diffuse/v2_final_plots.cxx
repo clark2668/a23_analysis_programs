@@ -137,6 +137,7 @@ int main(int argc, char **argv)
 		int isNewBox;
 		int isSurf;
 		int isBadEvent;
+		double weight;
 
 		trees[2]->SetBranchAddress("cal",&isCal);
 		trees[2]->SetBranchAddress("soft",&isSoft);
@@ -145,6 +146,7 @@ int main(int argc, char **argv)
 		trees[2]->SetBranchAddress("box",&isNewBox);
 		trees[2]->SetBranchAddress("surf",&isSurf);
 		trees[2]->SetBranchAddress("bad",&isBadEvent);
+		trees[2]->SetBranchAddress("weight",&weight);
 
 		stringstream ss;
 		for(int i=0; i<8; i++){
@@ -178,22 +180,22 @@ int main(int argc, char **argv)
 			if(isSurf) num_surf++;
 
 			for(int pol=0; pol<2; pol++){
-				PeakCorr_vs_SNR_all[pol]->Fill(snr_val[pol],corr_val[pol]);
+				PeakCorr_vs_SNR_all[pol]->Fill(snr_val[pol],corr_val[pol],weight);
 				
 				if(!isCal){ //cut cal pulsers
-					PeakCorr_vs_SNR_cutCal[pol]->Fill(snr_val[pol],corr_val[pol]);
+					PeakCorr_vs_SNR_cutCal[pol]->Fill(snr_val[pol],corr_val[pol],weight);
 					
 					if(!isSoft){ //cut software triggers 
-						PeakCorr_vs_SNR_cutCal_cutSoft[pol]->Fill(snr_val[pol],corr_val[pol]);
+						PeakCorr_vs_SNR_cutCal_cutSoft[pol]->Fill(snr_val[pol],corr_val[pol],weight);
 						
 						if(!isShort){ //cut short
-							PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[pol]->Fill(snr_val[pol],corr_val[pol]);
+							PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[pol]->Fill(snr_val[pol],corr_val[pol],weight);
 							
 							if(!WFRMS[pol]){ //cut WRMS
-								PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[pol]->Fill(snr_val[pol],corr_val[pol]);
+								PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[pol]->Fill(snr_val[pol],corr_val[pol],weight);
 								
 								if(!isNewBox){ //cut cal box
-									PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[pol]->Fill(snr_val[pol],corr_val[pol]);
+									PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[pol]->Fill(snr_val[pol],corr_val[pol],weight);
 
 									if(!isSurf){
 
@@ -208,15 +210,13 @@ int main(int argc, char **argv)
 											sort(frac.begin(), frac.end(), std::greater<double>());
 											fracs_power_cut[pol]->Fill(frac[2]);
 											if(frac[2]<=0.06){ //&& event!=1 && event!=2 && event!=3)
-												PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol]);
+												PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol],weight);
 											}
 										} //refiltered?
 										else{
-											PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol]);
+											PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol],weight);
 										}
 										num_in_final_plot++;
-
-
 									}
 								}
 							}
