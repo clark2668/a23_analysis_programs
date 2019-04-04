@@ -48,6 +48,8 @@ int main(int argc, char **argv)
 
 	char *DataDirPath(getenv("DATA_DIR"));
 	if (DataDirPath == NULL) std::cout << "Warning! $DATA_DIR is not set!" << endl;
+	char *SimDirPath(getenv("SIM_DIR"));
+	if (SimDirPath == NULL) std::cout << "Warning! $SIM_DIR is not set!" << endl;
 	char *PedDirPath(getenv("PED_DIR"));
 	if (PedDirPath == NULL) std::cout << "Warning! $DATA_DIR is not set!" << endl;
 
@@ -55,13 +57,13 @@ int main(int argc, char **argv)
 	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
 	
 	if(argc<8){
-		cout<< "Usage\n" << argv[0] << " <isSim?> <station> <config> <year_or_energy> <drop_bad_chan> <output_location> <joined filename 1> <joined filename 2 > ... <joined filename x>"<<endl;
+		cout<< "Usage\n" << argv[0] << " <isSim?> <station> <config> <year_or_energy (as float, eg 17.0 or 18.5)> <drop_bad_chan> <output_location> <joined filename 1> <joined filename 2 > ... <joined filename x>"<<endl;
 		return 0;
 	}
 	int isSimulation = atoi(argv[1]);
 	int station = atoi(argv[2]);
 	int config = atoi(argv[3]);
-	int year_or_energy = atoi(argv[4]);
+	double year_or_energy = double(atof(argv[4]));
 	int dropBadChans = atoi(argv[5]);
 	string output_location = argv[6];
 
@@ -214,7 +216,7 @@ int main(int argc, char **argv)
 
 		char summary_file_name[400];
 		if(isSimulation)
-			sprintf(summary_file_name,"/users/PAS0654/osu0673/A23_analysis_new2/AraRoot/try_on_MC/CWID_station_%d_run_%d.root",station,runNum);
+			sprintf(summary_file_name,"%s/CWID/A%d/c%d/E%2.1f/CWID_station_%d_run_%d.root",SimDirPath,station,config,year_or_energy,station,runNum);
 		else
 			sprintf(summary_file_name,"%s/CWID/A%d/by_config/c%d/CWID_station_%d_run_%d.root",DataDirPath,station,config,station,runNum);
 		TFile *NewCWFile = TFile::Open(summary_file_name);
@@ -514,7 +516,7 @@ int main(int argc, char **argv)
 						return -1;
 						char run_file_name[400];
 						if(isSimulation)
-							cout<<"uhhh..."<<endl;
+							sprintf(run_file_name,"%s/RawSim/A%d/c%d/E%2.1f/AraOut.A%d_c%d_E%2.1f.txt.run%d.root",SimDirPath,station,config,year_or_energy,station,config,year_or_energy,runNum);
 						else
 							sprintf(run_file_name,"%s/RawData/A%d/by_config/c%d/event%d.root",DataDirPath,station,config,runNum);
 						TFile *mapFile = TFile::Open(run_file_name);
@@ -528,16 +530,22 @@ int main(int argc, char **argv)
 							return -1;
 						}
 
+						UsefulAtriStationEvent *realAtriEvPtr=0;
 						RawAtriStationEvent *rawPtr =0;
-						eventTree->SetBranchAddress("event",&rawPtr);
-						eventTree->GetEvent(event);
 
 						int stationID = rawPtr->stationId;
-						char ped_file_name[400];
-						sprintf(ped_file_name,"%s/run_specific_peds/A%d/all_peds/event%d_specificPeds.dat",PedDirPath,station,runNum);
-						calibrator->setAtriPedFile(ped_file_name,stationID); //because someone had a brain (!!), this will error handle itself if the pedestal doesn't exist
-						
-						UsefulAtriStationEvent *realAtriEvPtr = new UsefulAtriStationEvent(rawPtr,AraCalType::kLatestCalib);
+						if(isSimulation){
+							eventTree->SetBranchAddress("UsefulAtriStationEvent", &realAtriEvPtr);
+							eventTree->GetEvent(event);
+						}
+						else if(!isSimulation){
+							char ped_file_name[400];
+							eventTree->SetBranchAddress("event",&rawPtr);
+							eventTree->GetEvent(event);
+							sprintf(ped_file_name,"%s/run_specific_peds/A%d/all_peds/event%d_specificPeds.dat",PedDirPath,station,runNum);
+							calibrator->setAtriPedFile(ped_file_name,stationID); //because someone had a brain (!!), this will error handle itself if the pedestal doesn't exist
+							realAtriEvPtr = new UsefulAtriStationEvent(rawPtr,AraCalType::kLatestCalib);
+						}
 
 						vector <int> chan_list_V;
 						vector <int> chan_list_H;
@@ -574,7 +582,7 @@ int main(int argc, char **argv)
 						if(PeakTheta_Recompute_300m_top>=37) isSurfEvent_top[pol]=1;
 
 						delete map_300m_top;
-						delete realAtriEvPtr;
+						if(!isSimulation) delete realAtriEvPtr;
 						mapFile->Close();
 						delete mapFile;
 
@@ -585,10 +593,13 @@ int main(int argc, char **argv)
 						isCW=1;
 						Refilt[pol]=1;
 
-						cout<<"			Need to filter event "<<event<<endl;
+						cout<<"Need to filter event "<<event<<endl;
 
 						char run_file_name[400];
-						sprintf(run_file_name,"%s/RawData/A%d/by_config/c%d/event%d.root",DataDirPath,station,config,runNum);
+						if(isSimulation)
+							sprintf(run_file_name,"%s/RawSim/A%d/c%d/E%2.1f/AraOut.A%d_c%d_E%2.1f.txt.run%d.root",SimDirPath,station,config,year_or_energy,station,config,year_or_energy,runNum);
+						else
+							sprintf(run_file_name,"%s/RawData/A%d/by_config/c%d/event%d.root",DataDirPath,station,config,runNum);
 						TFile *mapFile = TFile::Open(run_file_name);
 						if(!mapFile){
 							cout<<"Can't open data file for map!"<<endl;
@@ -600,16 +611,22 @@ int main(int argc, char **argv)
 							return -1;
 						}
 
+						UsefulAtriStationEvent *realAtriEvPtr=0;
 						RawAtriStationEvent *rawPtr =0;
-						eventTree->SetBranchAddress("event",&rawPtr);
-						eventTree->GetEvent(event);
 
 						int stationID = rawPtr->stationId;
-						char ped_file_name[400];
-						sprintf(ped_file_name,"%s/run_specific_peds/A%d/all_peds/event%d_specificPeds.dat",PedDirPath,station,runNum);
-						calibrator->setAtriPedFile(ped_file_name,stationID); //because someone had a brain (!!), this will error handle itself if the pedestal doesn't exist
-						
-						UsefulAtriStationEvent *realAtriEvPtr = new UsefulAtriStationEvent(rawPtr,AraCalType::kLatestCalib);
+						if(isSimulation){
+							eventTree->SetBranchAddress("UsefulAtriStationEvent", &realAtriEvPtr);
+							eventTree->GetEvent(event);
+						}
+						else if(!isSimulation){
+							char ped_file_name[400];
+							eventTree->SetBranchAddress("event",&rawPtr);
+							eventTree->GetEvent(event);
+							sprintf(ped_file_name,"%s/run_specific_peds/A%d/all_peds/event%d_specificPeds.dat",PedDirPath,station,runNum);
+							calibrator->setAtriPedFile(ped_file_name,stationID); //because someone had a brain (!!), this will error handle itself if the pedestal doesn't exist
+							realAtriEvPtr = new UsefulAtriStationEvent(rawPtr,AraCalType::kLatestCalib);
+						}
 
 						//get the frequencies to notch
 						vector<double> badFreqListLocal_fwd;
@@ -708,7 +725,8 @@ int main(int argc, char **argv)
 							}
 							else if(station==3){
 								//for station 3 years 2014 and 2015, we need to drop string 4 (channels 3, 7, 11, 15) altogether
-								if(runNum>2972){
+								//FIXME! How to decide in simulation when to drop channels....
+								if((!isSimulation && runNum>2972) || (isSimulation && 2==3)){
 
 									chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 3), chan_list_V.end());
 									chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 7), chan_list_V.end());
@@ -818,7 +836,18 @@ int main(int argc, char **argv)
 						//get run summary information
 						
 						char run_summary_name[400];
-						sprintf(run_summary_name,"%s/RunSummary/A%d/by_config/c%d/run_summary_station_%d_run_%d.root",DataDirPath,station,config,station,runNum);
+						if (isSimulation == false){
+							sprintf(run_summary_name,"%s/RunSummary/A%d/by_config/c%d/run_summary_station_%d_run_%d.root",DataDirPath,station,config,station,runNum);
+						}
+						else {
+							if(station==2){
+								sprintf(run_summary_name,"/fs/scratch/PAS0654/ara/sim/RunSummary/run_summary_station_2_run_20.root");
+							}
+							else if(station==3){
+								sprintf(run_summary_name,"/fs/scratch/PAS0654/ara/sim/RunSummary/run_summary_station_3_run_0.root");
+							}
+						}
+
 						TFile *summaryFile = TFile::Open(run_summary_name);
 						if(!summaryFile){
 							cout<<"Can't open summary file!"<<endl;
@@ -1061,7 +1090,7 @@ int main(int argc, char **argv)
 						delete map_300m;
 						delete map_300m_top;
 						delete map_30m;
-						delete realAtriEvPtr;
+						if(!isSimulation) delete realAtriEvPtr;
 						mapFile->Close();
 						delete mapFile;
 					} //if any frequencies are flagged for filtering
