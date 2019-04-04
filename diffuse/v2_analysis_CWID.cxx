@@ -128,7 +128,7 @@ int main(int argc, char **argv)
 	int nGraphs=16;
 
 	//now set up the outputs
-	string output_location = argv[4];
+	string output_location = argv[5];
 	char run_file_name[400];
 	sprintf(run_file_name,"%s/CWID_station_%d_run_%d.root",output_location.c_str(),station_num, runNum);
 	TFile *outFile = TFile::Open(run_file_name,"RECREATE");
