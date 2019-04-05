@@ -40,12 +40,23 @@ int main(int argc, char **argv)
 
 
 	int station = atoi(argv[1]);
+	/*
+		the run number is sandwiched like so: run_XXXXXXXXXX_filter
+		where the length of XXXXXX is, strictly speaking, unpredictable
+		so, what we do is find the location of "run_"
+		And then we find the location of "_filter"
+		And we capture what is in between them
+
+	*/
 
 	//get run number
-	string chRun = "run";
 	string file = string(argv[4]);
-	size_t foundRun = file.find(chRun);
-	string strRunNum = file.substr(foundRun+4,4);
+	string wordRun = "run_";
+	size_t foundRun = file.find(wordRun);
+	string wordFilter = "_filter";
+	size_t foundFilter = file.find(wordFilter);
+	size_t diff=(foundFilter-wordRun.length())-foundRun;
+	string strRunNum = file.substr(foundRun+4,diff);
 	int runNum = atoi(strRunNum.c_str());
 
 	int recoBinCalpulser = 6;
