@@ -193,7 +193,7 @@ int main(int argc, char **argv)
 	}
 	else {
 		if(station_num==2){
-			runSummaryFilename = "/fs/scratch/PAS0654/ara/sim/RunSummary/run_summary_station_2_run_0.root";
+			runSummaryFilename = "/fs/scratch/PAS0654/ara/sim/RunSummary/run_summary_station_2_run_20.root";
 		}
 		else if(station_num==3){
 			runSummaryFilename = "/fs/scratch/PAS0654/ara/sim/RunSummary/run_summary_station_3_run_0.root";
@@ -318,10 +318,6 @@ int main(int argc, char **argv)
 			while (foundNextSimEvent == false){
 				simTree->GetEntry(eventSim);
 				if (reportPtr->stations[0].Global_Pass != 0 ){
-					// cout<<"Size of passed channels is "<<reportPtr->Passed_chs.size()<<endl;
-					// for(int j=0; j<reportPtr->Passed_chs.size(); j++){
-					// 	cout<<"Passed channel "<<j<<" is "<<reportPtr->Passed_chs[j]<<endl;
-					// }
 					flavor = eventPtr->nuflavorint;
 					nu_nubar = eventPtr->nu_nubar;
 					energy = eventPtr->pnu;
@@ -412,9 +408,6 @@ int main(int argc, char **argv)
 				waveformLength[i] = grWaveformsRaw[i]->GetN();
 			}
 
-			//if the event has a  digitizer error, skip it
-			//note that exiting this far up will prevent any errors with the averaging
-			//because we don't count contributions to the average until the numEvents++ later
 			if(hasDigitizerError){
 				OutputTree->Fill(); //fill this anyway with garbage
 				deleteGraphVector(grWaveformsRaw);
