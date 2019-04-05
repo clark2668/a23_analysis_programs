@@ -84,7 +84,7 @@ int main(int argc, char **argv)
 
 	for(int file_num=7; file_num<argc; file_num++){
 
-		string file = string(argv[4]);
+		string file = string(argv[file_num]);
 		string wordRun = "run_";
 		size_t foundRun = file.find(wordRun);
 		string wordFilter = "_joined";
@@ -92,6 +92,7 @@ int main(int argc, char **argv)
 		size_t diff=(foundFilter-wordRun.length())-foundRun;
 		string strRunNum = file.substr(foundRun+4,diff);
 		int runNum = atoi(strRunNum.c_str());
+		cout<<"runNum is "<<runNum<<endl;
 
 		char outfile_name[300];
 		sprintf(outfile_name,"%s/vals_for_cut_run_%d.root",output_location.c_str(),runNum);
@@ -248,10 +249,10 @@ int main(int argc, char **argv)
 		NewCWTree->SetBranchAddress("badFreqs_baseline",&badFreqs_baseline);
 
 		int numEntries = inputTree_filter->GetEntries();
-		cout<<"Num entries is "<<numEntries<<endl;
 		Long64_t starEvery=numEntries/200;
 		if(starEvery==0) starEvery++;
 		cout<<"Star every is "<<starEvery<<endl;
+		numEntries=10;
 
 		//now to loop over events
 		for(int event=0; event<numEntries; event++){
