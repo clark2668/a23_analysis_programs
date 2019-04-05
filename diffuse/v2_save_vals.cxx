@@ -257,7 +257,6 @@ int main(int argc, char **argv)
 		Long64_t starEvery=numEntries/200;
 		if(starEvery==0) starEvery++;
 		cout<<"Star every is "<<starEvery<<endl;
-		numEntries=10;
 
 		//now to loop over events
 		for(int event=0; event<numEntries; event++){
