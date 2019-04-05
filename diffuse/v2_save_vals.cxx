@@ -439,8 +439,8 @@ int main(int argc, char **argv)
 			double SNRs[2];
 			SNRs[0] = thirdVPeakOverRMS[0];
 			SNRs[1] = thirdVPeakOverRMS[1];
-			if(SNRs[0]>29.) SNRs[0]=29.;
-			if(SNRs[1]>29.) SNRs[1]=29.;
+			// if(SNRs[0]>29.) SNRs[0]=29.;
+			// if(SNRs[1]>29.) SNRs[1]=29.;
 
 			vector <double> rms_faces_V;
 			vector <double> rms_faces_H;
