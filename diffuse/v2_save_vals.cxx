@@ -84,12 +84,14 @@ int main(int argc, char **argv)
 
 	for(int file_num=7; file_num<argc; file_num++){
 
-		string chRun = "run";
-		string file = string(argv[file_num]);
-		size_t foundRun = file.find(chRun);
-		string strRunNum = file.substr(foundRun+4,4);
+		string file = string(argv[4]);
+		string wordRun = "run_";
+		size_t foundRun = file.find(wordRun);
+		string wordFilter = "_joined";
+		size_t foundFilter = file.find(wordFilter);
+		size_t diff=(foundFilter-wordRun.length())-foundRun;
+		string strRunNum = file.substr(foundRun+4,diff);
 		int runNum = atoi(strRunNum.c_str());
-		printf("Run Number %d \n", runNum);
 
 		char outfile_name[300];
 		sprintf(outfile_name,"%s/vals_for_cut_run_%d.root",output_location.c_str(),runNum);
