@@ -347,12 +347,16 @@ int main(int argc, char **argv)
 	for(int pol=0; pol<2; pol++){
 		c2->cd(pol+1);
 		PeakCorr_vs_SNR_all[pol]->Draw("colz");
+
 		PeakCorr_vs_SNR_all[pol]->GetYaxis()->SetTitle("Peak Correlation Value");
 		PeakCorr_vs_SNR_all[pol]->GetXaxis()->SetTitle("3rd Highest VPeak/RMS");
 		PeakCorr_vs_SNR_all[pol]->SetTitle(graph_title[pol]);
 		gPad->SetLogz();
 	}
-	sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,num_total,cal,soft,Short,wrms,box,surf);
+	if(isSim)
+		sprintf(title, "%s/%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, num_total,cal,soft,Short,wrms,box,surf);
+	else
+		sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,num_total,cal,soft,Short,wrms,box,surf);
 	c2->SaveAs(title);
 	delete c2;
 	delete PeakCorr_vs_SNR_all[0]; delete PeakCorr_vs_SNR_all[1];
@@ -371,7 +375,10 @@ int main(int argc, char **argv)
 		PeakCorr_vs_SNR_cutCal[pol]->SetTitle(graph_title[pol]);
 		gPad->SetLogz();
 	}
-	sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,num_total,cal,soft,Short,wrms,box,surf);
+	if(isSim)
+		sprintf(title, "%s/%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, num_total,cal,soft,Short,wrms,box,surf);
+	else
+		sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,num_total,cal,soft,Short,wrms,box,surf);
 	c3->SaveAs(title);
 	delete c3;
 	delete PeakCorr_vs_SNR_cutCal[0]; delete PeakCorr_vs_SNR_cutCal[1];
@@ -390,7 +397,10 @@ int main(int argc, char **argv)
 		PeakCorr_vs_SNR_cutCal_cutSoft[pol]->SetTitle(graph_title[pol]);
 		gPad->SetLogz();
 	}
-	sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,num_total,cal,soft,Short,wrms,box,surf);
+	if(isSim)
+		sprintf(title, "%s/%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, num_total,cal,soft,Short,wrms,box,surf);
+	else
+		sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,num_total,cal,soft,Short,wrms,box,surf);
 	c4->SaveAs(title);
 	delete c4;
 	delete PeakCorr_vs_SNR_cutCal_cutSoft[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft[1];
@@ -409,7 +419,10 @@ int main(int argc, char **argv)
 		PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[pol]->SetTitle(graph_title[pol]);
 		gPad->SetLogz();
 	}
-	sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,num_total,cal,soft,Short,wrms,box,surf);
+	if(isSim)
+		sprintf(title, "%s/%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, num_total,cal,soft,Short,wrms,box,surf);
+	else
+		sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,num_total,cal,soft,Short,wrms,box,surf);
 	c5->SaveAs(title);
 	delete c5;
 	delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[1];
@@ -428,7 +441,10 @@ int main(int argc, char **argv)
 		PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[pol]->SetTitle(graph_title[pol]);
 		gPad->SetLogz();
 	}
-	sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,num_total,cal,soft,Short,wrms,box,surf);
+	if(isSim)
+		sprintf(title, "%s/%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, num_total,cal,soft,Short,wrms,box,surf);
+	else
+		sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,num_total,cal,soft,Short,wrms,box,surf);
 	c6->SaveAs(title);
 	delete c6;
 	delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[1];
@@ -447,7 +463,10 @@ int main(int argc, char **argv)
 		PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[pol]->SetTitle(graph_title[pol]);
 		gPad->SetLogz();
 	}
-	sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,num_total,cal,soft,Short,wrms,box,surf);
+	if(isSim)
+		sprintf(title, "%s/%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, num_total,cal,soft,Short,wrms,box,surf);
+	else
+		sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,num_total,cal,soft,Short,wrms,box,surf);
 	c7->SaveAs(title);
 	delete c7;
 	delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[1];
@@ -469,7 +488,10 @@ int main(int argc, char **argv)
 		// PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->GetXaxis()->SetRangeUser(0,10);
 		// PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->GetYaxis()->SetRangeUser(0,0.5);
 	}
-	sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,num_total,cal,soft,Short,wrms,box,surf);
+	if(isSim)
+		sprintf(title, "%s/%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, num_total,cal,soft,Short,wrms,box,surf);
+	else
+		sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,num_total,cal,soft,Short,wrms,box,surf);
 	c8->SaveAs(title);
 	delete c8;
 	delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[1];
