@@ -21,6 +21,7 @@
 #include "TCanvas.h"
 #include "TStyle.h"
 #include "TF1.h"
+#include "TLegend.h"
 #include "tools_Cuts.h"
 
 using namespace std;
@@ -297,27 +298,78 @@ int main(int argc, char **argv)
 				double pass_soft_short_cal_wfrms_this = pass_soft_short_cal_wfrms[pol]->GetBinContent(bin);
 				double pass_soft_short_cal_wfrms_box_this = pass_soft_short_cal_wfrms_box[pol]->GetBinContent(bin);
 				double pass_soft_short_cal_wfrms_box_surf_this = pass_soft_short_cal_wfrms_box_surf[pol]->GetBinContent(bin);
-				eff_soft_short_cal[pol]->SetBinContent(bin,pass_soft_short_cal_this/thrown);
-				eff_soft_short_cal_wfrms[pol]->SetBinContent(bin,pass_soft_short_cal_wfrms_this/thrown);
-				eff_soft_short_cal_wfrms_box[pol]->SetBinContent(bin,pass_soft_short_cal_wfrms_box_this/thrown);
-				eff_soft_short_cal_wfrms_box_surf[pol]->SetBinContent(bin,pass_soft_short_cal_wfrms_box_surf_this/thrown);
+				if(thrown>0.){
+					eff_soft_short_cal[pol]->SetBinContent(bin,pass_soft_short_cal_this/thrown);
+					eff_soft_short_cal_wfrms[pol]->SetBinContent(bin,pass_soft_short_cal_wfrms_this/thrown);
+					eff_soft_short_cal_wfrms_box[pol]->SetBinContent(bin,pass_soft_short_cal_wfrms_box_this/thrown);
+					eff_soft_short_cal_wfrms_box_surf[pol]->SetBinContent(bin,pass_soft_short_cal_wfrms_box_surf_this/thrown);
+				}
+				else{
+					eff_soft_short_cal[pol]->SetBinContent(bin,0.);
+					eff_soft_short_cal_wfrms[pol]->SetBinContent(bin,0.);
+					eff_soft_short_cal_wfrms_box[pol]->SetBinContent(bin,0.);
+					eff_soft_short_cal_wfrms_box_surf[pol]->SetBinContent(bin,0.);
+				}
 			}
 		}
 
 		TCanvas *c2 = new TCanvas("","",1100,850);
 		c2->Divide(2,2);
 		for(int pol=0; pol<2; pol++){
+
+			if(pol==0){
+				all_events[pol]->SetTitle("Events Passing Cuts VPol");
+				eff_soft_short_cal[pol]->SetTitle("Efficiency VPol");
+			}
+
+			if(pol==1){
+				all_events[pol]->SetTitle("Events Passing Cuts HPol");
+				eff_soft_short_cal[pol]->SetTitle("Efficiency HPol");
+			}
+			all_events[pol]->GetXaxis()->SetTitle("3rd Highest Vpeak/RMS");
+			all_events[pol]->GetYaxis()->SetTitle("Events (weighted)");
+			eff_soft_short_cal[pol]->GetXaxis()->SetTitle("3rd Highest Vpeak/RMS");
+			eff_soft_short_cal[pol]->GetYaxis()->SetTitle("Events (weighted)");
+			
 			c2->cd(pol+1);
 				all_events[pol]->Draw("");
+				gPad->SetLogy();
 				pass_soft_short_cal[pol]->Draw("same");
 				pass_soft_short_cal_wfrms[pol]->Draw("same");
 				pass_soft_short_cal_wfrms_box[pol]->Draw("same");
 				pass_soft_short_cal_wfrms_box_surf[pol]->Draw("same");
+				pass_soft_short_cal[pol]->SetLineColor(colors[0]);
+				pass_soft_short_cal_wfrms[pol]->SetLineColor(colors[1]);
+				pass_soft_short_cal_wfrms_box[pol]->SetLineColor(colors[2]);
+				pass_soft_short_cal_wfrms_box_surf[pol]->SetLineColor(colors[3]);
+				pass_soft_short_cal[pol]->SetLineWidth(2.);
+				pass_soft_short_cal_wfrms[pol]->SetLineWidth(2.);
+				pass_soft_short_cal_wfrms_box[pol]->SetLineWidth(2.);
+				pass_soft_short_cal_wfrms_box_surf[pol]->SetLineWidth(2.);
+				
+				if(pol+1==1){
+					TLegend *leg = new TLegend(0.48,0.6,0.9,0.9);
+					leg->AddEntry(all_events[pol],"All Events","l");
+					leg->AddEntry(pass_soft_short_cal[pol],"Cut Soft, Short, and Tagged Cal","l");
+					leg->AddEntry(pass_soft_short_cal_wfrms[pol],"+Cut WFMRS","l");
+					leg->AddEntry(pass_soft_short_cal_wfrms_box[pol],"+Cut Cal Pulser Reco","l");
+					leg->AddEntry(pass_soft_short_cal_wfrms_box_surf[pol],"+Cut Surface","l");
+					leg->Draw();
+				}
+
 			c2->cd(pol+3);
-				eff_soft_short_cal[pol]->Draw("same");
+				eff_soft_short_cal[pol]->Draw("");
 				eff_soft_short_cal_wfrms[pol]->Draw("same");
 				eff_soft_short_cal_wfrms_box[pol]->Draw("same");
 				eff_soft_short_cal_wfrms_box_surf[pol]->Draw("same");
+				eff_soft_short_cal[pol]->SetLineColor(colors[0]);
+				eff_soft_short_cal_wfrms[pol]->SetLineColor(colors[1]);
+				eff_soft_short_cal_wfrms_box[pol]->SetLineColor(colors[2]);
+				eff_soft_short_cal_wfrms_box_surf[pol]->SetLineColor(colors[3]);
+				eff_soft_short_cal[pol]->SetLineWidth(2.);
+				eff_soft_short_cal_wfrms[pol]->SetLineWidth(2.);
+				eff_soft_short_cal_wfrms_box[pol]->SetLineWidth(2.);
+				eff_soft_short_cal_wfrms_box_surf[pol]->SetLineWidth(2.);
 		}
 
 		char efficiency_title[400];
