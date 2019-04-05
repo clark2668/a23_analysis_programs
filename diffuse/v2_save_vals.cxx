@@ -139,6 +139,7 @@ int main(int argc, char **argv)
 		int isSurfEvent_top[2];
 		int isBadEvent;
 		double outweight;
+		int Trig_Pass_out[16] = {0};
 
 		trees[2]->Branch("cal",&isCal);
 		trees[2]->Branch("soft",&isSoft);
@@ -150,6 +151,7 @@ int main(int argc, char **argv)
 		trees[2]->Branch("surf_top_H",&isSurfEvent_top[1]);
 		trees[2]->Branch("bad",&isBadEvent);
 		trees[2]->Branch("weight",&outweight);
+		trees[2]->Branch("Trig_Pass", &Trig_Pass_out, "Trig_Pass_out[16]/I");
 
 		cout << "Run " << file_num << " :: " << argv[file_num] << endl;
 		
@@ -174,10 +176,13 @@ int main(int argc, char **argv)
 		int waveformLength[16];
 		bool hasDigitizerError;
 		double inweight;
+		int Trig_Pass_in[16] = {0};
+
 		inputTree_filter->SetBranchAddress("thirdVPeakOverRMS", &thirdVPeakOverRMS);
 		inputTree_filter->SetBranchAddress("rms_pol_thresh_face_V", &rms_pol_thresh_face_V);
 		inputTree_filter->SetBranchAddress("rms_pol_thresh_face_H", &rms_pol_thresh_face_H);
 		inputTree_filter->SetBranchAddress("weight", &inweight);
+		inputTree_filter->SetBranchAddress("Trig_Pass", &Trig_Pass_in);
 
 		int numFaces_new_V;
 		int numFaces_new_H;
@@ -295,7 +300,9 @@ int main(int argc, char **argv)
 			isBadEvent=hasDigitizerError;
 
 			for(int i=0;i<16;i++){ 
-				if(waveformLength[i]<500) isShort=true;
+				if(waveformLength[i]<500)
+					isShort=true;
+				Trig_Pass_out[i]=Trig_Pass_in[i];
 			}
 
 			for (int i = 0; i < 35; i++){
