@@ -40,12 +40,14 @@ int main(int argc, char **argv)
 	char *plotPath(getenv("PLOT_PATH"));
 	if (plotPath == NULL) std::cout << "Warning! $PLOT_PATH is not set!" << endl;
 
-	if(argc<3){
-		cout<< "Usage\n" << argv[0] << " <station> <config> <ValForCuts filename>"<<endl;;
+	if(argc<6){
+		cout<< "Usage\n" << argv[0] << " <isSim> <station> <config> <year_or_energy> <ValForCuts filename>"<<endl;;
 		return -1;
 	}
-	int station = atoi(argv[1]);
-	int config = atoi(argv[2]);
+	int isSim = atoi(argv[1]);
+	int station = atoi(argv[2]);
+	int config = atoi(argv[3]);
+	double year_or_energy = double(atof(argv[4]));
 	
 	TH2D *PeakCorr_vs_SNR_all[2];
 	PeakCorr_vs_SNR_all[0]=new TH2D("","V",30,0,30,100,0,1);
@@ -75,6 +77,31 @@ int main(int argc, char **argv)
 	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[0]=new TH2D("","V",30,0,30,100,0,1);
 	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[1]=new TH2D("","H",30,0,30,100,0,1);
 
+	TH1D *all_events[2];
+	TH1D *pass_soft_short_cal[2];
+	TH1D *pass_soft_short_cal_wfrms[2];
+	TH1D *pass_soft_short_cal_wfrms_box[2];
+	TH1D *pass_soft_short_cal_wfrms_box_surf[2];
+
+	TH1D *eff[2];
+	TH1D *eff_soft_short_cal[2];
+	TH1D *eff_soft_short_cal_wfrms[2];
+	TH1D *eff_soft_short_cal_wfrms_box[2];
+	TH1D *eff_soft_short_cal_wfrms_box_surf[2];
+
+	for(int i=0; i<2; i++){
+		all_events[i] = new TH1D("","",50,0,50);
+		pass_soft_short_cal[i] = new TH1D("","",50,0,50);
+		pass_soft_short_cal_wfrms[i] = new TH1D("","",50,0,50);
+		pass_soft_short_cal_wfrms_box[i] = new TH1D("","",50,0,50);
+		pass_soft_short_cal_wfrms_box_surf[i] = new TH1D("","",50,0,50);
+
+		eff_soft_short_cal[i] = new TH1D("","",50,0,50);
+		eff_soft_short_cal_wfrms[i] = new TH1D("","",50,0,50);
+		eff_soft_short_cal_wfrms_box[i] = new TH1D("","",50,0,50);
+		eff_soft_short_cal_wfrms_box_surf[i] = new TH1D("","",50,0,50);
+	}
+
 	TH2D *special[2];
 	special[0]=new TH2D("","V",90,0,30,500,0,1);
 	special[1]=new TH2D("","H",90,0,30,500,0,1);
@@ -92,7 +119,7 @@ int main(int argc, char **argv)
 	int num_box=0;
 	int num_surf=0;
 
-	for(int file_num=3; file_num<argc; file_num++){
+	for(int file_num=5; file_num<argc; file_num++){
 
 		string chRun = "run";
 		string file = string(argv[file_num]);
@@ -181,6 +208,22 @@ int main(int argc, char **argv)
 
 			for(int pol=0; pol<2; pol++){
 				PeakCorr_vs_SNR_all[pol]->Fill(snr_val[pol],corr_val[pol],weight);
+
+				if(isSim){
+					all_events[pol]->Fill(snr_val[pol],weight);
+					if(!isCal && !isSoft && !isShort){
+						pass_soft_short_cal[pol]->Fill(snr_val[pol],weight);
+						if(!WFRMS[pol]){
+							pass_soft_short_cal_wfrms[pol]->Fill(snr_val[pol],weight);
+							if(!isNewBox){
+								pass_soft_short_cal_wfrms_box[pol]->Fill(snr_val[pol],weight);
+								if(!isSurf){
+									pass_soft_short_cal_wfrms_box_surf[pol]->Fill(snr_val[pol],weight);
+								}
+							}
+						}
+					}
+				}
 				
 				if(!isCal){ //cut cal pulsers
 					PeakCorr_vs_SNR_cutCal[pol]->Fill(snr_val[pol],corr_val[pol],weight);
@@ -238,12 +281,51 @@ int main(int argc, char **argv)
 	printf("Num short is %d -- %.2f %\n", num_short, double(num_short)/double(num_total)*100.);
 	printf("Num surf is %d -- %.2f %\n", num_surf, double(num_surf)/double(num_total)*100.);
 
-
 	gStyle->SetOptStat(0);
 	gStyle->SetStatY(0.9);
 	gStyle->SetStatX(0.9);
 	gStyle->SetStatW(0.2);
 	gStyle->SetStatH(0.2);
+
+	int colors [28] = { kBlue, kRed, kGreen, kMagenta, kCyan};
+
+	if(isSim){
+		for(int pol=0; pol<2; pol++){
+			for(int bin=0; bin<all_events[pol]->GetNbinsX(); bin++){
+				double thrown = all_events[pol]->GetBinContent(bin);
+				double pass_soft_short_cal_this = pass_soft_short_cal[pol]->GetBinContent(bin);
+				double pass_soft_short_cal_wfrms_this = pass_soft_short_cal_wfrms[pol]->GetBinContent(bin);
+				double pass_soft_short_cal_wfrms_box_this = pass_soft_short_cal_wfrms_box[pol]->GetBinContent(bin);
+				double pass_soft_short_cal_wfrms_box_surf_this = pass_soft_short_cal_wfrms_box_surf[pol]->GetBinContent(bin);
+				eff_soft_short_cal[pol]->SetBinContent(bin,pass_soft_short_cal_this/thrown);
+				eff_soft_short_cal_wfrms[pol]->SetBinContent(bin,pass_soft_short_cal_wfrms_this/thrown);
+				eff_soft_short_cal_wfrms_box[pol]->SetBinContent(bin,pass_soft_short_cal_wfrms_box_this/thrown);
+				eff_soft_short_cal_wfrms_box_surf[pol]->SetBinContent(bin,pass_soft_short_cal_wfrms_box_surf_this/thrown);
+			}
+		}
+
+		TCanvas *c2 = new TCanvas("","",1100,850);
+		c2->Divide(2,2);
+		for(int pol=0; pol<2; pol++){
+			c2->cd(pol+1);
+				all_events[pol]->Draw("");
+				pass_soft_short_cal[pol]->Draw("same");
+				pass_soft_short_cal_wfrms[pol]->Draw("same");
+				pass_soft_short_cal_wfrms_box[pol]->Draw("same");
+				pass_soft_short_cal_wfrms_box_surf[pol]->Draw("same");
+			c2->cd(pol+3);
+				eff_soft_short_cal[pol]->Draw("same");
+				eff_soft_short_cal_wfrms[pol]->Draw("same");
+				eff_soft_short_cal_wfrms_box[pol]->Draw("same");
+				eff_soft_short_cal_wfrms_box_surf[pol]->Draw("same");
+		}
+
+		char efficiency_title[400];
+		sprintf(efficiency_title,
+				 "%s/%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Efficiency.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy,num_total);
+		c2->SaveAs(efficiency_title);
+		delete c2;
+	}
 
 	//save out SNR vs WavefrontRMS plot
 	char graph_title[2][300];
