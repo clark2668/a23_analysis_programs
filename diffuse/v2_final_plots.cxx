@@ -90,17 +90,18 @@ int main(int argc, char **argv)
 	TH1D *eff_soft_short_cal_wfrms_box[2];
 	TH1D *eff_soft_short_cal_wfrms_box_surf[2];
 
-	for(int i=0; i<2; i++){
-		all_events[i] = new TH1D("","",50,0,50);
-		pass_soft_short_cal[i] = new TH1D("","",50,0,50);
-		pass_soft_short_cal_wfrms[i] = new TH1D("","",50,0,50);
-		pass_soft_short_cal_wfrms_box[i] = new TH1D("","",50,0,50);
-		pass_soft_short_cal_wfrms_box_surf[i] = new TH1D("","",50,0,50);
 
-		eff_soft_short_cal[i] = new TH1D("","",50,0,50);
-		eff_soft_short_cal_wfrms[i] = new TH1D("","",50,0,50);
-		eff_soft_short_cal_wfrms_box[i] = new TH1D("","",50,0,50);
-		eff_soft_short_cal_wfrms_box_surf[i] = new TH1D("","",50,0,50);
+	for(int i=0; i<2; i++){
+		all_events[i] = new TH1D("","",30,0,30);
+		pass_soft_short_cal[i] = new TH1D("","",30,0,30);
+		pass_soft_short_cal_wfrms[i] = new TH1D("","",30,0,30);
+		pass_soft_short_cal_wfrms_box[i] = new TH1D("","",30,0,30);
+		pass_soft_short_cal_wfrms_box_surf[i] = new TH1D("","",30,0,30);
+
+		eff_soft_short_cal[i] = new TH1D("","",30,0,30);
+		eff_soft_short_cal_wfrms[i] = new TH1D("","",30,0,30);
+		eff_soft_short_cal_wfrms_box[i] = new TH1D("","",30,0,30);
+		eff_soft_short_cal_wfrms_box_surf[i] = new TH1D("","",30,0,30);
 	}
 
 	TH2D *special[2];
@@ -119,6 +120,10 @@ int main(int argc, char **argv)
 	int num_short=0;
 	int num_box=0;
 	int num_surf=0;
+
+	double num_total_trig=0.;
+	double num_pass_pol[2]={0.};
+	double num_pass_either=0.;
 
 	for(int file_num=5; file_num<argc; file_num++){
 
@@ -200,6 +205,7 @@ int main(int argc, char **argv)
 			}
 
 			num_total++;
+			num_total_trig+=weight;
 
 			if(isCal) num_cal++;
 			if(isSoft) num_soft++;
@@ -207,10 +213,12 @@ int main(int argc, char **argv)
 			if(isNewBox) num_box++;
 			if(isSurf) num_surf++;
 
-			for(int pol=0; pol<2; pol++){
-				PeakCorr_vs_SNR_all[pol]->Fill(snr_val[pol],corr_val[pol],weight);
+			if(snr_val[0]>=30.) snr_val[0]=30.;
+			if(snr_val[1]>=30.) snr_val[1]=30.;
 
-				if(isSim){
+			if(isSim){
+				bool this_pass[2]={false};
+				for(int pol=0; pol<2; pol++){
 					all_events[pol]->Fill(snr_val[pol],weight);
 					if(!isCal && !isSoft && !isShort){
 						pass_soft_short_cal[pol]->Fill(snr_val[pol],weight);
@@ -220,11 +228,22 @@ int main(int argc, char **argv)
 								pass_soft_short_cal_wfrms_box[pol]->Fill(snr_val[pol],weight);
 								if(!isSurf){
 									pass_soft_short_cal_wfrms_box_surf[pol]->Fill(snr_val[pol],weight);
+									num_pass_pol[pol]+=weight;
+									this_pass[pol]=true;
 								}
 							}
 						}
 					}
 				}
+				if(this_pass[0] || this_pass[1])
+					num_pass_either+=weight;
+			}
+
+
+			for(int pol=0; pol<2; pol++){
+				PeakCorr_vs_SNR_all[pol]->Fill(snr_val[pol],corr_val[pol],weight);
+
+
 				
 				if(!isCal){ //cut cal pulsers
 					PeakCorr_vs_SNR_cutCal[pol]->Fill(snr_val[pol],corr_val[pol],weight);
@@ -292,7 +311,7 @@ int main(int argc, char **argv)
 
 	if(isSim){
 		for(int pol=0; pol<2; pol++){
-			for(int bin=0; bin<all_events[pol]->GetNbinsX(); bin++){
+			for(int bin=0; bin<=all_events[pol]->GetNbinsX(); bin++){
 				double thrown = all_events[pol]->GetBinContent(bin);
 				double pass_soft_short_cal_this = pass_soft_short_cal[pol]->GetBinContent(bin);
 				double pass_soft_short_cal_wfrms_this = pass_soft_short_cal_wfrms[pol]->GetBinContent(bin);
@@ -333,6 +352,7 @@ int main(int argc, char **argv)
 			
 			c2->cd(pol+1);
 				all_events[pol]->Draw("");
+				all_events[pol]->GetYaxis()->SetRangeUser(1,3e3);
 				gPad->SetLogy();
 				pass_soft_short_cal[pol]->Draw("same");
 				pass_soft_short_cal_wfrms[pol]->Draw("same");
@@ -378,6 +398,13 @@ int main(int argc, char **argv)
 		c2->SaveAs(efficiency_title);
 		delete c2;
 	}
+
+	if(isSim){
+		for(int pol=0; pol<2; pol++){
+			printf("Eff on pol %d is %.3f/%.3f = %.3f \n", pol, num_pass_pol[pol], num_total_trig,num_pass_pol[pol]/num_total_trig);
+		}
+	}
+	printf("Eff on both pols combined is %.3f / %.3f = %.3f \n", num_pass_either, num_total_trig, num_pass_either/num_total_trig);
 
 	//save out SNR vs WavefrontRMS plot
 	char graph_title[2][300];
