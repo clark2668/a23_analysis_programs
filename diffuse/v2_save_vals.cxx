@@ -94,6 +94,13 @@ int main(int argc, char **argv)
 		int runNum = atoi(strRunNum.c_str());
 		cout<<"runNum is "<<runNum<<endl;
 
+		if(!isSimulation){
+			//we're almost certainly going to need the calibrator, so let's just load it now
+			char ped_file_name[400];
+			sprintf(ped_file_name,"%s/run_specific_peds/A%d/all_peds/event%d_specificPeds.dat",PedDirPath,station,runNum);
+			calibrator->setAtriPedFile(ped_file_name,station); //because someone had a brain (!!), this will error handle itself if the pedestal doesn't exist
+		}
+
 		char outfile_name[300];
 		sprintf(outfile_name,"%s/vals_for_cut_run_%d.root",output_location.c_str(),runNum);
 		if(dropBadChans){
@@ -548,11 +555,8 @@ int main(int argc, char **argv)
 							eventTree->GetEvent(event);
 						}
 						else if(!isSimulation){
-							char ped_file_name[400];
 							eventTree->SetBranchAddress("event",&rawPtr);
 							eventTree->GetEvent(event);
-							sprintf(ped_file_name,"%s/run_specific_peds/A%d/all_peds/event%d_specificPeds.dat",PedDirPath,station,runNum);
-							calibrator->setAtriPedFile(ped_file_name,station); //because someone had a brain (!!), this will error handle itself if the pedestal doesn't exist
 							realAtriEvPtr = new UsefulAtriStationEvent(rawPtr,AraCalType::kLatestCalib);
 						}
 
@@ -563,7 +567,7 @@ int main(int argc, char **argv)
 						chan_list_V.push_back(0);
 						chan_list_V.push_back(1);
 						chan_list_V.push_back(2);
-						if(!(dropBadChans && station==3)){ //if dropping bad chans and station 3, don't keep fourth string
+						if(!(dropBadChans && station==3 && runNum>2972)){ //if dropping bad chans and station 3, don't keep fourth string
 							chan_list_V.push_back(3);
 						}
 
@@ -571,7 +575,7 @@ int main(int argc, char **argv)
 						chan_list_H.push_back(8);
 						chan_list_H.push_back(9);
 						chan_list_H.push_back(10);
-						if(!(dropBadChans && station==3)){ //if dropping bad chans and station 3, don't keep fourth string
+						if(!(dropBadChans && station==3 && runNum>2972)){ //if dropping bad chans and station 3, don't keep fourth string
 							chan_list_H.push_back(11);
 						}
 
@@ -630,11 +634,8 @@ int main(int argc, char **argv)
 							eventTree->GetEvent(event);
 						}
 						else if(!isSimulation){
-							char ped_file_name[400];
 							eventTree->SetBranchAddress("event",&rawPtr);
 							eventTree->GetEvent(event);
-							sprintf(ped_file_name,"%s/run_specific_peds/A%d/all_peds/event%d_specificPeds.dat",PedDirPath,station,runNum);
-							calibrator->setAtriPedFile(ped_file_name,station); //because someone had a brain (!!), this will error handle itself if the pedestal doesn't exist
 							realAtriEvPtr = new UsefulAtriStationEvent(rawPtr,AraCalType::kLatestCalib);
 						}
 
