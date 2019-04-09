@@ -92,7 +92,6 @@ int main(int argc, char **argv)
 		size_t diff=(foundFilter-wordRun.length())-foundRun;
 		string strRunNum = file.substr(foundRun+4,diff);
 		int runNum = atoi(strRunNum.c_str());
-		cout<<"runNum is "<<runNum<<endl;
 
 		if(!isSimulation){
 			//we're almost certainly going to need the calibrator, so let's just load it now
@@ -146,7 +145,7 @@ int main(int argc, char **argv)
 		int isSurfEvent_top[2];
 		int isBadEvent;
 		double outweight;
-		int Trig_Pass_out[16] = {0};
+		int Trig_Pass_out[16];
 
 		trees[2]->Branch("cal",&isCal);
 		trees[2]->Branch("soft",&isSoft);
@@ -158,7 +157,9 @@ int main(int argc, char **argv)
 		trees[2]->Branch("surf_top_H",&isSurfEvent_top[1]);
 		trees[2]->Branch("bad",&isBadEvent);
 		trees[2]->Branch("weight",&outweight);
-		trees[2]->Branch("Trig_Pass", &Trig_Pass_out, "Trig_Pass_out[16]/I");
+		if(isSimulation)
+			trees[2]->Branch("Trig_Pass", &Trig_Pass_out, "Trig_Pass_out[16]/I");
+		
 
 		cout << "Run " << file_num << " :: " << argv[file_num] << endl;
 		
@@ -183,13 +184,14 @@ int main(int argc, char **argv)
 		int waveformLength[16];
 		bool hasDigitizerError;
 		double inweight;
-		int Trig_Pass_in[16] = {0};
+		int Trig_Pass_in[16];
 
 		inputTree_filter->SetBranchAddress("thirdVPeakOverRMS", &thirdVPeakOverRMS);
 		inputTree_filter->SetBranchAddress("rms_pol_thresh_face_V", &rms_pol_thresh_face_V);
 		inputTree_filter->SetBranchAddress("rms_pol_thresh_face_H", &rms_pol_thresh_face_H);
 		inputTree_filter->SetBranchAddress("weight", &inweight);
-		inputTree_filter->SetBranchAddress("Trig_Pass", &Trig_Pass_in);
+		if(isSimulation)
+			inputTree_filter->SetBranchAddress("Trig_Pass", &Trig_Pass_in);
 
 		int numFaces_new_V;
 		int numFaces_new_H;
@@ -719,10 +721,10 @@ int main(int argc, char **argv)
 							// printf("Unique freq to be notched is %.2f with width %.2f \n", uniqueNotchFreqs[i],uniqueNotchBands[i]);
 						}
 
-						// for(int iFreq=0; iFreq<uniqueNotchFreqs.size(); iFreq++) printf("				Unique freq %d is %.2f with band %.2f\n",iFreq,uniqueNotchFreqs[iFreq],uniqueNotchBands[iFreq]);
-
+						// for(int iFreq=0; iFreq<uniqueNotchFreqs.size(); iFreq++)
+						// 	printf("				Unique freq %d is %.2f with band %.2f\n",iFreq,uniqueNotchFreqs[iFreq],uniqueNotchBands[iFreq]);
+						
 						//now, we must re-do the interferometry
-
 						vector <int> chan_list_V;
 						vector <int> chan_list_H;
 						for(int chan=0; chan<=7; chan++){
@@ -771,7 +773,7 @@ int main(int argc, char **argv)
 						chan_list_V.push_back(0);
 						chan_list_V.push_back(1);
 						chan_list_V.push_back(2);
-						if(!(dropBadChans && station==3)){ //if dropping bad chans and station 3, don't keep fourth string
+						if(!(dropBadChans && station==3 && runNum>2972)){ //if dropping bad chans and station 3, don't keep fourth string
 							chan_list_V.push_back(3);
 						}
 
@@ -779,7 +781,7 @@ int main(int argc, char **argv)
 						chan_list_H.push_back(8);
 						chan_list_H.push_back(9);
 						chan_list_H.push_back(10);
-						if(!(dropBadChans && station==3)){ //if dropping bad chans and station 3, don't keep fourth string
+						if(!(dropBadChans && station==3 && runNum>2972)){ //if dropping bad chans and station 3, don't keep fourth string
 							chan_list_H.push_back(11);
 						}
 
@@ -843,8 +845,6 @@ int main(int argc, char **argv)
 						copy(vVPeakTimes_new.begin(), vVPeakTimes_new.begin()+16, VPeakTimes_new); //copy these results into the arrays, because ROOT prefers arrays
 						vector<double> vWaveformRMS_new;
 						vWaveformRMS_new.resize(16);
-
-						//get run summary information
 						
 						char run_summary_name[400];
 						if (isSimulation == false){
@@ -1022,15 +1022,15 @@ int main(int argc, char **argv)
 							}
 							else if(station==3){
 								if(runNum>2972){ //it's 2014+, drop string four
-									rms_faces_V.resize(numFaces_A3_drop);
+									rms_faces_V_new.resize(numFaces_A3_drop);
 									num_faces_for_V_loop=numFaces_A3_drop;
-									rms_faces_H.resize(numFaces_A3_drop);
+									rms_faces_H_new.resize(numFaces_A3_drop);
 									num_faces_for_H_loop=numFaces_A3_drop;
 								}
 								else{ //it's 2013-, keep string four
-									rms_faces_V.resize(numFaces);
+									rms_faces_V_new.resize(numFaces);
 									num_faces_for_V_loop=numFaces;
-									rms_faces_H.resize(numFaces);
+									rms_faces_H_new.resize(numFaces);
 									num_faces_for_H_loop=numFaces;
 								}
 							}
@@ -1066,8 +1066,6 @@ int main(int argc, char **argv)
 						double SNRs_new[2];
 						SNRs_new[0] = vThirdVPeakOverRMS_new[0];
 						SNRs_new[1] = vThirdVPeakOverRMS_new[1];
-						if(SNRs_new[0]>29.) SNRs_new[0]=29.;
-						if(SNRs_new[1]>29.) SNRs_new[1]=29.;
 
 						//cleanup
 						deleteGraphVector(grWaveformsRaw);
@@ -1081,7 +1079,6 @@ int main(int argc, char **argv)
 						delete summaryFile;
 						// printf("				old vs new logrms calc in pol %d: %.2f vs %.2f \n",pol,log(bestFaceRMS[pol])/log(10),log(bestFaceRMS_new[pol])/log(10));
 						// printf("				old vs new snr in pol %d: %.2f vs %.2f \n",pol,SNRs[pol],SNRs_new[pol] );
-
 
 						if(PeakTheta_Recompute_300m_top>=37) isSurfEvent_top[pol]=1;
 
@@ -1117,6 +1114,6 @@ int main(int argc, char **argv)
 		fpOut->Write();
 		fpOut->Close();
 		delete fpOut;
-		printf("Done! Run Number %d", runNum);
+		printf("Done! Run Number %d \n", runNum);
 	} //end loop over input files
 }
