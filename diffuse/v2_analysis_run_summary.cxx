@@ -122,7 +122,8 @@ int main(int argc, char **argv)
 	if(starEvery==0) starEvery++;
 
 	int runNum = getrunNum(argv[4]);
-	printf("Run Number %d \n", runNum);
+	printf("RunSummary Run Number %d \n", runNum);
+	printf("Num entries is %d \n", numEntries);
 	runNumber = runNum;
 
 	string runSummaryFilename = getRunSummaryFilename(station_num, argv[3], argv[4]);
