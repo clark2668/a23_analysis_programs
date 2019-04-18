@@ -296,12 +296,6 @@ int main(int argc, char **argv)
 			}
 			*/
 
-			//incorrectly for now (!), if is simulation, clear these out
-			if(isSimulation){
-				baseline_CW_cut_V.clear();
-				baseline_CW_cut_H.clear();
-			}
-
 			badFreqs_baseline.push_back(baseline_CW_cut_V);
 			badFreqs_baseline.push_back(baseline_CW_cut_H);
 
@@ -460,15 +454,6 @@ int main(int argc, char **argv)
 				for(int chan=0; chan<16; chan++){
 					delete phases_backward[use_event][chan];
 				}
-			}
-
-
-			//incorrectly for now (!), if is simulation, clear these out
-			if(isSimulation){
-				badFreqs_fwd.clear();
-				badFreqs_back.clear();
-				badSigmas_fwd.clear();
-				badSigmas_back.clear();
 			}
 		}
 		NewCWTree->Fill();
