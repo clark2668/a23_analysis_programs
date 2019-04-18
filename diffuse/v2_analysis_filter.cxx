@@ -519,7 +519,6 @@ int main(int argc, char **argv)
 			} // end threshold scan
 
 			//then apply the filter over again *with* dropped channels
-			int dropBadChans=1;
 			vector<vector<vector<vector<int> > > > faces_drop = setupFaces(station_num, dropBadChans);
 			for (int thresholdBin = 0; thresholdBin < thresholdSteps; thresholdBin++){
 				double threshold = thresholdMin + thresholdStep*(double)thresholdBin;
