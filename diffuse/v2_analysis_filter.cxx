@@ -186,6 +186,7 @@ int main(int argc, char **argv)
 		
 	int runNum = getrunNum(argv[6]);
 	printf("Filter Run Number %d \n", runNum);
+	printf("Num entries is %d \n", numEntries);
 
 	string runSummaryFilename;
 	if (isSimulation == false){
