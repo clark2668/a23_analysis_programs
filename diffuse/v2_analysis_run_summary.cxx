@@ -44,6 +44,13 @@ int main(int argc, char **argv)
 	isSimulation=atoi(argv[1]);
 	int station_num=atoi(argv[2]);
 
+	char *DataDirPath(getenv("DATA_DIR"));
+	if (DataDirPath == NULL) std::cout << "Warning! $DATA_DIR is not set!" << endl;
+	char *SimDirPath(getenv("SIM_DIR"));
+	if (SimDirPath == NULL) std::cout << "Warning! $SIM_DIR is not set!" << endl;
+	char *PedDirPath(getenv("PED_DIR"));
+	if (PedDirPath == NULL) std::cout << "Warning! $DATA_DIR is not set!" << endl;
+
 	numEvents = 0;
 	numSoftTriggers = 0;
 	numCalpulsers = 0;
@@ -84,13 +91,6 @@ int main(int argc, char **argv)
 		std::cerr << "Can't find eventTree\n";
 		return -1;
 	}
-	AraEventCalibrator * calibrator = AraEventCalibrator::Instance();
-	if(argc==6){
-		calibrator->setAtriPedFile(argv[5], station_num);
-	}
-	else{
-		calibrator->setAtriPedFile("", station_num);
-	}
 
 	if(isSimulation){
 		eventTree->SetBranchAddress("UsefulAtriStationEvent", &realAtriEvPtr);
@@ -125,6 +125,19 @@ int main(int argc, char **argv)
 	printf("RunSummary Run Number %d \n", runNum);
 	printf("Num entries is %d \n", numEntries);
 	runNumber = runNum;
+
+	AraEventCalibrator * calibrator = AraEventCalibrator::Instance();
+	if(argc==6){
+		calibrator->setAtriPedFile(argv[5], station_num);
+	}
+	else{
+		if(!isSimulation){
+			char ped_file_name[400];
+			sprintf(ped_file_name,"%s/run_specific_peds/A%d/all_peds/event%d_specificPeds.dat",PedDirPath,station_num,runNum);
+			calibrator->setAtriPedFile(ped_file_name,station_num); //because someone had a brain (!!), this will error handle itself if the pedestal doesn't exist
+		}
+		calibrator->setAtriPedFile("", station_num);
+	}
 
 	string runSummaryFilename = getRunSummaryFilename(station_num, argv[3], argv[4]);
 	TFile *OutputFile = TFile::Open(runSummaryFilename.c_str(), "RECREATE");
