@@ -240,8 +240,8 @@ int main(int argc, char **argv)
 			for(int chan=0; chan<numAnts; chan++){
 				TGraph *grInt = customInterpolation(grWaveformsRaw[chan],interpolationTimeStep);
 				TGraph *grPad = FFTtools::padWaveToLength(grInt,WaveformLength); //pad
-				TGraph *spec = FFTtools::makePowerSpectrumMilliVoltsNanoSecondsdB(grPad);
 				
+				// TGraph *spec = FFTtools::makePowerSpectrumMilliVoltsNanoSecondsdB(grPad);
 				// TCanvas *c = new TCanvas("","",1100,850);
 				// c->Divide(1,2);
 				// c->cd(1);
