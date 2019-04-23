@@ -93,6 +93,7 @@ int main(int argc, char **argv)
   	Long64_t numEntries=eventTree->GetEntries();
 	Long64_t starEvery=numEntries/80;
 	if(starEvery==0) starEvery++;
+	printf("Num events is %d \n", numEntries);
 	cout<<"This file has a starEvery of "<<starEvery<<endl;
 
 	//first, let's get the baselines loaded in
@@ -131,19 +132,19 @@ int main(int argc, char **argv)
 	int nGraphs=16;
 
 	vector<int> chan_exclusion_list;
-	if(drop_bad_chans){
-		if(station_num==2){
-			//drop the last hpol channel
-			chan_exclusion_list.push_back(15);
-		}
-		if(station_num==3 && runNum>2972){
-			// drop string four
-			chan_exclusion_list.push_back(3);
-			chan_exclusion_list.push_back(7);
-			chan_exclusion_list.push_back(11);
-			chan_exclusion_list.push_back(15);			
-		}
-	}
+	// if(drop_bad_chans){
+	// 	if(station_num==2){
+	// 		//drop the last hpol channel
+	// 		chan_exclusion_list.push_back(15);
+	// 	}
+	// 	if(station_num==3 && runNum>2972){
+	// 		// drop string four
+	// 		chan_exclusion_list.push_back(3);
+	// 		chan_exclusion_list.push_back(7);
+	// 		chan_exclusion_list.push_back(11);
+	// 		chan_exclusion_list.push_back(15);			
+	// 	}
+	// }
 
 	//now set up the outputs
 	string output_location = argv[6];
@@ -283,15 +284,42 @@ int main(int argc, char **argv)
 
 			const int numPols = 2; //how many polarization do we want to think about
 			const int numEventsForPhaseVariance = 15; //how many events do we need for the phase variance technique?
-			const int numPairs = 28; //7+6+5+4+3+2+1 pairs
+			const int numPairs = 28; // N(N-1)/2 unique pairs
+
+
+			int numPairs_pol[2];
+
+			if(drop_bad_chans && 2==3){
+				if(station_num==2){
+					numPairs_pol[0]=numPairs;
+					numPairs_pol[1]=21; // drop channel 15, only 21 pairs left
+				}
+				else if(station_num==3){
+					if(runNum>2972){
+						// drop string four (two channels per polarization)
+						// only 15 pairs left
+						numPairs_pol[0]=15;
+						numPairs_pol[1]=15;
+					}
+					else{
+						// drop no channels, keep them all
+						numPairs_pol[0]=numPairs;
+						numPairs_pol[1]=numPairs;
+					}
+				}
+			}
+			else{
+				numPairs_pol[0]=numPairs;
+				numPairs_pol[1]=numPairs;
+			}
   	
 			vector<vector<deque<TGraph*> > > vvdGrPhaseDiff_fwd;
 			vector<vector<deque<TGraph*> > > vvdGrPhaseDiff_back;
 			vvdGrPhaseDiff_fwd.resize(numPols); //need an entry per polarization
 			vvdGrPhaseDiff_back.resize(numPols); //need an entry per polarization
 			for (int i = 0 ; i < numPols; i++){
-				vvdGrPhaseDiff_fwd[i].resize(numPairs); //and for the number of pairs in that polarization
-				vvdGrPhaseDiff_back[i].resize(numPairs); //and for the number of pairs in that polarization
+				vvdGrPhaseDiff_fwd[i].resize(numPairs_pol[i]); //and for the number of pairs in that polarization
+				vvdGrPhaseDiff_back[i].resize(numPairs_pol[i]); //and for the number of pairs in that polarization
 			}
 
 			//forward case
