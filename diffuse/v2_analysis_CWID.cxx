@@ -208,7 +208,6 @@ int main(int argc, char **argv)
 		if(hasError){
 			//if it has a digitizer error, just push back junk
 			for(int i=0; i<16; i++){
-				// temp_phs.push_back(new TGraph());
 				temp_phs[i] = new TGraph();
 			}
 		}
@@ -217,7 +216,6 @@ int main(int argc, char **argv)
 			vector<TGraph*> grWaveformsInt = makeInterpolatedGraphs(grWaveformsRaw, interpolationTimeStep, xLabel, yLabel, titlesForGraphs);
 			vector<TGraph*> grWaveformsPadded = makePaddedGraphs(grWaveformsInt, 0, xLabel, yLabel, titlesForGraphs);
 			for(int chan=0; chan<16; chan++){
-				// temp_phs.push_back(getFFTPhase(grWaveformsPadded[chan],120.,1000.));
 				temp_phs[chan] = getFFTPhase(grWaveformsPadded[chan],120.,1000.);
 			}
 			deleteGraphVector(grWaveformsInt);
@@ -226,7 +224,6 @@ int main(int argc, char **argv)
 		tempTree->Fill(); //fill the tree
 		deleteGraphVector(grWaveformsRaw);
 		for(int i=0; i<16; i++) delete temp_phs[i];
-		// deleteGraphVector(temp_phs);
 		if(!isSimulation) delete realAtriEvPtr;
 	}
 	tempFile->Write();
