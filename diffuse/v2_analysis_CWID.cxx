@@ -267,8 +267,8 @@ int main(int argc, char **argv)
 		if(!hasError){
 
 			//before we do the phase variance, we should check for baseline violations	
-			vector<double> baseline_CW_cut_V = CWCut_TB(grWaveformsRaw, average, 0, 6., 5.5, station_num, 3);
-			vector<double> baseline_CW_cut_H = CWCut_TB(grWaveformsRaw, average, 1, 6., 5.5, station_num, 3);
+			vector<double> baseline_CW_cut_V = CWCut_TB(grWaveformsRaw, average, 0, 6., 5.5, station_num, 3, chan_exclusion_list);
+			vector<double> baseline_CW_cut_H = CWCut_TB(grWaveformsRaw, average, 1, 6., 5.5, station_num, 3, chan_exclusion_list);
 			/*			
 			for(int i=0; i<baseline_CW_cut_V.size(); i++){
 				printf("V: Event %d Baseline CW Cut %.2f \n", event, baseline_CW_cut_V[i]);
