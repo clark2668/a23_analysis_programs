@@ -37,8 +37,8 @@ UsefulAtriStationEvent *realAtriEvPtr;
 int main(int argc, char **argv)
 {
 
-	if(argc<7) {
-		std::cout << "Usage\n" << argv[0] << " <simulation_flag> <station> <year> <run summary directory> <output directory> <input file> <pedestal file> \n";
+	if(argc<8) {
+		std::cout << "Usage\n" << argv[0] << " <simulation_flag> <station> <year> <drop_bad_chans> <run summary directory> <output directory> <input file> <pedestal file> \n";
 		return -1;
 	}
 
@@ -48,18 +48,20 @@ int main(int argc, char **argv)
 	1: simulation (yes/no)
 	2: station num (2/3)
 	3: year
-	4: run summary directory
-	5: output directory
-	6: input file
-	7: pedestal file
+	4: drop bad chans
+	5: run summary directory
+	6: output directory
+	7: input file
+	8: pedestal file
 	*/
 
 	int isSimulation=atoi(argv[1]);
 	int station_num=atoi(argv[2]);
 	int year=atoi(argv[3]);
+	int drop_bad_chans=atoi(argv[4]);
 
 	//open the file
-	TFile *fp = TFile::Open(argv[6]);
+	TFile *fp = TFile::Open(argv[7]);
 	if(!fp) {
 		std::cerr << "Can't open file\n";
 		return -1;
@@ -69,13 +71,13 @@ int main(int argc, char **argv)
 		std::cerr << "Can't find eventTree\n";
 		return -1;
 	}
-	int runNum = getrunNum(argv[6]);
+	int runNum = getrunNum(argv[7]);
 	printf("Run Number %d \n", runNum);
 
 	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();	
-	if(argc==8){
+	if(argc==9){
 		//only if they gave us a pedestal should we fire up the calibrator
-		calibrator->setAtriPedFile(argv[7],station_num);
+		calibrator->setAtriPedFile(argv[8],station_num);
 	}
 	AraQualCuts *qualCut = AraQualCuts::Instance(); //we also need a qual cuts tool
 
@@ -96,7 +98,7 @@ int main(int argc, char **argv)
 	//first, let's get the baselines loaded in
 	string runSummaryFilename;
 	if (!isSimulation){
-		runSummaryFilename = getRunSummaryFilename(station_num, argv[4], argv[6]);
+		runSummaryFilename = getRunSummaryFilename(station_num, argv[5], argv[7]);
 	}
 	else {
 		if(station_num==2){
@@ -128,8 +130,23 @@ int main(int argc, char **argv)
 	AraGeomTool * geomTool = new AraGeomTool();
 	int nGraphs=16;
 
+	vector<int> chan_exclusion_list;
+	if(drop_bad_chans){
+		if(station_num==2){
+			//drop the last hpol channel
+			chan_exclusion_list.push_back(15);
+		}
+		if(station_num==3 && runNum>2972){
+			// drop string four
+			chan_exclusion_list.push_back(3);
+			chan_exclusion_list.push_back(7);
+			chan_exclusion_list.push_back(11);
+			chan_exclusion_list.push_back(15);			
+		}
+	}
+
 	//now set up the outputs
-	string output_location = argv[5];
+	string output_location = argv[6];
 	char run_file_name[400];
 	sprintf(run_file_name,"%s/CWID_station_%d_run_%d.root",output_location.c_str(),station_num, runNum);
 	TFile *outFile = TFile::Open(run_file_name,"RECREATE");
@@ -348,8 +365,16 @@ int main(int argc, char **argv)
 					for(int pol=0; pol<numPols; pol++){ //loop over polarizations
 						for(int pairIndex = 0; pairIndex < numPairs; pairIndex++){ //loop over pairs for that event and polarization
 							getChansfromPair(geomTool,station_num,pol,pairIndex,chan1,chan2); //get chan numbers for this pair and pol
-							if (chan1 != -1 && chan2 != -1){
-								vvdGrPhaseDiff_fwd[pol][pairIndex].push_back(getPhaseDifference(phases_forward[use_event][chan1], phases_forward[use_event][chan2]));
+							//now, make sure the fetch didn't fail, and that neither pair is in the "channel exclusion" list
+							if (chan1 != -1
+								&&
+								chan2 != -1
+								&&
+								!(std::find(chan_exclusion_list.begin(), chan_exclusion_list.end(), chan1) != chan_exclusion_list.end())
+								&&
+								!(std::find(chan_exclusion_list.begin(), chan_exclusion_list.end(), chan2) != chan_exclusion_list.end())
+								){
+									vvdGrPhaseDiff_fwd[pol][pairIndex].push_back(getPhaseDifference(phases_forward[use_event][chan1], phases_forward[use_event][chan2]));
 							}
 						}
 					}
@@ -420,8 +445,16 @@ int main(int argc, char **argv)
 					for(int pol=0; pol<numPols; pol++){ //loop over polarizations
 						for(int pairIndex = 0; pairIndex < numPairs; pairIndex++){ //loop over pairs for that event and polarization
 							getChansfromPair(geomTool,station_num,pol,pairIndex,chan1,chan2); //get chan numbers for this pair and pol
-							if (chan1 != -1 && chan2 != -1){
-								vvdGrPhaseDiff_back[pol][pairIndex].push_back(getPhaseDifference(phases_backward[use_event][chan1], phases_backward[use_event][chan2]));
+							//now, make sure the fetch didn't fail, and that neither pair is in the "channel exclusion" list
+							if (chan1 != -1
+								&&
+								chan2 != -1
+								&&
+								!(std::find(chan_exclusion_list.begin(), chan_exclusion_list.end(), chan1) != chan_exclusion_list.end())
+								&&
+								!(std::find(chan_exclusion_list.begin(), chan_exclusion_list.end(), chan2) != chan_exclusion_list.end())
+								){
+									vvdGrPhaseDiff_back[pol][pairIndex].push_back(getPhaseDifference(phases_backward[use_event][chan1], phases_backward[use_event][chan2]));
 							}
 						}
 					}
