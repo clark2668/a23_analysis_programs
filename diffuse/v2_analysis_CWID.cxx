@@ -263,41 +263,6 @@ int main(int argc, char **argv)
 
 		vector<TGraph*> grWaveformsRaw = makeGraphsFromRF(realAtriEvPtr, 16, xLabel, yLabel, titlesForGraphs);
 		tempTree->GetEntry(event);
-
-		/*
-		vector <TGraph*> grInt;
-		vector <TGraph*> grPad;
-		vector <TGraph*> grSpectrum;
-
-		for(int i=0; i<16; i++){
-			grInt.push_back(FFTtools::getInterpolatedGraph(grWaveformsRaw[i],interpolationTimeStep));
-			grPad.push_back(FFTtools::padWaveToLength(grInt[i],2048));
-			grSpectrum.push_back(FFTtools::makePowerSpectrumMilliVoltsNanoSecondsdB(grPad[i]));
-		}
-
-		TCanvas *c2 = new TCanvas("","",1100,850);
-		c2->Divide(4,4);
-		for(int i=0; i<16; i++){
-			c2->cd(i+1);
-			grWaveformsRaw[i]->Draw("ALP");
-		}
-		char save_title2[300];
-		sprintf(save_title2,"testgraphs%d.png",event);
-		c2->SaveAs(save_title2);
-
-
-		TCanvas *c = new TCanvas("","",1100,850);
-		c->Divide(4,4);
-		for(int i=0; i<16; i++){
-			c->cd(i+1);
-			grSpectrum[i]->Draw("ALP");
-			average[i]->Draw("Lsame");
-			average[i]->SetLineColor(kRed);
-		}
-		char save_title[300];
-		sprintf(save_title,"test%d.png",event);
-		c->SaveAs(save_title);
-		*/
 	
 		if(!hasError){
 
