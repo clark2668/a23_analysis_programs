@@ -42,6 +42,9 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
+	char *PedDirPath(getenv("PED_DIR"));
+	if (PedDirPath == NULL) std::cout << "Warning! $DATA_DIR is not set!" << endl;
+
 	/*
 	arguments
 	0: exec
@@ -78,6 +81,14 @@ int main(int argc, char **argv)
 	if(argc==9){
 		//only if they gave us a pedestal should we fire up the calibrator
 		calibrator->setAtriPedFile(argv[8],station_num);
+	}
+	else{
+		if(!isSimulation){
+			char ped_file_name[400];
+			sprintf(ped_file_name,"%s/run_specific_peds/A%d/all_peds/event%d_specificPeds.dat",PedDirPath,station_num,runNum);
+			calibrator->setAtriPedFile(ped_file_name,station_num); //because someone had a brain (!!), this will error handle itself if the pedestal doesn't exist
+		}
+		calibrator->setAtriPedFile("", station_num);
 	}
 	AraQualCuts *qualCut = AraQualCuts::Instance(); //we also need a qual cuts tool
 
