@@ -184,7 +184,9 @@ int main(int argc, char **argv)
 	Long64_t starEvery=numEntries/80;
 	if(starEvery==0) starEvery++;
 		
-	int runNum = getrunNum(argv[6]);
+	int runNum;
+	eventTree->SetBranchAddress("run",&runNum);
+	eventTree->GetEntry(0);
 	printf("Filter Run Number %d \n", runNum);
 	printf("Num entries is %d \n", numEntries);
 
