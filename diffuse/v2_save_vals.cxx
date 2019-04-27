@@ -52,6 +52,8 @@ int main(int argc, char **argv)
 	if (SimDirPath == NULL) std::cout << "Warning! $SIM_DIR is not set!" << endl;
 	char *PedDirPath(getenv("PED_DIR"));
 	if (PedDirPath == NULL) std::cout << "Warning! $DATA_DIR is not set!" << endl;
+	char *plotPath(getenv("PLOT_PATH"));
+	if (plotPath == NULL) std::cout << "Warning! $PLOT_PATH is not set!" << endl;
 
 	stringstream ss;
 	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
@@ -267,8 +269,9 @@ int main(int argc, char **argv)
 		if(starEvery==0) starEvery++;
 		cout<<"Star every is "<<starEvery<<endl;
 
+		int start=0;
 		//now to loop over events
-		for(int event=0; event<numEntries; event++){
+		for(int event=start; event<numEntries; event++){
 			if(event%starEvery==0) {
 				std::cout<<"*";
 			}
@@ -349,7 +352,9 @@ int main(int argc, char **argv)
 
 
 			for(int pol=0; pol<2; pol++){
-				if(bestTheta[pol] >= 37) isSurf=true;
+				cout<<"Event is "<<event<<" and the best theta is "<<bestTheta[pol]<<endl;
+				if(bestTheta[pol] >= 37)
+					isSurf=true;
 			}
 
 			//figure out which reconstruction map (vpol or hpol) is best
@@ -569,7 +574,7 @@ int main(int argc, char **argv)
 						chan_list_V.push_back(0);
 						chan_list_V.push_back(1);
 						chan_list_V.push_back(2);
-						if(!(dropBadChans && station==3 && runNum>2972)){ //if dropping bad chans and station 3, don't keep fourth string
+						if(!(dropBadChans && (station==3 && runNum>2972))){ //if dropping bad chans and station 3, don't keep fourth string
 							chan_list_V.push_back(3);
 						}
 
@@ -577,16 +582,26 @@ int main(int argc, char **argv)
 						chan_list_H.push_back(8);
 						chan_list_H.push_back(9);
 						chan_list_H.push_back(10);
-						if(!(dropBadChans && station==3 && runNum>2972)){ //if dropping bad chans and station 3, don't keep fourth string
+						if(!(dropBadChans && (station==3 && runNum>2972))){ //if dropping bad chans and station 3, don't keep fourth string
 							chan_list_H.push_back(11);
 						}
 
 						TH2D *map_300m_top;
 						if(pol==0){
-							map_300m_top = theCorrelators[1]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Vpol, 0, chan_list_V);
+							map_300m_top = theCorrelators[1]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Vpol, isSimulation, chan_list_V);
 						}
 						if(pol==1){
-							map_300m_top = theCorrelators[1]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Hpol, 0, chan_list_H);
+							map_300m_top = theCorrelators[1]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Hpol, isSimulation, chan_list_H);
+						}
+
+						bool printReco=false;
+						if(printReco){
+							TCanvas *cMaps = new TCanvas("","",2*1100,2*850);
+							map_300m_top->Draw("colz");
+							char save_temp_title[400];		
+							sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_Maps_InsideSaveVals.png",plotPath,year_now,month_now,day_now,runNum,event);
+							cMaps->SaveAs(save_temp_title);
+							delete cMaps;
 						}
 
 						int PeakTheta_Recompute_300m_top;
