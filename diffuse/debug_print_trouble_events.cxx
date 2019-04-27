@@ -160,6 +160,7 @@ int main(int argc, char **argv)
 		int isNewBox;
 		int isSurf;
 		int isBadEvent;
+		int isSurfEvent_top[2];
 
 		trees[2]->SetBranchAddress("cal",&isCal);
 		trees[2]->SetBranchAddress("soft",&isSoft);
@@ -168,6 +169,8 @@ int main(int argc, char **argv)
 		trees[2]->SetBranchAddress("box",&isNewBox);
 		trees[2]->SetBranchAddress("surf",&isSurf);
 		trees[2]->SetBranchAddress("bad",&isBadEvent);
+		trees[2]->SetBranchAddress("surf_top_V",&isSurfEvent_top[0]);
+		trees[2]->SetBranchAddress("surf_top_H",&isSurfEvent_top[1]);
 
 		stringstream ss;
 		for(int i=0; i<8; i++){
@@ -214,10 +217,10 @@ int main(int argc, char **argv)
 								if(!isNewBox){ //cut cal box
 									PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[pol]->Fill(snr_val[pol],corr_val[pol]);
 
-									if(!isSurf){
+									if(!isSurf  && !isSurfEvent_top[pol]){
 
 										bool condition = false;
-										if(snr_val[pol]>=9.) condition=true;
+										if(snr_val[pol]>=10.) condition=true;
 
 										if(Refilt[pol]){
 											num_refilt++;
@@ -713,17 +716,17 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 			}
 		}
 
-		chan_list_V.clear();
-		chan_list_V.push_back(0);
-		chan_list_V.push_back(1);
-		chan_list_V.push_back(2);
-		chan_list_V.push_back(3);
+		// chan_list_V.clear();
+		// chan_list_V.push_back(0);
+		// chan_list_V.push_back(1);
+		// chan_list_V.push_back(2);
+		// chan_list_V.push_back(3);
 
-		chan_list_H.clear();
-		chan_list_H.push_back(8);
-		chan_list_H.push_back(9);
-		chan_list_H.push_back(10);
-		chan_list_H.push_back(11);
+		// chan_list_H.clear();
+		// chan_list_H.push_back(8);
+		// chan_list_H.push_back(9);
+		// chan_list_H.push_back(10);
+		// chan_list_H.push_back(11);
 
 		map_30m_V = theCorrelators[0]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Vpol, false,chan_list_V) ;
 		map_300m_V = theCorrelators[1]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Vpol, false,chan_list_V);
