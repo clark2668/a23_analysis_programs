@@ -398,8 +398,7 @@ int main(int argc, char **argv)
 			getCorrMapPeak_wStats(map_V_raytrace, peakTheta_single[0], peakPhi_single[0], peakCorr_single[0], minCorr_single[0], meanCorr_single[0], rmsCorr_single[0], peakSigma_single[0]);
 			getCorrMapPeak_wStats(map_H_raytrace, peakTheta_single[1], peakPhi_single[1], peakCorr_single[1], minCorr_single[1], meanCorr_single[1], rmsCorr_single[1], peakSigma_single[1]);
 
-
-			bool print_maps = false;
+			bool print_maps = true;
 			if(print_maps){
 				gStyle->SetOptStat(0);
 				TCanvas *cMaps = new TCanvas("","",2*1100,2*850);
@@ -409,7 +408,7 @@ int main(int argc, char **argv)
 					cMaps->cd(2);
 					map_H_raytrace->Draw("colz");
 				char save_temp_title[400];		
-				sprintf(save_temp_title,"/users/PAS0654/osu0673/A23_analysis/results/trouble_events/%d.%d.%d_Run%d_Ev%d_Maps_FromRecoCode.png",year_now,month_now,day_now,runNum,event);
+				sprintf(save_temp_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/trouble_events/%d.%d.%d_Run%d_Ev%d_Maps_FromRecoCode.png",year_now,month_now,day_now,runNum,event);
 				cMaps->SaveAs(save_temp_title);
 				delete cMaps;
 			}
