@@ -398,7 +398,7 @@ int main(int argc, char **argv)
 			getCorrMapPeak_wStats(map_V_raytrace, peakTheta_single[0], peakPhi_single[0], peakCorr_single[0], minCorr_single[0], meanCorr_single[0], rmsCorr_single[0], peakSigma_single[0]);
 			getCorrMapPeak_wStats(map_H_raytrace, peakTheta_single[1], peakPhi_single[1], peakCorr_single[1], minCorr_single[1], meanCorr_single[1], rmsCorr_single[1], peakSigma_single[1]);
 
-			bool print_maps = true;
+			bool print_maps = false;
 			if(print_maps){
 				gStyle->SetOptStat(0);
 				TCanvas *cMaps = new TCanvas("","",2*1100,2*850);
