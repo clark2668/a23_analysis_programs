@@ -41,6 +41,10 @@ bool doRezero=0;
 
 int PlotThisEvent(int station, int config, int runNum, int event, Settings *settings, Detector *detector, RayTraceCorrelator *theCorrelators[2]);
 
+char *DataDirPath(getenv("DATA_DIR"));
+char *PedDirPath(getenv("PED_DIR"));
+char *plotPath(getenv("PLOT_PATH"));
+
 using namespace std;
 
 int main(int argc, char **argv)
@@ -182,7 +186,7 @@ int main(int argc, char **argv)
 		// locations[pol]->GetXaxis()->SetRangeUser(0,10);
 		// locations[pol]->GetYaxis()->SetRangeUser(0,0.5);
 	}
-	sprintf(title, "/users/PAS0654/osu0673/A23_analysis_new2/results/%d.%d.%d_A%d_c%d_%dEvents_DistroCalPulses.png",year_now, month_now, day_now,station,config,num_total);
+	sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_DistroCalPulses.png",plotPath,year_now, month_now, day_now,station,config,num_total);
 	c->SaveAs(title);
 	delete c;
 	delete locations[0]; delete locations[1];
@@ -245,7 +249,7 @@ int main(int argc, char **argv)
 	// 	project_V[1]->SetTitle(fit_graph_title_theta);
 	// 	gPad->SetLogy();
 	// 	// locations_theta_slice[0]->GetXaxis()->SetRangeUser(0,12);
-	sprintf(title, "/users/PAS0654/osu0673/A23_analysis_new2/results/%d.%d.%d_A%d_c%d_%dEvents_DistroCalPulses_Vpol_Zoom.png",year_now, month_now, day_now,station,config,num_total);
+	sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_DistroCalPulses_Vpol_Zoom.png",plotPath, year_now, month_now, day_now,station,config,num_total);
 	c2->SaveAs(title);
 	delete c2;
 
@@ -318,7 +322,7 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 	int day_now = time -> tm_mday;
 
 	char run_file_name[400];
-	sprintf(run_file_name,"/fs/scratch/PAS0654/ara/10pct/RawData/A%d/by_config/c%d/event%d.root",station,config,runNum);
+	sprintf(run_file_name,"%s/RawData/A%d/by_config/c%d/event%d.root",DataDirPath,station,config,runNum);
 	TFile *mapFile = TFile::Open(run_file_name);
 	if(!mapFile){
 		cout<<"Can't open data file for map!"<<endl;
@@ -336,8 +340,7 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 
 	int stationID = rawPtr->stationId;
 	char ped_file_name[400];
-	sprintf(ped_file_name,"/fs/scratch/PAS0654/ara/peds/run_specific_peds/A%d/event%d_specificPeds.dat",station,runNum);
-	
+	sprintf(ped_file_name,"%s/run_specific_peds/A%d/all_peds/event%d_specificPeds.dat",PedDirPath,station,runNum);
 	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
 	calibrator->setAtriPedFile(ped_file_name,stationID); //because someone had a brain (!!), this will error handle itself if the pedestal doesn't exist
 	
@@ -424,7 +427,7 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 			cMaps->cd(5);
 			map_30m_V_select->Draw("colz");
 		char save_temp_title[400];		
-		sprintf(save_temp_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/trouble_events/%d.%d.%d_Run%d_Ev%d_Maps_.png",year_now,month_now,day_now,runNum,event);
+		sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_Maps_.png",plotPath,year_now,month_now,day_now,runNum,event);
 		cMaps->SaveAs(save_temp_title);
 		delete cMaps;
 		delete map_30m_V; delete map_300m_V; delete map_30m_H; delete map_300m_H; 
@@ -433,7 +436,7 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 
 
 	char save_temp_title[300];
-	sprintf(save_temp_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/trouble_events/%d.%d.%d_Run%d_Ev%d_Waveforms.png",year_now,month_now,day_now,runNum,event);
+	sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_Waveforms.png",plotPath,year_now,month_now,day_now,runNum,event);
 	TCanvas *cWave = new TCanvas("","",4*1100,4*850);
 	cWave->Divide(4,4);
 	for(int i=0; i<16; i++){
@@ -444,7 +447,7 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 	cWave->SaveAs(save_temp_title);
 	delete cWave;
 
-	sprintf(save_temp_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/trouble_events/%d.%d.%d_Run%d_Ev%d_Spectra.png",year_now,month_now,day_now,runNum,event);
+	sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_Spectra.png",plotPath,year_now,month_now,day_now,runNum,event);
 	TCanvas *cSpec = new TCanvas("","",4*1100,4*850);
 	cSpec->Divide(4,4);
 	for(int i=0; i<16; i++){
