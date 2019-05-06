@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 ////	v2_analysis_save_vals.cxx 
-////	A23 diffuse, save values for cuts
+////	A23 diffuse, save reco information for doing cuts
 ////
 ////	Nov 2018
 ////////////////////////////////////////////////////////////////////////////////
@@ -12,14 +12,10 @@
 #include <fstream>
 #include <sstream>
 #include <math.h>
-#include <sys/stat.h>
 
 //ROOT Includes
 #include "TTree.h"
 #include "TFile.h"
-#include "TH2D.h"
-#include "TCanvas.h"
-#include "TStyle.h"
 
 using namespace std;
 
@@ -29,14 +25,13 @@ int main(int argc, char **argv)
 	stringstream ss;
 	
 	if(argc<3){
-		cout<< "Usage\n" << argv[0] << " <station> <year> <output_location> <joined filename 1> <joined filename 2 > ... <joined filename x>";
+		cout<< "Usage\n" << argv[0] << " <station> <output_location> <joined filename 1> <joined filename 2 > ... <joined filename x>";
 		return 0;
 	}
 	int station = atoi(argv[1]);
-	int year = atoi(argv[2]);
-	string output_location = argv[3];
+	string output_location = argv[2];
 
-	for(int file_num=4; file_num<argc; file_num++){
+	for(int file_num=3; file_num<argc; file_num++){
 
 		string chRun = "run";
 		string file = string(argv[file_num]);
@@ -46,7 +41,7 @@ int main(int argc, char **argv)
 		printf("Run Number %d \n", runNum);
 
 		char outfile_name[300];
-		sprintf(outfile_name,"%s/vals_for_cut_run_%d.root",output_location.c_str(),runNum);
+		sprintf(outfile_name,"%s/reco_info_run_%d.root",output_location.c_str(),runNum);
 		TFile *fpOut = new TFile(outfile_name,"recreate");
 		TTree *trees = new TTree("RecoVals","RecoVals");
 
@@ -57,6 +52,7 @@ int main(int argc, char **argv)
 		double corr_val_V;
 		double corr_val_H;
 		int isCal;
+		int isBad;
 		trees->Branch("phi_41_V",&phi_41_V);
 		trees->Branch("theta_41_V",&theta_41_V);
 		trees->Branch("phi_41_H",&phi_41_H);
@@ -64,6 +60,7 @@ int main(int argc, char **argv)
 		trees->Branch("corr_val_V",&corr_val_V);
 		trees->Branch("corr_val_H",&corr_val_H);
 		trees->Branch("cal",&isCal);
+		trees->Branch("isBad",&isBad);
 
 		cout << "Run " << file_num << " :: " << argv[file_num] << endl;
 		
@@ -82,7 +79,9 @@ int main(int argc, char **argv)
 			return -1;
 		}
 		bool isCalPulser;
+		bool hasDigitizerError;
 		inputTree_filter->SetBranchAddress("isCalpulser",&isCalPulser);
+		inputTree_filter->SetBranchAddress("hasDigitizerError",&hasDigitizerError);
 
 		//next, load the reco tree
 		TTree *inputTree_reco[35];
@@ -125,9 +124,9 @@ int main(int argc, char **argv)
 			corr_val_V-10000;;
 			corr_val_H-10000;;
 
-
 			inputTree_filter->GetEvent(event);
 			if(isCalPulser) isCal=1;
+			isBad=hasDigitizerError;
 
 			for (int i = 0; i < 35; i++){
 				if (i == recoBinSelect || i == recoBinCalpulser){
