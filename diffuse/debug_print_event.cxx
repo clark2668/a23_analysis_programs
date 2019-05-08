@@ -65,12 +65,7 @@ int main(int argc, char **argv)
 	gStyle->SetOptStat(11);
 
 	char run_file_name[400];
-	if(year==2013){
-		sprintf(run_file_name,"%s/RawData/A%d/%d/run%d/event%d.root",DataDirPath,station,year,runNum,runNum);
-	}
-	else if(year==2014 || year==2015 || year==2016){
-		sprintf(run_file_name,"%s/RawData/A%d/%d/sym_links/event00%d.root",DataDirPath,station,year,runNum,runNum);
-	}
+	sprintf(run_file_name,"%s/RawData/A%d/%d/sym_links/event%d.root",DataDirPath,station,year,runNum,runNum);
 	TFile *mapFile = TFile::Open(run_file_name);
 	if(!mapFile){
 		cout<<"Can't open data file for map!"<<endl;
