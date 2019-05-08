@@ -152,8 +152,7 @@ int main(int argc, char **argv)
 	// 		// drop string four
 	// 		chan_exclusion_list.push_back(3);
 	// 		chan_exclusion_list.push_back(7);
-	// 		chan_exclusion_list.push_back(11);
-	// 		chan_exclusion_list.push_back(15);			
+	// 		chan_exclusion_list.push_back(11);		
 	// 	}
 	// }
 
@@ -245,6 +244,7 @@ int main(int argc, char **argv)
 
 	//now, to loop over events!
 	for(Long64_t event=0;event<numEntries;event++){
+		// cout<<"On event "<<event<<endl;
 
 		badFreqs_fwd.clear();
 		badSigmas_fwd.clear();
@@ -276,8 +276,8 @@ int main(int argc, char **argv)
 		if(!hasError){
 
 			//before we do the phase variance, we should check for baseline violations	
-			vector<double> baseline_CW_cut_V = CWCut_TB(grWaveformsRaw, average, 0, 6., 5.5, station_num, 3, chan_exclusion_list);
-			vector<double> baseline_CW_cut_H = CWCut_TB(grWaveformsRaw, average, 1, 6., 5.5, station_num, 3, chan_exclusion_list);
+			vector<double> baseline_CW_cut_V = CWCut_TB(grWaveformsRaw, average, 0, 6., 5.5, station_num, 3, chan_exclusion_list, runNum, event);
+			vector<double> baseline_CW_cut_H = CWCut_TB(grWaveformsRaw, average, 1, 6., 5.5, station_num, 3, chan_exclusion_list, runNum, event);
 			/*			
 			for(int i=0; i<baseline_CW_cut_V.size(); i++){
 				printf("V: Event %d Baseline CW Cut %.2f \n", event, baseline_CW_cut_V[i]);
@@ -320,7 +320,7 @@ int main(int argc, char **argv)
 				numPairs_pol[0]=numPairs;
 				numPairs_pol[1]=numPairs;
 			}
-  	
+
 			vector<vector<deque<TGraph*> > > vvdGrPhaseDiff_fwd;
 			vector<vector<deque<TGraph*> > > vvdGrPhaseDiff_back;
 			vvdGrPhaseDiff_fwd.resize(numPols); //need an entry per polarization
@@ -367,6 +367,7 @@ int main(int argc, char **argv)
 						for(int pairIndex = 0; pairIndex < numPairs; pairIndex++){ //loop over pairs for that event and polarization
 							getChansfromPair(geomTool,station_num,pol,pairIndex,chan1,chan2); //get chan numbers for this pair and pol
 							//now, make sure the fetch didn't fail, and that neither pair is in the "channel exclusion" list
+
 							if (chan1 != -1
 								&&
 								chan2 != -1
@@ -392,7 +393,7 @@ int main(int argc, char **argv)
 					badFreqs_fwd.push_back(badFreqs_temp);
 					badSigmas_fwd.push_back(badSigmas_temp);
 					for(int i=0; i<badFreqs_temp.size(); i++){
-						// cout<<"Forward event "<<event<<" :: " <<pol<<" :: freq "<<badFreqs_temp[i]<<", sigma "<<badSigmas_temp[i]<<endl;
+						// cout<<"Forward event "<<event<<" :: pol " <<pol<<" :: freq "<<badFreqs_temp[i]<<", sigma "<<badSigmas_temp[i]<<endl;
 					}
 					delete vGrSigmaVarianceAverage_fwd[pol];
 				}
@@ -409,7 +410,7 @@ int main(int argc, char **argv)
 					delete phases_forward[use_event][chan];
 				}
 			}
-			
+
 			//reverse case
 			//assume the initial event is the "15th" entry, and try to go backwards
 			//if there aren't enough good events ahead of us (no errors) to do the forward case,
@@ -426,8 +427,9 @@ int main(int argc, char **argv)
 			//okay, now we need to try and move backwards
 			int found_events_backwards=14;
 			for(int event_next=event-1; event_next>=0;event_next--){
-				//printf("			Trying to move backwards to event %d \n");
-				if(found_events_backwards==0) break;
+				// printf("			Trying to move backwards to event %d \n",event_next);
+				if(found_events_backwards==0)
+					break;
 				tempTree->GetEntry(event_next);
 				if(!hasError){
 					found_events_backwards--;
@@ -440,7 +442,7 @@ int main(int argc, char **argv)
 			}
 			//if we have enough events to conduct the CW check
 			if(found_events_backwards==0){
-				//printf("	We have sufficient number of events to do phase variance calculation in backward direction\n");
+				// printf("	We have sufficient number of events to do phase variance calculation in backward direction\n");
 				int chan1, chan2;
 				for(int use_event=0; use_event<15; use_event++){ //loop over the events that we stored
 					for(int pol=0; pol<numPols; pol++){ //loop over polarizations
