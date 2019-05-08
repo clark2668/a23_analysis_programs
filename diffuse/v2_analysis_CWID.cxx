@@ -143,18 +143,19 @@ int main(int argc, char **argv)
 	int nGraphs=16;
 
 	vector<int> chan_exclusion_list;
-	// if(drop_bad_chans){
-	// 	if(station_num==2){
-	// 		//drop the last hpol channel
-	// 		chan_exclusion_list.push_back(15);
-	// 	}
-	// 	if(station_num==3 && runNum>2972){
-	// 		// drop string four
-	// 		chan_exclusion_list.push_back(3);
-	// 		chan_exclusion_list.push_back(7);
-	// 		chan_exclusion_list.push_back(11);		
-	// 	}
-	// }
+	if(drop_bad_chans){
+		if(station_num==2){
+			//drop the last hpol channel
+			chan_exclusion_list.push_back(15);
+		}
+		if(station_num==3 && runNum>2972){
+			// drop string four
+			chan_exclusion_list.push_back(3);
+			chan_exclusion_list.push_back(7);
+			chan_exclusion_list.push_back(11);
+			chan_exclusion_list.push_back(15);
+		}
+	}
 
 	//now set up the outputs
 	string output_location = argv[6];
@@ -297,7 +298,7 @@ int main(int argc, char **argv)
 
 			int numPairs_pol[2];
 
-			if(drop_bad_chans && 2==3){
+			if(drop_bad_chans){
 				if(station_num==2){
 					numPairs_pol[0]=numPairs;
 					numPairs_pol[1]=21; // drop channel 15, only 21 pairs left
@@ -320,6 +321,16 @@ int main(int argc, char **argv)
 				numPairs_pol[0]=numPairs;
 				numPairs_pol[1]=numPairs;
 			}
+
+			/*
+				So, when we want to drop channels, we need to change the number of pairs we will scan over with getPhaseVariance
+				E.g., reduce to 21 pairs when 
+				But the only iterator we have is the global pair iterator, which runs from 0->28
+				So, we make the size of the container 21 (or whatever)
+				And just skip the global iterator pair when we find a pair we don't want
+				That's the pair_in_use variable below, instead of using pairIndex directly
+			*/
+
 
 			vector<vector<deque<TGraph*> > > vvdGrPhaseDiff_fwd;
 			vector<vector<deque<TGraph*> > > vvdGrPhaseDiff_back;
@@ -364,19 +375,27 @@ int main(int argc, char **argv)
 				int chan1, chan2;
 				for(int use_event=0; use_event<15; use_event++){ //loop over the events that we stored
 					for(int pol=0; pol<numPols; pol++){ //loop over polarizations
+						int pair_in_use=0;
 						for(int pairIndex = 0; pairIndex < numPairs; pairIndex++){ //loop over pairs for that event and polarization
+							// cout<<"Working on global pair index "<<pairIndex<<endl;
 							getChansfromPair(geomTool,station_num,pol,pairIndex,chan1,chan2); //get chan numbers for this pair and pol
 							//now, make sure the fetch didn't fail, and that neither pair is in the "channel exclusion" list
+							if(
+								(std::find(chan_exclusion_list.begin(), chan_exclusion_list.end(), chan1) != chan_exclusion_list.end())
+								||
+								(std::find(chan_exclusion_list.begin(), chan_exclusion_list.end(), chan2) != chan_exclusion_list.end())
+							){
+								// if this global pair number contains a bad channel, we should skip it
+								// cout<<"		Skipping global pair "<<pairIndex<<" which has channels "<<chan1<<" and "<<chan2<<endl;
+								continue;
+							}
 
 							if (chan1 != -1
 								&&
 								chan2 != -1
-								&&
-								!(std::find(chan_exclusion_list.begin(), chan_exclusion_list.end(), chan1) != chan_exclusion_list.end())
-								&&
-								!(std::find(chan_exclusion_list.begin(), chan_exclusion_list.end(), chan2) != chan_exclusion_list.end())
 								){
-									vvdGrPhaseDiff_fwd[pol][pairIndex].push_back(getPhaseDifference(phases_forward[use_event][chan1], phases_forward[use_event][chan2]));
+									vvdGrPhaseDiff_fwd[pol][pair_in_use].push_back(getPhaseDifference(phases_forward[use_event][chan1], phases_forward[use_event][chan2]));
+									pair_in_use++;
 							}
 						}
 					}
@@ -399,7 +418,7 @@ int main(int argc, char **argv)
 				}
 				for(int use_event=0; use_event<15; use_event++){
 					for(int pol=0; pol<numPols; pol++){
-						for(int pairIndex=0; pairIndex<numPairs; pairIndex++){
+						for(int pairIndex=0; pairIndex<numPairs_pol[pol]; pairIndex++){
 							delete vvdGrPhaseDiff_fwd[pol][pairIndex][use_event];
 						}
 					}
@@ -446,18 +465,26 @@ int main(int argc, char **argv)
 				int chan1, chan2;
 				for(int use_event=0; use_event<15; use_event++){ //loop over the events that we stored
 					for(int pol=0; pol<numPols; pol++){ //loop over polarizations
+						int pair_in_use=0;
 						for(int pairIndex = 0; pairIndex < numPairs; pairIndex++){ //loop over pairs for that event and polarization
+							// cout<<"Working on global pair index "<<pairIndex<<endl;
 							getChansfromPair(geomTool,station_num,pol,pairIndex,chan1,chan2); //get chan numbers for this pair and pol
 							//now, make sure the fetch didn't fail, and that neither pair is in the "channel exclusion" list
+							if(
+								(std::find(chan_exclusion_list.begin(), chan_exclusion_list.end(), chan1) != chan_exclusion_list.end())
+								||
+								(std::find(chan_exclusion_list.begin(), chan_exclusion_list.end(), chan2) != chan_exclusion_list.end())
+							){
+								// if this global pair number contains a bad channel, we should skip it
+								// cout<<"		Skipping global pair "<<pairIndex<<" which has channels "<<chan1<<" and "<<chan2<<endl;
+								continue;
+							}
 							if (chan1 != -1
 								&&
 								chan2 != -1
-								&&
-								!(std::find(chan_exclusion_list.begin(), chan_exclusion_list.end(), chan1) != chan_exclusion_list.end())
-								&&
-								!(std::find(chan_exclusion_list.begin(), chan_exclusion_list.end(), chan2) != chan_exclusion_list.end())
 								){
-									vvdGrPhaseDiff_back[pol][pairIndex].push_back(getPhaseDifference(phases_backward[use_event][chan1], phases_backward[use_event][chan2]));
+									vvdGrPhaseDiff_back[pol][pair_in_use].push_back(getPhaseDifference(phases_backward[use_event][chan1], phases_backward[use_event][chan2]));
+									pair_in_use++;
 							}
 						}
 					}
@@ -480,7 +507,7 @@ int main(int argc, char **argv)
 				}
 				for(int use_event=0; use_event<15; use_event++){
 					for(int pol=0; pol<numPols; pol++){
-						for(int pairIndex=0; pairIndex<numPairs; pairIndex++){
+						for(int pairIndex=0; pairIndex<numPairs_pol[pol]; pairIndex++){
 							delete vvdGrPhaseDiff_back[pol][pairIndex][use_event];
 						}
 					}
