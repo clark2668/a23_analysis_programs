@@ -168,7 +168,7 @@ int main(int argc, char **argv)
 		int isShort;
 		int isCW;
 		int isNewBox;
-		int isSurf;
+		int isSurf[2];
 		int isBadEvent;
 		double weight;
 		int isSurfEvent_top[2];
@@ -178,7 +178,8 @@ int main(int argc, char **argv)
 		trees[2]->SetBranchAddress("short",&isShort);
 		trees[2]->SetBranchAddress("CW",&isCW);
 		trees[2]->SetBranchAddress("box",&isNewBox);
-		trees[2]->SetBranchAddress("surf",&isSurf);
+		trees[2]->SetBranchAddress("surf_V",&isSurf[0]);
+		trees[2]->SetBranchAddress("surf_H",&isSurf[1]);
 		trees[2]->SetBranchAddress("bad",&isBadEvent);
 		trees[2]->SetBranchAddress("weight",&weight);
 		trees[2]->SetBranchAddress("surf_top_V",&isSurfEvent_top[0]);
@@ -214,7 +215,7 @@ int main(int argc, char **argv)
 			if(isSoft) num_soft++;
 			if(isShort) num_short++;
 			if(isNewBox) num_box++;
-			if(isSurf) num_surf++;
+			if(isSurf[0] || isSurf[1]) num_surf++;
 
 			if(snr_val[0]>=30.) snr_val[0]=30.;
 			if(snr_val[1]>=30.) snr_val[1]=30.;
@@ -229,7 +230,7 @@ int main(int argc, char **argv)
 							pass_soft_short_cal_wfrms[pol]->Fill(snr_val[pol],weight);
 							if(!isNewBox){
 								pass_soft_short_cal_wfrms_box[pol]->Fill(snr_val[pol],weight);
-								if(!isSurf && !isSurfEvent_top[pol]){
+								if((!isSurf[0] || isSurf[1]) && !isSurfEvent_top[pol]){
 									pass_soft_short_cal_wfrms_box_surf[pol]->Fill(snr_val[pol],weight);
 									num_pass_pol[pol]+=weight;
 									this_pass[pol]=true;
@@ -261,7 +262,7 @@ int main(int argc, char **argv)
 								if(!isNewBox){ //cut cal box
 									PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[pol]->Fill(snr_val[pol],corr_val[pol],weight);
 
-									if(!isSurf && !isSurfEvent_top[pol]){
+									if((!isSurf[0] || isSurf[1]) && !isSurfEvent_top[pol]){
 
 										if(Refilt[pol]){
 											num_refilt++;
