@@ -119,7 +119,14 @@ int main(int argc, char **argv)
 	spatial_distro_remaining[2]=new TH2D("","V300",360,-180,180,180,-90,90);
 	spatial_distro_remaining[3]=new TH2D("","H300",360,-180,180,180,-90,90);
 
-	TH1D *h_num_surface_events = new TH1D("","",100,0,100);
+	TH1D *surface_distro[2];
+	surface_distro[0]=new TH1D("","SurfaceV",91,0,91);
+	surface_distro[1]=new TH1D("","SurfaceH",91,0,91);
+	TH1D *surface_distro_good[2];
+	surface_distro_good[0]=new TH1D("","SurfaceVGood",91,0,91);
+	surface_distro_good[1]=new TH1D("","SurfaceHGood",91,0,91);
+
+	TH1D *h_num_surface_events = new TH1D("","",500,0,500);
 	
 	int num_total=0;
 	int num_in_final_plot=0;
@@ -132,15 +139,17 @@ int main(int argc, char **argv)
 		size_t foundRun = file.find(chRun);
 		string strRunNum = file.substr(foundRun+4,4);
 		int runNum = atoi(strRunNum.c_str());
+		int isThisBadABadRun = isBadRun(station,runNum);
 
-		// if(isBadRun(station,runNum)) continue;
+		// if(isThisBadABadRun)
+		// 	continue;
 
 		TFile *inputFile = TFile::Open(argv[file_num]);
 		if(!inputFile){
 			cout<<"Can't open joined file!"<<endl;
 			return -1;
 		}
-		cout << "Run " << file_num << " :: " << argv[file_num] << endl;
+		// cout << "Run " << file_num << " :: " << argv[file_num] << endl;
 
 		TTree *trees[3];
 		trees[0] = (TTree*) inputFile->Get("VTree");
@@ -181,7 +190,7 @@ int main(int argc, char **argv)
 		int isShort;
 		int isCW;
 		int isNewBox;
-		int isSurf;
+		int isSurf[2];
 		int isBadEvent;
 		int isSurfEvent_top[2];
 
@@ -190,7 +199,8 @@ int main(int argc, char **argv)
 		trees[2]->SetBranchAddress("short",&isShort);
 		trees[2]->SetBranchAddress("CW",&isCW);
 		trees[2]->SetBranchAddress("box",&isNewBox);
-		trees[2]->SetBranchAddress("surf",&isSurf);
+		trees[2]->SetBranchAddress("surf_V",&isSurf[0]);
+		trees[2]->SetBranchAddress("surf_H",&isSurf[1]);
 		trees[2]->SetBranchAddress("bad",&isBadEvent);
 		trees[2]->SetBranchAddress("surf_top_V",&isSurfEvent_top[0]);
 		trees[2]->SetBranchAddress("surf_top_H",&isSurfEvent_top[1]);
@@ -223,9 +233,21 @@ int main(int argc, char **argv)
 				continue;
 			}
 
-			if(!isSoft && !isNewBox && !isCal && isSurf)
-				num_surf_this_run++;
+			for(int pol=0; pol<2; pol++){
+				if(isSurf[pol])
+					surface_distro[pol]->Fill(theta_300[pol]);
+			}
 
+			if(!isCal && !isSoft && !isShort && !isNewBox && (isSurf[0] || isSurf[1]) ){
+				num_surf_this_run++;
+				if(!isThisBadABadRun){
+					surface_distro_good[0]->Fill(theta_300[0]);
+					surface_distro_good[1]->Fill(theta_300[1]);
+				}
+			}
+
+			if(2==2)
+				continue;
 
 			for(int pol=0; pol<2; pol++){
 				PeakCorr_vs_SNR_all[pol]->Fill(snr_val[pol],corr_val[pol]);
@@ -245,7 +267,7 @@ int main(int argc, char **argv)
 								if(!isNewBox){ //cut cal box
 									PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[pol]->Fill(snr_val[pol],corr_val[pol]);
 
-									if(!isSurf  && !isSurfEvent_top[pol]){
+									if((!isSurf[0] || !isSurf[1])  && !isSurfEvent_top[pol]){
 
 										bool condition = false;
 										if(snr_val[pol]>=8.) condition=true;
@@ -297,37 +319,72 @@ int main(int argc, char **argv)
 			}
 		}
 		h_num_surface_events->Fill(num_surf_this_run);
+		// if(num_surf_this_run>500)
+		
+		// char title_txt[200];
+		// sprintf(title_txt,"%s/surf_channels_per_run_config%d.txt",plotPath,config);
+		// FILE *fout = fopen(title_txt, "a");
+		// fprintf(fout,"%d, %d \n",runNum,num_surf_this_run);
+		// fclose(fout);
+
 		inputFile->Close();
 		delete inputFile;
 	}
 
 	char title[300];
 
-
+	gStyle->SetOptStat(111111);
 	TCanvas *c_num_surface_per_run = new TCanvas("","",850,850);
-	h_num_surface_events->Draw();
-	h_num_surface_events->GetYaxis()->SetTitle("Number of Runs");
-	h_num_surface_events->GetXaxis()->SetTitle("Number of Events per Run");
+		h_num_surface_events->Draw();
+		h_num_surface_events->GetYaxis()->SetTitle("Number of Runs");
+		h_num_surface_events->GetXaxis()->SetTitle("Number of Surface Events per Run");
+		h_num_surface_events->GetYaxis()->SetTitleOffset(1.3);
+		// gPad->SetLogx();
+		gPad->SetLogy();
 	sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_NumSurfEventsPerRun.png",plotPath,year_now, month_now, day_now,station,config,num_total);
 	c_num_surface_per_run->SaveAs(title);
 	delete c_num_surface_per_run;
 	delete h_num_surface_events;
 
-	TCanvas *c_spatial_distro = new TCanvas("","",2.1*850,2.1*850);
-	c_spatial_distro->Divide(2,2);
-	for(int pol=0; pol<2; pol++){
-		c_spatial_distro->cd(pol+1);
-		spatial_distro_remaining[pol]->Draw("colz");
-		c_spatial_distro->cd(pol+3);
-		spatial_distro_remaining[pol+2]->Draw("colz");
-	}
-	sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_SpatialDistroRemainingEvents.png",plotPath,year_now, month_now, day_now,station,config,num_total);
-	c_spatial_distro->SaveAs(title);
-	delete c_spatial_distro;
-	delete spatial_distro_remaining[0]; delete spatial_distro_remaining[1]; delete spatial_distro_remaining[2]; delete spatial_distro_remaining[3];
+	TCanvas *c_surface_event_distro = new TCanvas("","",2*850,850);
+	c_surface_event_distro->Divide(2,1);
+	c_surface_event_distro->cd(1);
+		surface_distro[0]->Draw();
+		surface_distro[0]->GetXaxis()->SetTitle("Theta (deg)");
+		surface_distro[0]->GetYaxis()->SetTitle("Number of Events");
+		surface_distro[0]->GetYaxis()->SetTitleOffset(1.3);
+		surface_distro_good[0]->Draw("same");
+		surface_distro_good[0]->SetLineColor(kRed);
+		gPad->SetLogy();
+	c_surface_event_distro->cd(2);
+		surface_distro[1]->Draw();
+		surface_distro[1]->GetXaxis()->SetTitle("Theta (deg)");
+		surface_distro[1]->GetYaxis()->SetTitle("Number of Events");
+		surface_distro[1]->GetYaxis()->SetTitleOffset(1.3);
+		surface_distro_good[1]->Draw("same");
+		surface_distro_good[1]->SetLineColor(kRed);
+		gPad->SetLogy();
+	sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_SurfaceEventDistro.png",plotPath,year_now, month_now, day_now,station,config,num_total);
+	c_surface_event_distro->SaveAs(title);
+	delete c_surface_event_distro;
+	delete surface_distro[0]; delete surface_distro[1];	
 
-	bool print_summary=true;
+	bool print_summary=false;
 	if(print_summary){
+
+		gStyle->SetOptStat(11);
+		TCanvas *c_spatial_distro = new TCanvas("","",2.1*850,2.1*850);
+		c_spatial_distro->Divide(2,2);
+		for(int pol=0; pol<2; pol++){
+			c_spatial_distro->cd(pol+1);
+			spatial_distro_remaining[pol]->Draw("colz");
+			c_spatial_distro->cd(pol+3);
+			spatial_distro_remaining[pol+2]->Draw("colz");
+		}
+		sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_SpatialDistroRemainingEvents.png",plotPath,year_now, month_now, day_now,station,config,num_total);
+		c_spatial_distro->SaveAs(title);
+		delete c_spatial_distro;
+		delete spatial_distro_remaining[0]; delete spatial_distro_remaining[1]; delete spatial_distro_remaining[2]; delete spatial_distro_remaining[3];
 
 		cout<<"Num total is "<<num_total<<endl;
 		cout<<"Num in final plot "<<num_in_final_plot<<endl;
