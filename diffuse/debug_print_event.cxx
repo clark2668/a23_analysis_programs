@@ -3,7 +3,7 @@
 ////	v2_print_event.cxx 
 ////	Print waveforms, spectra, and maps for a single event
 ////
-////	Nov 2018
+////	Nov 20187
 ////////////////////////////////////////////////////////////////////////////////
 
 //C++
@@ -114,7 +114,10 @@ int main(int argc, char **argv)
 	}
 	vector <TGraph*> waveforms = makeGraphsFromRF(realAtriEvPtr,16,xLabel,yLabel,titlesForGraphs);
 	for(int i=0; i<16; i++){
-		printf("Chan %d has %d samples with rough interpolation value of %.2f \n", i, waveforms[i]->GetN(), waveforms[i]->GetX()[1]-waveforms[i]->GetX()[0]);
+		printf("Chan %d has %d samples\n", i, waveforms[i]->GetN());
+		// for(int j=0; j<realAtriEvPtr->blockVec.size(); j++){
+		// 	printf("Block %d is %d \n", j, realAtriEvPtr->blockVec[j].getBlock());
+		// }
 
 	}
 
