@@ -156,7 +156,7 @@ int main(int argc, char **argv)
 		int isShortWave;
 		int isCW;
 		int isNewBox;
-		int isSurfEvent;
+		int isSurfEvent[2];
 		int isSurfEvent_top[2];
 		int isBadEvent;
 		double outweight;
@@ -167,7 +167,8 @@ int main(int argc, char **argv)
 		trees[2]->Branch("short",&isShortWave);
 		trees[2]->Branch("CW",&isCW);
 		trees[2]->Branch("box",&isNewBox);
-		trees[2]->Branch("surf",&isSurfEvent);
+		trees[2]->Branch("surf_V",&isSurfEvent[0]);
+		trees[2]->Branch("surf_H",&isSurfEvent[1]);
 		trees[2]->Branch("surf_top_V",&isSurfEvent_top[0]);
 		trees[2]->Branch("surf_top_H",&isSurfEvent_top[1]);
 		trees[2]->Branch("bad",&isBadEvent);
@@ -294,7 +295,8 @@ int main(int argc, char **argv)
 			isShortWave=0;
 			isCW=0;
 			isNewBox=0;
-			isSurfEvent=0;
+			isSurfEvent[0]=0;
+			isSurfEvent[1]=0;
 			Refilt[0]=0;
 			Refilt[1]=0;
 			corr_val[0]=0.;
@@ -313,7 +315,7 @@ int main(int argc, char **argv)
 			inputTree_filter->GetEvent(event);
 
 			bool isShort=false;
-			bool isSurf=false;
+			bool isSurf[2]={false};
 			bool isCP5=false;
 			bool isCP6=false;
 			bool failWavefrontRMS[2];
@@ -367,7 +369,7 @@ int main(int argc, char **argv)
 			for(int pol=0; pol<2; pol++){
 				cout<<"Event is "<<event<<" and the best theta is "<<bestTheta[pol]<<endl;
 				if(bestTheta[pol] >= 37)
-					isSurf=true;
+					isSurf[pol]=true;
 			}
 
 			//figure out which reconstruction map (vpol or hpol) is best
@@ -537,7 +539,8 @@ int main(int argc, char **argv)
 			if(failWavefrontRMS[0]) WFRMS[0]=1;
 			if(failWavefrontRMS[1]) WFRMS[1]=1;
 			if(isCP5 || isCP6 ) isNewBox=1;
-			if(isSurf) isSurfEvent=1;
+			if(isSurf[0]) isSurfEvent[0]=1;
+			if(isSurf[1]) isSurfEvent[1]=1;
 
 			for(int pol=0; pol<2; pol++){
 				corr_val[pol]=bestCorr[pol];
@@ -548,7 +551,7 @@ int main(int argc, char **argv)
 					&& !isShort
 					&& !failWavefrontRMS[pol]
 					&& !isCP5 && !isCP6
-					&& !isSurf
+					&& !isSurf[0] && !isSurf[1] //check both pols for surface
 					&& !isBadEvent
 				){ //cut cal pulsers
 
@@ -807,10 +810,6 @@ int main(int argc, char **argv)
 						phi_300[pol]=PeakPhi_Recompute_300m;
 						theta_41[pol]=PeakTheta_Recompute_30m;
 						phi_41[pol]=PeakPhi_Recompute_30m;
-
-						for(int pol=0; pol<2; pol++){
-
-						}
 
 						chan_list_V.clear();
 						chan_list_V.push_back(0);
@@ -1125,9 +1124,10 @@ int main(int argc, char **argv)
 
 						if(PeakTheta_Recompute_300m_top>=37) isSurfEvent_top[pol]=1;
 
-						isSurfEvent=1; //assume again it's surface
+						isSurfEvent[0]=1; //assume again it's surface in this pol
+						isSurfEvent[1]=1;
 						if(PeakTheta_Recompute_300m<37){ //recheck for surface
-							isSurfEvent=0;  //mark it as not a surface event
+							isSurfEvent[pol]=0;  //mark it as not a surface event
 							//recheck wrms and use the recomputed SNR
 							WFRMS[pol]=1; //assume it will fail
 							if(log(bestFaceRMS_new[pol])/log(10) < wavefrontRMScut[pol]){ //recheck if it *passes* the WRMS cut
