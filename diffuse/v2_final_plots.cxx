@@ -273,7 +273,7 @@ int main(int argc, char **argv)
 											}
 											sort(frac.begin(), frac.end(), std::greater<double>());
 											fracs_power_cut[pol]->Fill(frac[2]);
-											if(frac[2]<=0.06){ //&& event!=1 && event!=2 && event!=3)
+											if(frac[2]<=0.06){
 												PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol],weight);
 											}
 										} //refiltered?
@@ -575,5 +575,20 @@ int main(int argc, char **argv)
 	c8->SaveAs(title);
 	delete c8;
 	delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[1];
+
+	// TCanvas *c9 = new TCanvas("","",2.1*850,850);
+	// c9->Divide(2,1);
+	// for(int pol=0; pol<1; pol++){
+	// 	c9->cd(pol+1);
+	// 	fracs_power_cut[pol]->Draw("");
+	// }
+	// if(isSim)
+	// 	sprintf(title, "%s/%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_FracPowerCut.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, num_total);
+	// else
+	// 	sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_FracPowerCut.png",plotPath,year_now, month_now, day_now,station,config,num_total);
+	// c9->SaveAs(title);
+	// delete c9;
+	// delete fracs_power_cut[0]; delete fracs_power_cut[1];
+
 
 }
