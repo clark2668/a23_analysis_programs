@@ -29,11 +29,13 @@
 #include "Detector.h"
 #include "Report.h"
 #include "RayTraceCorrelator.h"
+#include "AraQualCuts.h"
 AraAntPol::AraAntPol_t Vpol = AraAntPol::kVertical;
 AraAntPol::AraAntPol_t Hpol = AraAntPol::kHorizontal;
 #include "tools_PlottingFns.h"
 #include "tools_RecoFns.h"
 #include "tools_Cuts.h"
+#include "tools_CW.h"
 
 using namespace std;
 
@@ -110,6 +112,14 @@ int main(int argc, char **argv)
 	TH1D *fracs_power_cut[2];
 	fracs_power_cut[0]=new TH1D("","V",100,0,1);
 	fracs_power_cut[1]=new TH1D("","H",100,0,1);
+
+	TH2D *spatial_distro_remaining[4];
+	spatial_distro_remaining[0]=new TH2D("","V41",360,-180,180,180,-90,90);
+	spatial_distro_remaining[1]=new TH2D("","H41",360,-180,180,180,-90,90);
+	spatial_distro_remaining[2]=new TH2D("","V300",360,-180,180,180,-90,90);
+	spatial_distro_remaining[3]=new TH2D("","H300",360,-180,180,180,-90,90);
+
+	TH1D *h_num_surface_events = new TH1D("","",100,0,100);
 	
 	int num_total=0;
 	int num_in_final_plot=0;
@@ -123,7 +133,7 @@ int main(int argc, char **argv)
 		string strRunNum = file.substr(foundRun+4,4);
 		int runNum = atoi(strRunNum.c_str());
 
-		if(isBadRun(station,runNum)) continue;
+		// if(isBadRun(station,runNum)) continue;
 
 		TFile *inputFile = TFile::Open(argv[file_num]);
 		if(!inputFile){
@@ -143,15 +153,28 @@ int main(int argc, char **argv)
 		double frac_of_power_notched_V[8];
 		double frac_of_power_notched_H[8];
 		int Refilt[2];
+		double theta_300[2];
+		double phi_300[2];
+		double theta_41[2];
+		double phi_41[2];
 
 		trees[0]->SetBranchAddress("corr_val_V",&corr_val[0]);
 		trees[0]->SetBranchAddress("snr_val_V",&snr_val[0]);
 		trees[0]->SetBranchAddress("wfrms_val_V",&WFRMS[0]);
 		trees[0]->SetBranchAddress("Refilt_V",&Refilt[0]);
+		trees[0]->SetBranchAddress("theta_300_V",&theta_300[0]);
+		trees[0]->SetBranchAddress("theta_41_V",&theta_41[0]);
+		trees[0]->SetBranchAddress("phi_300_V",&phi_300[0]);
+		trees[0]->SetBranchAddress("phi_41_V",&phi_41[0]);
+		
 		trees[1]->SetBranchAddress("corr_val_H",&corr_val[1]);
 		trees[1]->SetBranchAddress("snr_val_H",&snr_val[1]);
 		trees[1]->SetBranchAddress("wfrms_val_H",&WFRMS[1]);
 		trees[1]->SetBranchAddress("Refilt_H",&Refilt[1]);
+		trees[1]->SetBranchAddress("theta_300_H",&theta_300[1]);
+		trees[1]->SetBranchAddress("theta_41_H",&theta_41[1]);
+		trees[1]->SetBranchAddress("phi_300_H",&phi_300[1]);
+		trees[1]->SetBranchAddress("phi_41_H",&phi_41[1]);
 
 		int isCal;
 		int isSoft;
@@ -185,6 +208,7 @@ int main(int argc, char **argv)
 		}
 		
 		int numEntries = trees[0]->GetEntries();
+		int num_surf_this_run=0;
 
 		//now to loop over events
 		for(int event=0; event<numEntries; event++){
@@ -198,6 +222,10 @@ int main(int argc, char **argv)
 			if(isBadEvent){
 				continue;
 			}
+
+			if(!isSoft && !isNewBox && !isCal && isSurf)
+				num_surf_this_run++;
+
 
 			for(int pol=0; pol<2; pol++){
 				PeakCorr_vs_SNR_all[pol]->Fill(snr_val[pol],corr_val[pol]);
@@ -220,7 +248,9 @@ int main(int argc, char **argv)
 									if(!isSurf  && !isSurfEvent_top[pol]){
 
 										bool condition = false;
-										if(snr_val[pol]>=10.) condition=true;
+										if(snr_val[pol]>=8.) condition=true;
+										if(corr_val[pol]>=0.14) condition=true;
+										if(snr_val[pol]>=7 && corr_val[pol]>=0.12) condition=true;
 
 										if(Refilt[pol]){
 											num_refilt++;
@@ -235,9 +265,15 @@ int main(int argc, char **argv)
 											if(frac[2]<=0.06){
 												PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol]);
 												if(condition){
+
 													// printf("		Event %d is refiltered in pol %d \n", event,pol);
 													// cout<<"			Frac of power notched is "<<frac[2]<<endl;
-													PlotThisEvent(station,config,runNum,event, settings, detector, theCorrelators);
+													// printf("Event has condition in pol %d \n", pol);
+
+													spatial_distro_remaining[pol]->Fill(phi_41[pol],theta_41[pol]);
+													spatial_distro_remaining[pol+2]->Fill(phi_300[pol], theta_300[pol]);
+
+													// PlotThisEvent(station,config,runNum,event, settings, detector, theCorrelators);
 												}
 											}
 										} //refiltered?
@@ -245,7 +281,10 @@ int main(int argc, char **argv)
 											PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol]);
 											if(condition){
 												// printf("		Event %d is NOT refiltered in pol %d \n", event,pol);
-												PlotThisEvent(station,config,runNum,event, settings, detector, theCorrelators);
+												spatial_distro_remaining[pol]->Fill(phi_41[pol],theta_41[pol]);
+												spatial_distro_remaining[pol+2]->Fill(phi_300[pol], theta_300[pol]);
+												
+												// PlotThisEvent(station,config,runNum,event, settings, detector, theCorrelators);
 											}
 										}
 										num_in_final_plot++;
@@ -257,10 +296,37 @@ int main(int argc, char **argv)
 				}
 			}
 		}
+		h_num_surface_events->Fill(num_surf_this_run);
 		inputFile->Close();
 		delete inputFile;
 	}
-	bool print_summary=false;
+
+	char title[300];
+
+
+	TCanvas *c_num_surface_per_run = new TCanvas("","",850,850);
+	h_num_surface_events->Draw();
+	h_num_surface_events->GetYaxis()->SetTitle("Number of Runs");
+	h_num_surface_events->GetXaxis()->SetTitle("Number of Events per Run");
+	sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_NumSurfEventsPerRun.png",plotPath,year_now, month_now, day_now,station,config,num_total);
+	c_num_surface_per_run->SaveAs(title);
+	delete c_num_surface_per_run;
+	delete h_num_surface_events;
+
+	TCanvas *c_spatial_distro = new TCanvas("","",2.1*850,2.1*850);
+	c_spatial_distro->Divide(2,2);
+	for(int pol=0; pol<2; pol++){
+		c_spatial_distro->cd(pol+1);
+		spatial_distro_remaining[pol]->Draw("colz");
+		c_spatial_distro->cd(pol+3);
+		spatial_distro_remaining[pol+2]->Draw("colz");
+	}
+	sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_SpatialDistroRemainingEvents.png",plotPath,year_now, month_now, day_now,station,config,num_total);
+	c_spatial_distro->SaveAs(title);
+	delete c_spatial_distro;
+	delete spatial_distro_remaining[0]; delete spatial_distro_remaining[1]; delete spatial_distro_remaining[2]; delete spatial_distro_remaining[3];
+
+	bool print_summary=true;
 	if(print_summary){
 
 		cout<<"Num total is "<<num_total<<endl;
@@ -458,14 +524,17 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
 	calibrator->setAtriPedFile(ped_file_name,stationID); //because someone had a brain (!!), this will error handle itself if the pedestal doesn't exist
 
+	AraQualCuts *qualCut = AraQualCuts::Instance();
 	UsefulAtriStationEvent *realAtriEvPtr = new UsefulAtriStationEvent(rawPtr,AraCalType::kLatestCalib);
+	printf("Run %d, Event %d \n", runNum, realAtriEvPtr->eventNumber);
+	printf("	Is Quality Event? %d \n", qualCut->isGoodEvent(realAtriEvPtr));
 
 	int unixTime = (int)rawPtr->unixTime;
 	int unixTimeUs =(int)rawPtr->unixTimeUs;
 	int timeStamp = (int)rawPtr->timeStamp;
-	printf("Unixtime is %d \n", unixTime);
-	printf("Unixtime microsecond is %d \n", unixTimeUs);
-	printf("timeStamp is %d \n", timeStamp);
+	printf("	Unixtime is %d \n", unixTime);
+	printf("	Unixtime microsecond is %d \n", unixTimeUs);
+	printf("	timeStamp is %d \n", timeStamp);
 
 	stringstream ss1;
 	string xLabel, yLabel;
@@ -477,8 +546,15 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 		titlesForGraphs.push_back(ss1.str());
 	}
 
+	vector <TGraph*> waveforms = makeGraphsFromRF(realAtriEvPtr,16,xLabel,yLabel,titlesForGraphs);
+	vector<TGraph*> grWaveformsInt = makeInterpolatedGraphs(waveforms, 0.5, xLabel, yLabel, titlesForGraphs);
+	vector<TGraph*> grWaveformsPadded = makePaddedGraphs(grWaveformsInt, 0, xLabel, yLabel, titlesForGraphs);
+	xLabel = "Frequency (Hz)"; yLabel = "Power Spectral Density (mV/Hz)";
+	vector<TGraph*> grWaveformsPowerSpectrum = makePowerSpectrumGraphs(grWaveformsPadded, xLabel, yLabel, titlesForGraphs);
+
 	char cw_file_name[400];
 	sprintf(cw_file_name,"%s/CWID/A%d/by_config/c%d/CWID_station_%d_run_%d.root",DataDirPath,station,config,station,runNum);
+	// sprintf(cw_file_name,"/fs/scratch/PAS0654/ara/10pct/CWID/old/2019.05.07_still_0.5ns_on_CWID/A%d/by_config/c%d/CWID_station_%d_run_%d.root",station,config,station,runNum);
 	TFile *NewCWFile = TFile::Open(cw_file_name);
 	if(!NewCWFile) {
 		std::cerr << "Can't open new CW file\n";
@@ -512,6 +588,42 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 	for(int pol=0; pol<badFreqs_baseline->size(); pol++){
 		vector<double> badFreqListLocal_baseline = badFreqs_baseline->at(pol);
 		if(badFreqListLocal_baseline.size()>0) isCutonCW_baseline[pol]=true;
+	}
+	for(int pol=0; pol<2; pol++){
+		char run_summary_filename[400];
+		sprintf(run_summary_filename,"%s/RunSummary/A%d/by_config/c%d/run_summary_station_%d_run_%d.root",DataDirPath,station,config,station,runNum);
+		TFile *SummaryFile = TFile::Open(run_summary_filename);
+		if(!SummaryFile) {
+			std::cerr << "Can't open summary file\n";
+			return -1;
+		}
+		TTree* SummaryTree = (TTree*) SummaryFile->Get("BaselineTree");   
+		if(!SummaryTree) {
+			std::cerr << "Can't find SummaryTree\n";
+			return -1;
+		}
+		vector <TGraph*> average;
+		average.resize(16);
+		stringstream ss1;
+		for(int i=0; i<16; i++){
+			ss1.str(""); ss1<<"baselines_RF_chan_"<<i;
+			SummaryTree->SetBranchAddress(ss1.str().c_str(),&average[i]);
+		}
+		SummaryTree->GetEntry(0);
+		// char *plotPath(getenv("PLOT_PATH"));
+		// if (plotPath == NULL) std::cout << "Warning! $PLOT_PATH is not set!" << endl;
+		// TCanvas *c = new TCanvas("","",1100,850);
+		// c->Divide(4,4);
+		// for(int i=0; i<16; i++){
+		// 	c->cd(i+1);
+		// 	average[i]->Draw("ALP");
+		// }
+		// char save_temp_title[300];
+		// sprintf(save_temp_title,"%s/trouble_events/Run%d_JustBaseline.png",plotPath,runNum);
+		// c->SaveAs(save_temp_title);
+		// delete c;
+		vector<int> chan_exclusion_list;
+		vector<double> baseline_CW_freqs = CWCut_TB(waveforms, average, pol, 6., 5.5, station, 3, chan_exclusion_list, runNum, event, false);
 	}
 
 	double threshCW = 1.0;
@@ -555,8 +667,8 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 	}
 	for(int pol=0; pol<2; pol++){
 		if(isCutonCW_fwd[pol] || isCutonCW_back[pol] || isCutonCW_baseline[pol]){
-			printf("Has CW issue in pol %d \n", pol);
-			printf("CW in FWD %d, BWD %d, or baseline %d? \n", isCutonCW_fwd[pol], isCutonCW_back[pol], isCutonCW_baseline[pol]);
+			printf("	Has CW issue in pol %d \n", pol);
+			printf("		CW in FWD %d, BWD %d, or baseline %d? \n", isCutonCW_fwd[pol], isCutonCW_back[pol], isCutonCW_baseline[pol]);
 			//get the frequencies to notch
 			vector<double> badFreqListLocal_fwd;
 			vector <double> badFreqListLocal_back;
@@ -628,10 +740,10 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 			theCorrelators[0]->pickFreqsAndBands(mergedFreqList,uniqueNotchFreqs,uniqueNotchBands);
 			for (int i = 0; i < uniqueNotchFreqs.size(); ++i)
 			{
-				printf("Unique freq to be notched is %.2f with width %.2f \n", uniqueNotchFreqs[i],uniqueNotchBands[i]);
+				printf("			Unique freq to be notched is %.2f with width %.2f \n", uniqueNotchFreqs[i],uniqueNotchBands[i]);
 			}
 			vector <TGraph*> grWaveformsRaw = makeGraphsFromRF(realAtriEvPtr,16,xLabel,yLabel,titlesForGraphs);
-			vector<TGraph*> grWaveformsInt = makeInterpolatedGraphs(grWaveformsRaw, 0.6, xLabel, yLabel, titlesForGraphs);
+			vector<TGraph*> grWaveformsInt = makeInterpolatedGraphs(grWaveformsRaw, 0.5, xLabel, yLabel, titlesForGraphs);
 			vector<TGraph*> grWaveformsPadded = makePaddedGraphs(grWaveformsInt, 0, xLabel, yLabel, titlesForGraphs);
 			vector <TGraph*> grNotched;
 			for(int i=0; i<16; i++){
@@ -679,12 +791,6 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 			deleteGraphVector(grWaveformsPowerSpectrum_notched);
 		}
 	}
-
-	vector <TGraph*> waveforms = makeGraphsFromRF(realAtriEvPtr,16,xLabel,yLabel,titlesForGraphs);
-	vector<TGraph*> grWaveformsInt = makeInterpolatedGraphs(waveforms, 0.5, xLabel, yLabel, titlesForGraphs);
-	vector<TGraph*> grWaveformsPadded = makePaddedGraphs(grWaveformsInt, 0, xLabel, yLabel, titlesForGraphs);
-	xLabel = "Frequency (Hz)"; yLabel = "Power Spectral Density (mV/Hz)";
-	vector<TGraph*> grWaveformsPowerSpectrum = makePowerSpectrumGraphs(grWaveformsPadded, xLabel, yLabel, titlesForGraphs);
 
 	bool do_reco=true;
 	if(do_reco){
@@ -750,19 +856,20 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 		getCorrMapPeak(map_30m_V,PeakTheta_Recompute_30m_V,PeakPhi_Recompute_30m_V,PeakCorr_Recompute_30m_V);
 		getCorrMapPeak(map_300m_V,PeakTheta_Recompute_300m_V,PeakPhi_Recompute_300m_V,PeakCorr_Recompute_300m_V);
 
-		printf("30m H theta and phi %d and %d \n", PeakTheta_Recompute_30m_H, PeakPhi_Recompute_30m_H);
+		printf("	Rconstruction Information\n");
+		printf("		30m H theta and phi %d and %d \n", PeakTheta_Recompute_30m_H, PeakPhi_Recompute_30m_H);
 		stringstream ss30H;
 		ss30H<<" Peak Theta, Phi is "<<PeakTheta_Recompute_30m_H<<" , "<<PeakPhi_Recompute_30m_H;
 		map_30m_H->SetTitle(ss30H.str().c_str());
-		printf("300m H theta and phi %d and %d \n", PeakTheta_Recompute_300m_H, PeakPhi_Recompute_300m_H);
+		printf("		300m H theta and phi %d and %d \n", PeakTheta_Recompute_300m_H, PeakPhi_Recompute_300m_H);
 		stringstream ss300H;
 		ss300H<<" Peak Theta, Phi is "<<PeakTheta_Recompute_300m_H<<" , "<<PeakPhi_Recompute_300m_H;
 		map_300m_H->SetTitle(ss300H.str().c_str());
-		printf("30m V theta and phi %d and %d \n", PeakTheta_Recompute_30m_V, PeakPhi_Recompute_30m_V);
+		printf("		30m V theta and phi %d and %d \n", PeakTheta_Recompute_30m_V, PeakPhi_Recompute_30m_V);
 		stringstream ss30V;
 		ss30V<<" Peak Theta, Phi is "<<PeakTheta_Recompute_30m_V<<" , "<<PeakPhi_Recompute_30m_V;
 		map_30m_V->SetTitle(ss30V.str().c_str());
-		printf("300m V theta and phi %d and %d \n", PeakTheta_Recompute_300m_V, PeakPhi_Recompute_300m_V);
+		printf("		300m V theta and phi %d and %d \n", PeakTheta_Recompute_300m_V, PeakPhi_Recompute_300m_V);
 		stringstream ss300V;
 		ss300V<<" Peak Theta, Phi is "<<PeakTheta_Recompute_300m_V<<" , "<<PeakPhi_Recompute_300m_V;
 		map_300m_V->SetTitle(ss300V.str().c_str());
@@ -782,6 +889,63 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 		cMaps->SaveAs(save_temp_title);
 		delete cMaps;
 		delete map_30m_V; delete map_300m_V; delete map_30m_H; delete map_300m_H; 
+
+		chan_list_V.clear();
+		// chan_list_V.push_back(0);
+		// chan_list_V.push_back(1);
+		// chan_list_V.push_back(2);
+		// if(!(station==3 && runNum>2972)){ //if dropping bad chans and station 3, don't keep fourth string
+		// 	chan_list_V.push_back(3);
+		// }
+
+		chan_list_H.clear();
+		// chan_list_H.push_back(8);
+		// chan_list_H.push_back(9);
+		// chan_list_H.push_back(10);
+		// if(!(station==3 && runNum>2972)){ //if dropping bad chans and station 3, don't keep fourth string
+		// 	chan_list_H.push_back(11);
+		// }
+
+		chan_list_V.push_back(3);
+		chan_list_V.push_back(4);
+		chan_list_V.push_back(5);
+		chan_list_V.push_back(7);
+		chan_list_H.push_back(12);
+		chan_list_H.push_back(13);
+		chan_list_H.push_back(14);
+		chan_list_H.push_back(15);
+
+
+		TH2D *map_300m_top_V = theCorrelators[1]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Vpol, false, chan_list_V);
+		TH2D *map_300m_top_H = theCorrelators[1]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Hpol, false, chan_list_H);
+
+		int PeakTheta_Recompute_300m_top_V;
+		int PeakPhi_Recompute_300m_top_V;
+		double PeakCorr_Recompute_300m_top_V;
+		int PeakTheta_Recompute_300m_top_H;
+		int PeakPhi_Recompute_300m_top_H;
+		double PeakCorr_Recompute_300m_top_H;
+		getCorrMapPeak(map_300m_top_V,PeakTheta_Recompute_300m_top_V,PeakPhi_Recompute_300m_top_V,PeakCorr_Recompute_300m_top_V);
+		getCorrMapPeak(map_300m_top_H,PeakTheta_Recompute_300m_top_H,PeakPhi_Recompute_300m_top_H,PeakCorr_Recompute_300m_top_H);
+
+		stringstream ss300H_top;
+		ss300H_top<<" Peak Theta, Phi is "<<PeakTheta_Recompute_300m_top_H<<" , "<<PeakPhi_Recompute_300m_top_H;
+		map_300m_top_H->SetTitle(ss300H_top.str().c_str());
+
+		stringstream ss300V_top;
+		ss300V_top<<" Peak Theta, Phi is "<<PeakTheta_Recompute_300m_top_V<<" , "<<PeakPhi_Recompute_300m_top_V;
+		map_300m_top_V->SetTitle(ss300V_top.str().c_str());
+
+		TCanvas *cMaps_top = new TCanvas("","",2*850,850);
+		cMaps->Divide(2,1);
+			cMaps->cd(1);
+			map_300m_top_V->Draw("colz");
+			cMaps->cd(2);
+			map_300m_top_H->Draw("colz");
+		sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_TopOnlyMaps.png",plotPath,year_now,month_now,day_now,runNum,event);
+		cMaps_top->SaveAs(save_temp_title);
+		delete cMaps;
+		delete map_300m_top_V; delete map_300m_top_H;
 	}
 
 	// vector<TGraph*> dummy;
