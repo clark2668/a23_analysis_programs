@@ -101,6 +101,7 @@ int main(int argc, char **argv)
 	printf("Unixtime is %d \n", unixTime);
 	printf("Unixtime microsecond is %d \n", unixTimeUs);
 	printf("timeStamp is %d \n", timeStamp);
+	printf("Event Number is %d \n", realAtriEvPtr->eventNumber);
 
 	stringstream ss1;
 	string xLabel, yLabel;
@@ -112,6 +113,11 @@ int main(int argc, char **argv)
 		titlesForGraphs.push_back(ss1.str());
 	}
 	vector <TGraph*> waveforms = makeGraphsFromRF(realAtriEvPtr,16,xLabel,yLabel,titlesForGraphs);
+	for(int i=0; i<16; i++){
+		printf("Chan %d has %d samples with rough interpolation value of %.2f \n", i, waveforms[i]->GetN(), waveforms[i]->GetX()[1]-waveforms[i]->GetX()[0]);
+
+	}
+
 	vector<TGraph*> grWaveformsInt = makeInterpolatedGraphs(waveforms, 0.5, xLabel, yLabel, titlesForGraphs);
 	vector<TGraph*> grWaveformsPadded = makePaddedGraphs(grWaveformsInt, 0, xLabel, yLabel, titlesForGraphs);
 	xLabel = "Frequency (Hz)"; yLabel = "Power Spectral Density (mV/Hz)";
