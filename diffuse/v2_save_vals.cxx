@@ -119,14 +119,27 @@ int main(int argc, char **argv)
 		double frac_of_power_notched_V[8];
 		double frac_of_power_notched_H[8];
 		int Refilt[2];
+		double theta_300[2];
+		double phi_300[2];
+		double theta_41[2];
+		double phi_41[2];
 		trees[0]->Branch("corr_val_V",&corr_val[0]);
 		trees[0]->Branch("snr_val_V",&snr_val[0]);
 		trees[0]->Branch("wfrms_val_V",&WFRMS[0]);
 		trees[0]->Branch("Refilt_V",&Refilt[0]);
+		trees[0]->Branch("theta_300_V",&theta_300[0]);
+		trees[0]->Branch("theta_41_V",&theta_41[0]);
+		trees[0]->Branch("phi_300_V",&phi_300[0]);
+		trees[0]->Branch("phi_41_V",&phi_41[0]);
+		
 		trees[1]->Branch("corr_val_H",&corr_val[1]);
 		trees[1]->Branch("snr_val_H",&snr_val[1]);
 		trees[1]->Branch("wfrms_val_H",&WFRMS[1]);
 		trees[1]->Branch("Refilt_H",&Refilt[1]);
+		trees[1]->Branch("theta_300_H",&theta_300[1]);
+		trees[1]->Branch("theta_41_H",&theta_41[1]);
+		trees[1]->Branch("phi_300_H",&phi_300[1]);
+		trees[1]->Branch("phi_41_H",&phi_41[1]);
 		for(int i=0; i<8; i++){
 			ss.str("");
 			ss<<"PowerNotch_Chan"<<i;
@@ -394,6 +407,12 @@ int main(int argc, char **argv)
 				if (bestPhi_pulser[pol] > 60 && bestPhi_pulser[pol] < 70 && bestTheta_pulser[pol] > 0 && bestTheta_pulser[pol] < 15){
 					isCP6=true;
 				}
+			}
+			for(int pol=0; pol<2; pol++){
+				theta_300[pol]=bestTheta[pol];
+				phi_300[pol]=bestPhi[pol];
+				theta_41[pol]=bestTheta_pulser[pol];
+				phi_41[pol]=bestPhi_pulser[pol];
 			}
 
 			//deal w/ CW cut
@@ -783,6 +802,15 @@ int main(int argc, char **argv)
 						double PeakCorr_Recompute_300m;
 						getCorrMapPeak(map_30m,PeakTheta_Recompute_30m,PeakPhi_Recompute_30m,PeakCorr_Recompute_30m);
 						getCorrMapPeak(map_300m,PeakTheta_Recompute_300m,PeakPhi_Recompute_300m,PeakCorr_Recompute_300m);
+
+						theta_300[pol]=PeakTheta_Recompute_300m;
+						phi_300[pol]=PeakPhi_Recompute_300m;
+						theta_41[pol]=PeakTheta_Recompute_30m;
+						phi_41[pol]=PeakPhi_Recompute_30m;
+
+						for(int pol=0; pol<2; pol++){
+
+						}
 
 						chan_list_V.clear();
 						chan_list_V.push_back(0);
