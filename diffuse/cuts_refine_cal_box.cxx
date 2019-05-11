@@ -104,7 +104,10 @@ int main(int argc, char **argv)
 		size_t foundRun = file.find(chRun);
 		string strRunNum = file.substr(foundRun+4,4);
 		int runNum = atoi(strRunNum.c_str());
-		
+
+		if(isBadRun(station,runNum)) continue;
+		if(runNum==2428 || runNum==3442) continue;
+
 		TFile *inputFile = TFile::Open(argv[file_num]);
 		if(!inputFile){
 			cout<<"Can't open joined file!"<<endl;
@@ -142,7 +145,7 @@ int main(int argc, char **argv)
 
 			trees->GetEvent(event);
 
-			if(!isCal) continue;
+			if(!isCal || isBad) continue;
 
 			num_total++;
 			if(corr_val_V>corr_val_H){
@@ -153,9 +156,10 @@ int main(int argc, char **argv)
 
 				double this_phi = phi_41_V;
 				double this_theta = theta_41_V;
-				if(this_phi<0 && this_phi>-50){
-					PlotThisEvent(station, config, runNum, event, settings, detector, theCorrelators);
-				}
+				// if(this_phi>100 && this_phi<150){
+				// if(this_phi<63){
+				// 	PlotThisEvent(station, config, runNum, event, settings, detector, theCorrelators);
+				// }
 
 			}
 			else if(corr_val_H>corr_val_V){
@@ -194,8 +198,8 @@ int main(int argc, char **argv)
 	int peakPhi_bin, peakTheta_bin, peakZ;
 	locations_zoom[0]->GetMaximumBin(peakPhi_bin, peakTheta_bin, peakZ);
 
-	TCanvas *c2 = new TCanvas("","",850,850);
-	// c2->Divide(3,1);
+	TCanvas *c2 = new TCanvas("","",3*850,850);
+	c2->Divide(3,1);
 	c2->cd(1);
 		locations_zoom[0]->Draw("colz");
 		locations_zoom[0]->GetYaxis()->SetTitle("Theta (deg)");
@@ -205,50 +209,50 @@ int main(int argc, char **argv)
 		locations_zoom[0]->GetXaxis()->SetRangeUser(55,75);
 		locations_zoom[0]->GetYaxis()->SetRangeUser(-4,14);
 
-	// TH1D *project_V[2];
-	// project_V[0] = (TH1D*) locations_zoom[0]->ProjectionX("",peakTheta_bin-5,peakTheta_bin+5)->Clone();
-	// project_V[1] = locations_zoom[0]->ProjectionY("",peakPhi_bin-5,peakPhi_bin+5);
-	// project_V[0]->SetTitle("Phi Projection near peak");
-	// project_V[1]->SetTitle("Theta Projection near peak");
+	TH1D *project_V[2];
+	project_V[0] = (TH1D*) locations_zoom[0]->ProjectionX("",peakTheta_bin-5,peakTheta_bin+5)->Clone();
+	project_V[1] = locations_zoom[0]->ProjectionY("",peakPhi_bin-5,peakPhi_bin+5);
+	project_V[0]->SetTitle("Phi Projection near peak");
+	project_V[1]->SetTitle("Theta Projection near peak");
 
-	// char equation_phi[150];
-	// sprintf(equation_phi,"gaus");
-	// TF1 *fit_phi = new TF1("GausFit_phi",equation_phi,60.,70.);
-	// project_V[0]->Fit("GausFit_phi","R");
-	// printf("Chi-Square/NDF %.2f / %.2f \n",fit_phi->GetChisquare(),double(fit_phi->GetNDF()));
-	// char fit_graph_title_phi[150];
-	// // sprintf(fit_graph_title,"Vpol %.2f*exp(-0.5((x-%.2f)/%.2f)^2)     #chi^{2}/NDF = %.2f / %d \n",fit->GetParameter(0), fit->GetParameter(1),fit->GetParameter(2),fit->GetChisquare(),fit->GetNDF());
-	// sprintf(fit_graph_title_phi,"Vpol %.2f*exp(-0.5((x-%.2f)/%.2f)^2)\n",fit_phi->GetParameter(0), fit_phi->GetParameter(1),fit_phi->GetParameter(2));
+	char equation_phi[150];
+	sprintf(equation_phi,"gaus");
+	TF1 *fit_phi = new TF1("GausFit_phi",equation_phi,62.,70.);
+	project_V[0]->Fit("GausFit_phi");
+	printf("Chi-Square/NDF %.2f / %.2f \n",fit_phi->GetChisquare(),double(fit_phi->GetNDF()));
+	char fit_graph_title_phi[150];
+	// sprintf(fit_graph_title,"Vpol %.2f*exp(-0.5((x-%.2f)/%.2f)^2)     #chi^{2}/NDF = %.2f / %d \n",fit->GetParameter(0), fit->GetParameter(1),fit->GetParameter(2),fit->GetChisquare(),fit->GetNDF());
+	sprintf(fit_graph_title_phi,"Vpol %.2f*exp(-0.5((x-%.2f)/%.2f)^2)\n",fit_phi->GetParameter(0), fit_phi->GetParameter(1),fit_phi->GetParameter(2));
 
-	// char equation_theta[150];
-	// sprintf(equation_theta,"gaus");
-	// TF1 *fit_theta= new TF1("GausFit_theta",equation_theta,2.,12.);
-	// project_V[1]->Fit("GausFit_theta","R");
-	// printf("Chi-Square/NDF %.2f / %.2f \n",fit_theta->GetChisquare(),double(fit_theta->GetNDF()));
-	// char fit_graph_title_theta[150];
-	// // sprintf(fit_graph_title,"Vpol %.2f*exp(-0.5((x-%.2f)/%.2f)^2)     #chi^{2}/NDF = %.2f / %d \n",fit->GetParameter(0), fit->GetParameter(1),fit->GetParameter(2),fit->GetChisquare(),fit->GetNDF());
-	// sprintf(fit_graph_title_theta,"Vpol %.2f*exp(-0.5((x-%.2f)/%.2f)^2)\n",fit_theta->GetParameter(0), fit_theta->GetParameter(1),fit_theta->GetParameter(2));  
+	char equation_theta[150];
+	sprintf(equation_theta,"gaus");
+	TF1 *fit_theta= new TF1("GausFit_theta",equation_theta,2.,10.);
+	project_V[1]->Fit("GausFit_theta");
+	printf("Chi-Square/NDF %.2f / %.2f \n",fit_theta->GetChisquare(),double(fit_theta->GetNDF()));
+	char fit_graph_title_theta[150];
+	// sprintf(fit_graph_title,"Vpol %.2f*exp(-0.5((x-%.2f)/%.2f)^2)     #chi^{2}/NDF = %.2f / %d \n",fit->GetParameter(0), fit->GetParameter(1),fit->GetParameter(2),fit->GetChisquare(),fit->GetNDF());
+	sprintf(fit_graph_title_theta,"Vpol %.2f*exp(-0.5((x-%.2f)/%.2f)^2)\n",fit_theta->GetParameter(0), fit_theta->GetParameter(1),fit_theta->GetParameter(2));  
 
-	// locations_zoom[0]->Draw("colz");
-	// printf("Five sigma point phi %.2f \n",5.*fit_phi->GetParameter(2));
-	// printf("Five sigma points phi %.2f to %.2f \n",(fit_phi->GetParameter(1) - 5.*fit_phi->GetParameter(2)),(fit_phi->GetParameter(1) + 5.*fit_phi->GetParameter(2)));	
-	// printf("Five sigma point theta %.2f to %.2f \n",(fit_theta->GetParameter(1) - 5.*fit_theta->GetParameter(2)),(fit_theta->GetParameter(1) + 5.*fit_theta->GetParameter(2)));
+	locations_zoom[0]->Draw("colz");
+	printf("Six sigma point phi %.2f \n",6.*fit_phi->GetParameter(2));
+	printf("Six sigma points phi %.2f to %.2f \n",(fit_phi->GetParameter(1) - 6.*fit_phi->GetParameter(2)),(fit_phi->GetParameter(1) + 6.*fit_phi->GetParameter(2)));	
+	printf("Six sigma point theta %.2f to %.2f \n",(fit_theta->GetParameter(1) - 6.*fit_theta->GetParameter(2)),(fit_theta->GetParameter(1) + 6.*fit_theta->GetParameter(2)));
 
-	// c2->cd(2);
-	// 	project_V[0]->Draw();
-	// 	project_V[0]->GetYaxis()->SetTitle("Events");
-	// 	project_V[0]->GetXaxis()->SetTitle("Phi (deg)");
-	// 	project_V[0]->SetTitle(fit_graph_title_phi);
-	// 	gPad->SetLogy();
-	// 	// locations_phi_slice[0]->GetXaxis()->SetRangeUser(50,80);
-	// c2->cd(3);
-	// 	project_V[1]->Draw();
-	// 	project_V[1]->GetYaxis()->SetTitle("Events");
-	// 	project_V[1]->GetXaxis()->SetTitle("Theta (deg)");
-	// 	project_V[1]->SetTitle(graph_title[0]);
-	// 	project_V[1]->SetTitle(fit_graph_title_theta);
-	// 	gPad->SetLogy();
-	// 	// locations_theta_slice[0]->GetXaxis()->SetRangeUser(0,12);
+	c2->cd(2);
+		project_V[0]->Draw();
+		project_V[0]->GetYaxis()->SetTitle("Events");
+		project_V[0]->GetXaxis()->SetTitle("Phi (deg)");
+		project_V[0]->SetTitle(fit_graph_title_phi);
+		gPad->SetLogy();
+		project_V[0]->GetYaxis()->SetRangeUser(0.1,4e6);
+	c2->cd(3);
+		project_V[1]->Draw();
+		project_V[1]->GetYaxis()->SetTitle("Events");
+		project_V[1]->GetXaxis()->SetTitle("Theta (deg)");
+		project_V[1]->SetTitle(graph_title[0]);
+		project_V[1]->SetTitle(fit_graph_title_theta);
+		gPad->SetLogy();
+		project_V[1]->GetYaxis()->SetRangeUser(0.1,4e6);
 	sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_DistroCalPulses_Vpol_Zoom.png",plotPath, year_now, month_now, day_now,station,config,num_total);
 	c2->SaveAs(title);
 	delete c2;
@@ -427,7 +431,7 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 			cMaps->cd(5);
 			map_30m_V_select->Draw("colz");
 		char save_temp_title[400];		
-		sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_Maps_.png",plotPath,year_now,month_now,day_now,runNum,event);
+		sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_Maps.png",plotPath,year_now,month_now,day_now,runNum,event);
 		cMaps->SaveAs(save_temp_title);
 		delete cMaps;
 		delete map_30m_V; delete map_300m_V; delete map_30m_H; delete map_300m_H; 
