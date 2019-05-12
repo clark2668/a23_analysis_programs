@@ -105,9 +105,9 @@ int main(int argc, char **argv)
 		}
 
 		char outfile_name[300];
-		sprintf(outfile_name,"%s/cutvals_snrbins_%d_%d_wfrmsbins_%.1f_%.1f_run_%d.root",output_location.c_str(),thresholdBin_pol[0], thresholdBin_pol[1], abs(wavefrontRMScut[0]),abs(wavefrontRMScut[1]),runNum);
+		sprintf(outfile_name,"%s/cutvals_snrbins_%d_%d_wfrmsvals_%.1f_%.1f_run_%d.root",output_location.c_str(),thresholdBin_pol[0], thresholdBin_pol[1], abs(wavefrontRMScut[0]),abs(wavefrontRMScut[1]),runNum);
 		if(dropBadChans){
-			sprintf(outfile_name,"%s/cutvals_drop_snrbins_%d_%d_wfrmsbins_%.1f_%.1f_run_%d.root",output_location.c_str(),thresholdBin_pol[0], thresholdBin_pol[1], abs(wavefrontRMScut[0]), abs(wavefrontRMScut[1]),runNum);
+			sprintf(outfile_name,"%s/cutvals_drop_snrbins_%d_%d_wfrmsvals_%.1f_%.1f_run_%d.root",output_location.c_str(),thresholdBin_pol[0], thresholdBin_pol[1], abs(wavefrontRMScut[0]), abs(wavefrontRMScut[1]),runNum);
 		}
 		TFile *fpOut = new TFile(outfile_name,"recreate");
 		TTree *trees[3];
