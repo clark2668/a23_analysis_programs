@@ -369,7 +369,6 @@ int main(int argc, char **argv)
 
 
 			for(int pol=0; pol<2; pol++){
-				cout<<"Event is "<<event<<" and the best theta is "<<bestTheta[pol]<<endl;
 				if(bestTheta[pol] >= 37)
 					isSurf[pol]=true;
 			}
