@@ -58,8 +58,8 @@ int main(int argc, char **argv)
 	stringstream ss;
 	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
 	
-	if(argc<8){
-		cout<< "Usage\n" << argv[0] << " <isSim?> <station> <config> <year_or_energy (as float, eg 17.0 or 18.5)> <drop_bad_chan> <output_location> <joined filename 1> <joined filename 2 > ... <joined filename x>"<<endl;
+	if(argc<12){
+		cout<< "Usage\n" << argv[0] << " <isSim?> <station> <config> <year_or_energy (as float, eg 17.0 or 18.5)> <drop_bad_chan> <output_location> <V SNR bin> <H SNR bin> <V WFRMS val> <H WFRMS val> <joined filename 1> <joined filename 2 > ... <joined filename x>"<<endl;
 		return 0;
 	}
 	int isSimulation = atoi(argv[1]);
@@ -70,8 +70,10 @@ int main(int argc, char **argv)
 	string output_location = argv[6];
 
 	//just to have the cut parameters up front and easy to find
-	int thresholdBin_pol[]={3,5}; //bin 3 = 2.3, bin 5 = 2.5 //what is the faceRMS inclusion threshold?
-	double wavefrontRMScut[]={-1.5, -1.5}; //event wavefrontRMS < this value
+	int thresholdBin_pol[]={atoi(argv[7]), atoi(argv[8])}; //bin 3 = 2.3, bin 5 = 2.5 //what is the faceRMS inclusion threshold?
+	double wavefrontRMScut[]={atof(argv[9]),atof(argv[10])}; //event wavefrontRMS < this value
+	// int thresholdBin_pol[]={3,5}; 
+	// double wavefrontRMScut[]={-1.4, -1.4}; 
 
 	//set up the ray tracer
 	Settings *settings = new Settings();
@@ -84,7 +86,7 @@ int main(int argc, char **argv)
 	theCorrelators[0] =  new RayTraceCorrelator(station, 41., settings, 1, 4); //41 m, cal puser
 	theCorrelators[1] =  new RayTraceCorrelator(station, 300., settings, 1, 4);//300 m, far reco
 
-	for(int file_num=7; file_num<argc; file_num++){
+	for(int file_num=11; file_num<argc; file_num++){
 
 		string file = string(argv[file_num]);
 		string wordRun = "run_";
@@ -103,9 +105,9 @@ int main(int argc, char **argv)
 		}
 
 		char outfile_name[300];
-		sprintf(outfile_name,"%s/vals_for_cut_run_%d.root",output_location.c_str(),runNum);
+		sprintf(outfile_name,"%s/cutvals_snrbins_%d_%d_wfrmsbins_%.1f_%.1f_run_%d.root",output_location.c_str(),thresholdBin_pol[0], thresholdBin_pol[1], abs(wavefrontRMScut[0]),abs(wavefrontRMScut[1]),runNum);
 		if(dropBadChans){
-			sprintf(outfile_name,"%s/vals_for_cut_drop_run_%d.root",output_location.c_str(),runNum);
+			sprintf(outfile_name,"%s/cutvals_drop_snrbins_%d_%d_wfrmsbins_%.1f_%.1f_run_%d.root",output_location.c_str(),thresholdBin_pol[0], thresholdBin_pol[1], abs(wavefrontRMScut[0]), abs(wavefrontRMScut[1]),runNum);
 		}
 		TFile *fpOut = new TFile(outfile_name,"recreate");
 		TTree *trees[3];
