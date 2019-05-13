@@ -51,8 +51,8 @@ int main(int argc, char **argv)
 	}
 	int station = atoi(argv[1]);
 	int config = atoi(argv[2]);
-	
-	if(station!2 || station!=3){
+
+	if(station!=2 && station!=3){
 		printf("No good! You asked for station %d, but this code only works for stations 2 and 3 \n",station);
 		return -1;
 	}
@@ -147,16 +147,16 @@ int main(int argc, char **argv)
 		int runNum = atoi(strRunNum.c_str());
 		int isThisBadABadRun = isBadRun(station,runNum);
 
-		// if(isThisBadABadRun || runNum==4775)
-		if(isThisBadABadRun)
+		if(isThisBadABadRun || runNum==4775)
 			continue;
+		// if(isThisBadABadRun)
+			// continue;
 
 		TFile *inputFile = TFile::Open(argv[file_num]);
 		if(!inputFile){
 			cout<<"Can't open joined file "<<argv[file_num]<<endl;
 			return -1;
 		}
-		// cout << "Run " << file_num << " :: " << argv[file_num] << endl;
 		printf("File %d: run %d \n", file_num, runNum);
 
 		TTree *trees[3];

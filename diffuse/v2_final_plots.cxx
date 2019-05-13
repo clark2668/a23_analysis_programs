@@ -51,7 +51,7 @@ int main(int argc, char **argv)
 	int config = atoi(argv[3]);
 	double year_or_energy = double(atof(argv[4]));
 
-	if(station!=2 || station!=3){
+	if(station!=2 && station!=3){
 		printf("No good! You asked for station %d, but this code only works for stations 2 and 3 \n",station);
 		return -1;
 	}
