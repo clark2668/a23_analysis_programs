@@ -21,6 +21,7 @@
 #include "TCanvas.h"
 #include "TStyle.h"
 #include "TF1.h"
+#include "TLine.h"
 
 //AraRoot includes
 #include "RawAtriStationEvent.h"
@@ -141,15 +142,16 @@ int main(int argc, char **argv)
 		int runNum = atoi(strRunNum.c_str());
 		int isThisBadABadRun = isBadRun(station,runNum);
 
-		// if(isThisBadABadRun)
-		// 	continue;
+		if(isThisBadABadRun)
+			continue;
 
 		TFile *inputFile = TFile::Open(argv[file_num]);
 		if(!inputFile){
-			cout<<"Can't open joined file!"<<endl;
+			cout<<"Can't open joined file "<<argv[file_num]<<endl;
 			return -1;
 		}
 		// cout << "Run " << file_num << " :: " << argv[file_num] << endl;
+		printf("File %d: run %d \n", file_num, runNum);
 
 		TTree *trees[3];
 		trees[0] = (TTree*) inputFile->Get("VTree");
@@ -162,10 +164,10 @@ int main(int argc, char **argv)
 		double frac_of_power_notched_V[8];
 		double frac_of_power_notched_H[8];
 		int Refilt[2];
-		double theta_300[2];
-		double phi_300[2];
-		double theta_41[2];
-		double phi_41[2];
+		int theta_300[2];
+		int phi_300[2];
+		int theta_41[2];
+		int phi_41[2];
 
 		trees[0]->SetBranchAddress("corr_val_V",&corr_val[0]);
 		trees[0]->SetBranchAddress("snr_val_V",&snr_val[0]);
@@ -233,41 +235,53 @@ int main(int argc, char **argv)
 				continue;
 			}
 
-			for(int pol=0; pol<2; pol++){
-				if(isSurf[pol])
-					surface_distro[pol]->Fill(theta_300[pol]);
-			}
+			// if(!isCal && !isSoft && !isShort && !isNewBox){
+				
+			// 	//count number of surface events
+			// 	if(isSurf[0] || isSurf[1])
+			// 		num_surf_this_run++;
 
-			if(!isCal && !isSoft && !isShort && !isNewBox && (isSurf[0] || isSurf[1]) ){
-				num_surf_this_run++;
-				if(!isThisBadABadRun){
-					surface_distro_good[0]->Fill(theta_300[0]);
-					surface_distro_good[1]->Fill(theta_300[1]);
+			// 	for(int pol=0; pol<2; pol++){
+			// 		if(WFRMS[pol])
+			// 			continue;
+			// 		surface_distro[pol]->Fill(theta_300[pol]);
+			// 		if(!isThisBadABadRun)
+			// 			surface_distro_good[pol]->Fill(theta_300[pol]);
+			// 	}	
+			// }
+
+
+			for(int pol=0; pol<2; pol++){
+
+				if(runNum==4775 && event==9520){
+					printf("Run %d, Event %d, Reco Theta is %d \n",runNum,event,int(theta_300[pol]));
 				}
-			}
 
-			if(2==2)
-				continue;
-
-			for(int pol=0; pol<2; pol++){
 				PeakCorr_vs_SNR_all[pol]->Fill(snr_val[pol],corr_val[pol]);
 				
 				if(!isCal){ //cut cal pulsers
 					PeakCorr_vs_SNR_cutCal[pol]->Fill(snr_val[pol],corr_val[pol]);
+					if(runNum==4775 && event==9520) printf("Run %d, Event %d, Not cal\n",runNum,event,int(theta_300[pol]));
 					
 					if(!isSoft){ //cut software triggers 
 						PeakCorr_vs_SNR_cutCal_cutSoft[pol]->Fill(snr_val[pol],corr_val[pol]);
+						if(runNum==4775 && event==9520) printf("Run %d, Event %d, Not soft\n",runNum,event,int(theta_300[pol]));
 						
 						if(!isShort){ //cut short
 							PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[pol]->Fill(snr_val[pol],corr_val[pol]);
+							if(runNum==4775 && event==9520) printf("Run %d, Event %d, Not short\n",runNum,event,int(theta_300[pol]));
 							
 							if(!WFRMS[pol]){ //cut WRMS
 								PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[pol]->Fill(snr_val[pol],corr_val[pol]);
+								if(runNum==4775 && event==9520) printf("Run %d, Event %d, Not filter killed\n",runNum,event,int(theta_300[pol]));
 								
 								if(!isNewBox){ //cut cal box
 									PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[pol]->Fill(snr_val[pol],corr_val[pol]);
+									if(runNum==4775 && event==9520) printf("Run %d, Event %d, Not in new box\n",runNum,event,int(theta_300[pol]));
+									if(runNum==4775 && event==9520) printf("Run %d, Event %d, Surface status: %d, %d, %d \n",runNum,event,isSurf[0], isSurf[1], isSurfEvent_top[pol]);
 
-									if((!isSurf[0] || !isSurf[1])  && !isSurfEvent_top[pol]){
+
+									if((!isSurf[0] && !isSurf[1])  && !isSurfEvent_top[pol]){
 
 										bool condition = false;
 										if(snr_val[pol]>=8.) condition=true;
@@ -333,58 +347,98 @@ int main(int argc, char **argv)
 
 	char title[300];
 
-	gStyle->SetOptStat(111111);
-	TCanvas *c_num_surface_per_run = new TCanvas("","",850,850);
-		h_num_surface_events->Draw();
-		h_num_surface_events->GetYaxis()->SetTitle("Number of Runs");
-		h_num_surface_events->GetXaxis()->SetTitle("Number of Surface Events per Run");
-		h_num_surface_events->GetYaxis()->SetTitleOffset(1.3);
-		// gPad->SetLogx();
-		gPad->SetLogy();
-	sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_NumSurfEventsPerRun.png",plotPath,year_now, month_now, day_now,station,config,num_total);
-	c_num_surface_per_run->SaveAs(title);
-	delete c_num_surface_per_run;
-	delete h_num_surface_events;
+	TLegend *leg = new TLegend(0.52,0.7,0.75,0.9);
+	leg->AddEntry(surface_distro[0],"All Events","l");
+	leg->AddEntry(surface_distro_good[0],"Events in 'Good' Runs","l");
+	leg->SetTextSize(0.02);
 
-	TCanvas *c_surface_event_distro = new TCanvas("","",2*850,850);
-	c_surface_event_distro->Divide(2,1);
-	c_surface_event_distro->cd(1);
-		surface_distro[0]->Draw();
-		surface_distro[0]->GetXaxis()->SetTitle("Theta (deg)");
-		surface_distro[0]->GetYaxis()->SetTitle("Number of Events");
-		surface_distro[0]->GetYaxis()->SetTitleOffset(1.3);
-		surface_distro_good[0]->Draw("same");
-		surface_distro_good[0]->SetLineColor(kRed);
-		gPad->SetLogy();
-	c_surface_event_distro->cd(2);
-		surface_distro[1]->Draw();
-		surface_distro[1]->GetXaxis()->SetTitle("Theta (deg)");
-		surface_distro[1]->GetYaxis()->SetTitle("Number of Events");
-		surface_distro[1]->GetYaxis()->SetTitleOffset(1.3);
-		surface_distro_good[1]->Draw("same");
-		surface_distro_good[1]->SetLineColor(kRed);
-		gPad->SetLogy();
-	sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_SurfaceEventDistro.png",plotPath,year_now, month_now, day_now,station,config,num_total);
-	c_surface_event_distro->SaveAs(title);
-	delete c_surface_event_distro;
-	delete surface_distro[0]; delete surface_distro[1];	
+	TLine l(37,0.1,37,surface_distro[0]->GetMaximum()*1.2);
+	l.SetLineStyle(9);
 
-	bool print_summary=false;
+	TCanvas *c_spatial_distro = new TCanvas("","",2.1*850,2.1*850);
+	c_spatial_distro->Divide(2,2);
+	for(int pol=0; pol<2; pol++){
+		c_spatial_distro->cd(pol+1);
+			spatial_distro_remaining[pol]->Draw("colz");
+		c_spatial_distro->cd(pol+3);
+			spatial_distro_remaining[pol+2]->Draw("colz");
+	}
+	sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_SpatialDistroRemainingEvents.png",plotPath,year_now, month_now, day_now,station,config,num_total);
+	c_spatial_distro->SaveAs(title);
+	delete c_spatial_distro;
+
+	TH1D *project[2];
+	project[0]=(TH1D*) spatial_distro_remaining[0]->ProjectionY("")->Clone();
+	project[1]=(TH1D*) spatial_distro_remaining[1]->ProjectionY("")->Clone();
+
+	TCanvas *c_spatial_distro_project = new TCanvas("","",2.1*850,850);
+	c_spatial_distro_project->Divide(2,1);
+	for(int pol=0; pol<2; pol++){
+		c_spatial_distro_project->cd(pol+1);
+		project[pol]->Draw("");
+		project[pol]->GetXaxis()->SetTitle("Theta");
+		project[pol]->GetYaxis()->SetTitle("Number of Events");
+		if(pol==0)
+			project[pol]->SetTitle("VPol Distribution of Stragglers");
+		else
+			project[pol]->SetTitle("HPol Distribution of Stragglers");
+	}
+	sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_ThetaDistroRemainingEvents.png",plotPath,year_now, month_now, day_now,station,config,num_total);
+	c_spatial_distro_project->SaveAs(title);
+	delete c_spatial_distro_project;
+	delete project[0]; delete project[1];
+	delete spatial_distro_remaining[0]; delete spatial_distro_remaining[1]; delete spatial_distro_remaining[2]; delete spatial_distro_remaining[3];
+
+	bool print_summary=true;
 	if(print_summary){
 
 		gStyle->SetOptStat(11);
-		TCanvas *c_spatial_distro = new TCanvas("","",2.1*850,2.1*850);
-		c_spatial_distro->Divide(2,2);
-		for(int pol=0; pol<2; pol++){
-			c_spatial_distro->cd(pol+1);
-			spatial_distro_remaining[pol]->Draw("colz");
-			c_spatial_distro->cd(pol+3);
-			spatial_distro_remaining[pol+2]->Draw("colz");
-		}
-		sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_SpatialDistroRemainingEvents.png",plotPath,year_now, month_now, day_now,station,config,num_total);
-		c_spatial_distro->SaveAs(title);
-		delete c_spatial_distro;
-		delete spatial_distro_remaining[0]; delete spatial_distro_remaining[1]; delete spatial_distro_remaining[2]; delete spatial_distro_remaining[3];
+
+		gStyle->SetOptStat(111111);
+		TCanvas *c_num_surface_per_run = new TCanvas("","",850,850);
+			h_num_surface_events->Draw();
+			h_num_surface_events->GetYaxis()->SetTitle("Number of Runs");
+			h_num_surface_events->GetXaxis()->SetTitle("Number of Surface Events per Run");
+			h_num_surface_events->GetYaxis()->SetTitleOffset(1.3);
+			// gPad->SetLogx();
+			gPad->SetLogy();
+		sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_NumSurfEventsPerRun.png",plotPath,year_now, month_now, day_now,station,config,num_total);
+		c_num_surface_per_run->SaveAs(title);
+		delete c_num_surface_per_run;
+		delete h_num_surface_events;
+
+		// char equation_phi[150];
+		// sprintf(equation_phi,"expo");
+		// TF1 *fit_phi = new TF1("GausFit_surface",equation_phi,25.,37.);
+		// surface_distro[0]->Fit("GausFit_surface","R");
+		// printf("Chi-Square/NDF %.2f / %.2f \n",fit_phi->GetChisquare(),double(fit_phi->GetNDF()));
+
+		TCanvas *c_surface_event_distro = new TCanvas("","",2*850,850);
+		c_surface_event_distro->Divide(2,1);
+		c_surface_event_distro->cd(1);
+			surface_distro[0]->Draw();
+			surface_distro[0]->GetXaxis()->SetTitle("Theta (deg)");
+			surface_distro[0]->GetYaxis()->SetTitle("Number of Events");
+			surface_distro[0]->GetYaxis()->SetTitleOffset(1.3);
+			surface_distro_good[0]->Draw("same");
+			surface_distro_good[0]->SetLineColor(kRed);
+			gPad->SetLogy();
+			leg->Draw();
+			l.Draw("same");
+		c_surface_event_distro->cd(2);
+			surface_distro[1]->Draw();
+			surface_distro[1]->GetXaxis()->SetTitle("Theta (deg)");
+			surface_distro[1]->GetYaxis()->SetTitle("Number of Events");
+			surface_distro[1]->GetYaxis()->SetTitleOffset(1.3);
+			surface_distro_good[1]->Draw("same");
+			surface_distro_good[1]->SetLineColor(kRed);
+			gPad->SetLogy();
+			l.Draw("same");
+		sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_SurfaceEventDistro.png",plotPath,year_now, month_now, day_now,station,config,num_total);
+		c_surface_event_distro->SaveAs(title);
+		delete c_surface_event_distro;
+		delete surface_distro[0]; delete surface_distro[1];
+
 
 		cout<<"Num total is "<<num_total<<endl;
 		cout<<"Num in final plot "<<num_in_final_plot<<endl;
