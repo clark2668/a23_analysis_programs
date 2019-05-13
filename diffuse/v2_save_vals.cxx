@@ -121,10 +121,10 @@ int main(int argc, char **argv)
 		double frac_of_power_notched_V[8];
 		double frac_of_power_notched_H[8];
 		int Refilt[2];
-		double theta_300[2];
-		double phi_300[2];
-		double theta_41[2];
-		double phi_41[2];
+		int theta_300[2];
+		int phi_300[2];
+		int theta_41[2];
+		int phi_41[2];
 		trees[0]->Branch("corr_val_V",&corr_val[0]);
 		trees[0]->Branch("snr_val_V",&snr_val[0]);
 		trees[0]->Branch("wfrms_val_V",&WFRMS[0]);
@@ -369,8 +369,10 @@ int main(int argc, char **argv)
 
 
 			for(int pol=0; pol<2; pol++){
-				if(bestTheta[pol] >= 37)
+				printf("Pol %d has theta %d \n",pol,bestTheta[pol]);
+				if(bestTheta[pol] >= 37){
 					isSurf[pol]=true;
+				}
 			}
 
 			//figure out which reconstruction map (vpol or hpol) is best
@@ -648,7 +650,7 @@ int main(int argc, char **argv)
 						isCW=1;
 						Refilt[pol]=1;
 
-						cout<<"Need to filter event "<<event<<endl;
+						cout<<"Need to filter event "<<event<<" in pol"<<pol<<endl;
 
 						char run_file_name[400];
 						if(isSimulation)
