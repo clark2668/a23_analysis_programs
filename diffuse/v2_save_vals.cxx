@@ -161,6 +161,7 @@ int main(int argc, char **argv)
 		int isBadEvent;
 		double outweight;
 		int Trig_Pass_out[16];
+		int unixTime_out;
 
 		trees[2]->Branch("cal",&isCal);
 		trees[2]->Branch("soft",&isSoft);
@@ -173,6 +174,7 @@ int main(int argc, char **argv)
 		trees[2]->Branch("surf_top_H",&isSurfEvent_top[1]);
 		trees[2]->Branch("bad",&isBadEvent);
 		trees[2]->Branch("weight",&outweight);
+		trees[2]->Branch("unixTime",&unixTime_out);
 		if(isSimulation)
 			trees[2]->Branch("Trig_Pass", &Trig_Pass_out, "Trig_Pass_out[16]/I");
 		
@@ -201,11 +203,13 @@ int main(int argc, char **argv)
 		bool hasDigitizerError;
 		double inweight;
 		int Trig_Pass_in[16];
+		int unixTime_in;
 
 		inputTree_filter->SetBranchAddress("thirdVPeakOverRMS", &thirdVPeakOverRMS);
 		inputTree_filter->SetBranchAddress("rms_pol_thresh_face_V", &rms_pol_thresh_face_V);
 		inputTree_filter->SetBranchAddress("rms_pol_thresh_face_H", &rms_pol_thresh_face_H);
 		inputTree_filter->SetBranchAddress("weight", &inweight);
+		inputTree_filter->SetBranchAddress("unixTime",&unixTime_in);
 		if(isSimulation)
 			inputTree_filter->SetBranchAddress("Trig_Pass", &Trig_Pass_in);
 
@@ -313,6 +317,8 @@ int main(int argc, char **argv)
 			isSurfEvent_top[1]=0;
 
 			inputTree_filter->GetEvent(event);
+
+			unixTime_out=unixTime_in; //copy over the unixtime
 
 			bool isShort=false;
 			bool isSurf[2]={false};
