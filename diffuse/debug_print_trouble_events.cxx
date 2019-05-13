@@ -305,7 +305,8 @@ int main(int argc, char **argv)
 													spatial_distro_remaining[pol]->Fill(phi_41[pol],theta_41[pol]);
 													spatial_distro_remaining[pol+2]->Fill(phi_300[pol], theta_300[pol]);
 
-													// PlotThisEvent(station,config,runNum,event, settings, detector, theCorrelators);
+													PlotThisEvent(station,config,runNum,event, settings, detector, theCorrelators);
+													cout<<"Got here"<<endl;
 												}
 											}
 										} //refiltered?
@@ -316,7 +317,7 @@ int main(int argc, char **argv)
 												spatial_distro_remaining[pol]->Fill(phi_41[pol],theta_41[pol]);
 												spatial_distro_remaining[pol+2]->Fill(phi_300[pol], theta_300[pol]);
 												
-												// PlotThisEvent(station,config,runNum,event, settings, detector, theCorrelators);
+												PlotThisEvent(station,config,runNum,event, settings, detector, theCorrelators);
 											}
 										}
 										num_in_final_plot++;
@@ -391,7 +392,7 @@ int main(int argc, char **argv)
 		}
 
 	}
-	sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_ThetaDistroRemainingEvents.png",plotPath,year_now, month_now, day_now,station,config,num_total);
+	sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_ThetaPhiDistroRemainingEvents.png",plotPath,year_now, month_now, day_now,station,config,num_total);
 	c_spatial_distro_project->SaveAs(title);
 	delete c_spatial_distro_project;
 	delete project_theta[0]; delete project_theta[1];
@@ -1010,30 +1011,29 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 		delete map_30m_V; delete map_300m_V; delete map_30m_H; delete map_300m_H; 
 
 		chan_list_V.clear();
-		// chan_list_V.push_back(0);
-		// chan_list_V.push_back(1);
-		// chan_list_V.push_back(2);
-		// if(!(station==3 && runNum>2972)){ //if dropping bad chans and station 3, don't keep fourth string
-		// 	chan_list_V.push_back(3);
-		// }
+		chan_list_V.push_back(0);
+		chan_list_V.push_back(1);
+		chan_list_V.push_back(2);
+		if(!(station==3 && runNum>2972)){ //if dropping bad chans and station 3, don't keep fourth string
+			chan_list_V.push_back(3);
+		}
 
 		chan_list_H.clear();
-		// chan_list_H.push_back(8);
-		// chan_list_H.push_back(9);
-		// chan_list_H.push_back(10);
-		// if(!(station==3 && runNum>2972)){ //if dropping bad chans and station 3, don't keep fourth string
-		// 	chan_list_H.push_back(11);
-		// }
+		chan_list_H.push_back(8);
+		chan_list_H.push_back(9);
+		chan_list_H.push_back(10);
+		if(!(station==3 && runNum>2972)){ //if dropping bad chans and station 3, don't keep fourth string
+			chan_list_H.push_back(11);
+		}
 
-		chan_list_V.push_back(3);
-		chan_list_V.push_back(4);
-		chan_list_V.push_back(5);
-		chan_list_V.push_back(7);
-		chan_list_H.push_back(12);
-		chan_list_H.push_back(13);
-		chan_list_H.push_back(14);
-		chan_list_H.push_back(15);
-
+		// chan_list_V.push_back(3);
+		// chan_list_V.push_back(4);
+		// chan_list_V.push_back(5);
+		// chan_list_V.push_back(7);
+		// chan_list_H.push_back(12);
+		// chan_list_H.push_back(13);
+		// chan_list_H.push_back(14);
+		// chan_list_H.push_back(15);
 
 		TH2D *map_300m_top_V = theCorrelators[1]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Vpol, false, chan_list_V);
 		TH2D *map_300m_top_H = theCorrelators[1]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Hpol, false, chan_list_H);
@@ -1063,7 +1063,7 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 			map_300m_top_H->Draw("colz");
 		sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_TopOnlyMaps.png",plotPath,year_now,month_now,day_now,runNum,event);
 		cMaps_top->SaveAs(save_temp_title);
-		delete cMaps;
+		delete cMaps_top;
 		delete map_300m_top_V; delete map_300m_top_H;
 	}
 
