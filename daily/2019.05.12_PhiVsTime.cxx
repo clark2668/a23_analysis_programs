@@ -177,8 +177,6 @@ int main(int argc, char **argv)
 			trees[1]->GetEvent(event);
 			trees[2]->GetEvent(event);
 
-			// eventTree->GetEvent(event);
-
 			if(isBadEvent){
 				continue;
 			}
