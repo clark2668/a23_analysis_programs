@@ -1059,9 +1059,9 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 
 		chan_list_V.clear();
 		chan_list_H.clear();
-		chan_list_V.push_back(3);
 		chan_list_V.push_back(4);
 		chan_list_V.push_back(5);
+		chan_list_V.push_back(6);
 		chan_list_V.push_back(7);
 		chan_list_H.push_back(12);
 		chan_list_H.push_back(13);
