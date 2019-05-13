@@ -52,6 +52,11 @@ int main(int argc, char **argv)
 	int station = atoi(argv[1]);
 	int config = atoi(argv[2]);
 	
+	if(station!2 || station!=3){
+		printf("No good! You asked for station %d, but this code only works for stations 2 and 3 \n",station);
+		return -1;
+	}
+	
 	time_t time_now = time(0); //get the time now                                                                                                                                                                  
 	tm *time = localtime(&time_now);
 	int year_now = time -> tm_year + 1900;
