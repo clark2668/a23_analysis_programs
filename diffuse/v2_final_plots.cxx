@@ -230,7 +230,7 @@ int main(int argc, char **argv)
 							pass_soft_short_cal_wfrms[pol]->Fill(snr_val[pol],weight);
 							if(!isNewBox){
 								pass_soft_short_cal_wfrms_box[pol]->Fill(snr_val[pol],weight);
-								if((!isSurf[0] || isSurf[1]) && !isSurfEvent_top[pol]){
+								if((!isSurf[0] && !isSurf[1]) && !isSurfEvent_top[pol]){
 									pass_soft_short_cal_wfrms_box_surf[pol]->Fill(snr_val[pol],weight);
 									num_pass_pol[pol]+=weight;
 									this_pass[pol]=true;
@@ -262,7 +262,7 @@ int main(int argc, char **argv)
 								if(!isNewBox){ //cut cal box
 									PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[pol]->Fill(snr_val[pol],corr_val[pol],weight);
 
-									if((!isSurf[0] || isSurf[1]) && !isSurfEvent_top[pol]){
+									if((!isSurf[0] && !isSurf[1]) && !isSurfEvent_top[pol]){
 
 										if(Refilt[pol]){
 											num_refilt++;
