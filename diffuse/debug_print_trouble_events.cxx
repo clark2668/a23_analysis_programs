@@ -142,6 +142,7 @@ int main(int argc, char **argv)
 		int runNum = atoi(strRunNum.c_str());
 		int isThisBadABadRun = isBadRun(station,runNum);
 
+		// if(isThisBadABadRun || runNum==4775)
 		if(isThisBadABadRun)
 			continue;
 
@@ -357,26 +358,38 @@ int main(int argc, char **argv)
 	c_spatial_distro->SaveAs(title);
 	delete c_spatial_distro;
 
-	TH1D *project[2];
-	project[0]=(TH1D*) spatial_distro_remaining[0]->ProjectionY("")->Clone();
-	project[1]=(TH1D*) spatial_distro_remaining[1]->ProjectionY("")->Clone();
+	TH1D *project_theta[2];
+	project_theta[0]=(TH1D*) spatial_distro_remaining[2]->ProjectionY("")->Clone();
+	project_theta[1]=(TH1D*) spatial_distro_remaining[3]->ProjectionY("")->Clone();
+	TH1D *project_phi[2];
+	project_phi[0]=(TH1D*) spatial_distro_remaining[2]->ProjectionX("")->Clone();
+	project_phi[1]=(TH1D*) spatial_distro_remaining[3]->ProjectionX("")->Clone();
 
 	TCanvas *c_spatial_distro_project = new TCanvas("","",2.1*850,850);
-	c_spatial_distro_project->Divide(2,1);
+	c_spatial_distro_project->Divide(2,2);
 	for(int pol=0; pol<2; pol++){
 		c_spatial_distro_project->cd(pol+1);
-		project[pol]->Draw("");
-		project[pol]->GetXaxis()->SetTitle("Theta");
-		project[pol]->GetYaxis()->SetTitle("Number of Events");
-		if(pol==0)
-			project[pol]->SetTitle("VPol Distribution of Stragglers");
-		else
-			project[pol]->SetTitle("HPol Distribution of Stragglers");
+			project_theta[pol]->Draw("");
+			project_theta[pol]->GetXaxis()->SetTitle("Theta");
+			project_theta[pol]->GetYaxis()->SetTitle("Number of Events");
+		c_spatial_distro_project->cd(pol+3);
+			project_phi[pol]->Draw("");
+			project_phi[pol]->GetXaxis()->SetTitle("Phi");
+			project_phi[pol]->GetYaxis()->SetTitle("Number of Events");
+		if(pol==0){
+			project_theta[pol]->SetTitle("VPol Theta Distribution of Stragglers");
+			project_phi[pol]->SetTitle("VPol Phi Distribution of Stragglers");
+		}
+		else{
+			project_theta[pol]->SetTitle("HPol Theta Distribution of Stragglers");
+			project_phi[pol]->SetTitle("Hpol Phi Distribution of Stragglers");
+		}
+
 	}
 	sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_ThetaDistroRemainingEvents.png",plotPath,year_now, month_now, day_now,station,config,num_total);
 	c_spatial_distro_project->SaveAs(title);
 	delete c_spatial_distro_project;
-	delete project[0]; delete project[1];
+	delete project_theta[0]; delete project_theta[1];
 	delete spatial_distro_remaining[0]; delete spatial_distro_remaining[1]; delete spatial_distro_remaining[2]; delete spatial_distro_remaining[3];
 
 	bool print_summary=true;
