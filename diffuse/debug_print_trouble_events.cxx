@@ -1026,15 +1026,6 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 			chan_list_H.push_back(11);
 		}
 
-		// chan_list_V.push_back(3);
-		// chan_list_V.push_back(4);
-		// chan_list_V.push_back(5);
-		// chan_list_V.push_back(7);
-		// chan_list_H.push_back(12);
-		// chan_list_H.push_back(13);
-		// chan_list_H.push_back(14);
-		// chan_list_H.push_back(15);
-
 		TH2D *map_300m_top_V = theCorrelators[1]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Vpol, false, chan_list_V);
 		TH2D *map_300m_top_H = theCorrelators[1]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Hpol, false, chan_list_H);
 
@@ -1056,15 +1047,57 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 		map_300m_top_V->SetTitle(ss300V_top.str().c_str());
 
 		TCanvas *cMaps_top = new TCanvas("","",2*850,850);
-		cMaps->Divide(2,1);
-			cMaps->cd(1);
+		cMaps_top->Divide(2,1);
+			cMaps_top->cd(1);
 			map_300m_top_V->Draw("colz");
-			cMaps->cd(2);
+			cMaps_top->cd(2);
 			map_300m_top_H->Draw("colz");
-		sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_TopOnlyMaps.png",plotPath,year_now,month_now,day_now,runNum,event);
+		sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_MapsTop.png",plotPath,year_now,month_now,day_now,runNum,event);
 		cMaps_top->SaveAs(save_temp_title);
 		delete cMaps_top;
 		delete map_300m_top_V; delete map_300m_top_H;
+
+		chan_list_V.clear();
+		chan_list_H.clear();
+		chan_list_V.push_back(3);
+		chan_list_V.push_back(4);
+		chan_list_V.push_back(5);
+		chan_list_V.push_back(7);
+		chan_list_H.push_back(12);
+		chan_list_H.push_back(13);
+		chan_list_H.push_back(14);
+		chan_list_H.push_back(15);
+
+		TH2D *map_300m_bottom_V = theCorrelators[1]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Vpol, false, chan_list_V);
+		TH2D *map_300m_bottom_H = theCorrelators[1]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Hpol, false, chan_list_H);
+
+		int PeakTheta_Recompute_300m_bottom_V;
+		int PeakPhi_Recompute_300m_bottom_V;
+		double PeakCorr_Recompute_300m_bottom_V;
+		int PeakTheta_Recompute_300m_bottom_H;
+		int PeakPhi_Recompute_300m_bottom_H;
+		double PeakCorr_Recompute_300m_bottom_H;
+		getCorrMapPeak(map_300m_bottom_V,PeakTheta_Recompute_300m_bottom_V,PeakPhi_Recompute_300m_bottom_V,PeakCorr_Recompute_300m_bottom_V);
+		getCorrMapPeak(map_300m_bottom_H,PeakTheta_Recompute_300m_bottom_H,PeakPhi_Recompute_300m_bottom_H,PeakCorr_Recompute_300m_bottom_H);
+
+		stringstream ss300H_bottom;
+		ss300H_bottom<<" Peak Theta, Phi is "<<PeakTheta_Recompute_300m_bottom_H<<" , "<<PeakPhi_Recompute_300m_bottom_H;
+		map_300m_bottom_H->SetTitle(ss300H_bottom.str().c_str());
+
+		stringstream ss300V_bottom;
+		ss300V_bottom<<" Peak Theta, Phi is "<<PeakTheta_Recompute_300m_bottom_V<<" , "<<PeakPhi_Recompute_300m_bottom_V;
+		map_300m_bottom_V->SetTitle(ss300V_bottom.str().c_str());
+
+		TCanvas *cMaps_bottom = new TCanvas("","",2*850,850);
+		cMaps_bottom->Divide(2,1);
+			cMaps_bottom->cd(1);
+			map_300m_bottom_V->Draw("colz");
+			cMaps_bottom->cd(2);
+			map_300m_bottom_H->Draw("colz");
+		sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_MapsBottom.png",plotPath,year_now,month_now,day_now,runNum,event);
+		cMaps_bottom->SaveAs(save_temp_title);
+		delete cMaps_bottom;
+		delete map_300m_bottom_V; delete map_300m_bottom_H;
 	}
 
 	// vector<TGraph*> dummy;
