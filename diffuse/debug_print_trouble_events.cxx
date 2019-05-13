@@ -253,32 +253,22 @@ int main(int argc, char **argv)
 
 			for(int pol=0; pol<2; pol++){
 
-				if(runNum==4775 && event==9520){
-					printf("Run %d, Event %d, Reco Theta is %d \n",runNum,event,int(theta_300[pol]));
-				}
-
 				PeakCorr_vs_SNR_all[pol]->Fill(snr_val[pol],corr_val[pol]);
 				
 				if(!isCal){ //cut cal pulsers
 					PeakCorr_vs_SNR_cutCal[pol]->Fill(snr_val[pol],corr_val[pol]);
-					if(runNum==4775 && event==9520) printf("Run %d, Event %d, Not cal\n",runNum,event,int(theta_300[pol]));
 					
 					if(!isSoft){ //cut software triggers 
 						PeakCorr_vs_SNR_cutCal_cutSoft[pol]->Fill(snr_val[pol],corr_val[pol]);
-						if(runNum==4775 && event==9520) printf("Run %d, Event %d, Not soft\n",runNum,event,int(theta_300[pol]));
 						
 						if(!isShort){ //cut short
 							PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[pol]->Fill(snr_val[pol],corr_val[pol]);
-							if(runNum==4775 && event==9520) printf("Run %d, Event %d, Not short\n",runNum,event,int(theta_300[pol]));
 							
 							if(!WFRMS[pol]){ //cut WRMS
 								PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[pol]->Fill(snr_val[pol],corr_val[pol]);
-								if(runNum==4775 && event==9520) printf("Run %d, Event %d, Not filter killed\n",runNum,event,int(theta_300[pol]));
 								
 								if(!isNewBox){ //cut cal box
 									PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[pol]->Fill(snr_val[pol],corr_val[pol]);
-									if(runNum==4775 && event==9520) printf("Run %d, Event %d, Not in new box\n",runNum,event,int(theta_300[pol]));
-									if(runNum==4775 && event==9520) printf("Run %d, Event %d, Surface status: %d, %d, %d \n",runNum,event,isSurf[0], isSurf[1], isSurfEvent_top[pol]);
 
 
 									if((!isSurf[0] && !isSurf[1])  && !isSurfEvent_top[pol]){
