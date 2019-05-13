@@ -147,10 +147,10 @@ int main(int argc, char **argv)
 		int runNum = atoi(strRunNum.c_str());
 		int isThisBadABadRun = isBadRun(station,runNum);
 
-		if(isThisBadABadRun || runNum==4775)
+		// if(isThisBadABadRun || runNum==4775)
+		// 	continue;
+		if(isThisBadABadRun)
 			continue;
-		// if(isThisBadABadRun)
-			// continue;
 
 		TFile *inputFile = TFile::Open(argv[file_num]);
 		if(!inputFile){
@@ -256,7 +256,6 @@ int main(int argc, char **argv)
 			// 	}	
 			// }
 
-
 			for(int pol=0; pol<2; pol++){
 
 				PeakCorr_vs_SNR_all[pol]->Fill(snr_val[pol],corr_val[pol]);
@@ -281,7 +280,7 @@ int main(int argc, char **argv)
 
 										bool condition = false;
 										if(snr_val[pol]>=8.) condition=true;
-										if(corr_val[pol]>=0.14) condition=true;
+										if(corr_val[pol]>=0.12) condition=true;
 										if(snr_val[pol]>=7 && corr_val[pol]>=0.12) condition=true;
 
 										if(Refilt[pol]){
@@ -306,7 +305,6 @@ int main(int argc, char **argv)
 													spatial_distro_remaining[pol+2]->Fill(phi_300[pol], theta_300[pol]);
 
 													PlotThisEvent(station,config,runNum,event, settings, detector, theCorrelators);
-													cout<<"Got here"<<endl;
 												}
 											}
 										} //refiltered?
@@ -622,7 +620,7 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 	if (plotPath == NULL) std::cout << "Warning! $PLOT_PATH is not set!" << endl;
 
 	char run_file_name[400];
-	sprintf(run_file_name,"%s/RawData/A%d/by_config/c%d/event%d.root",DataDirPath,station,config,runNum);
+	sprintf(run_file_name,"%s/RawData/A%d/all_runs/event%d.root",DataDirPath,station,runNum);
 	TFile *mapFile = TFile::Open(run_file_name);
 	if(!mapFile){
 		cout<<"Can't open data file for map!"<<endl;
@@ -673,8 +671,7 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 	vector<TGraph*> grWaveformsPowerSpectrum = makePowerSpectrumGraphs(grWaveformsPadded, xLabel, yLabel, titlesForGraphs);
 
 	char cw_file_name[400];
-	sprintf(cw_file_name,"%s/CWID/A%d/by_config/c%d/CWID_station_%d_run_%d.root",DataDirPath,station,config,station,runNum);
-	// sprintf(cw_file_name,"/fs/scratch/PAS0654/ara/10pct/CWID/old/2019.05.07_still_0.5ns_on_CWID/A%d/by_config/c%d/CWID_station_%d_run_%d.root",station,config,station,runNum);
+	sprintf(cw_file_name,"%s/CWID/A%d/all_runs/CWID_station_%d_run_%d.root",DataDirPath,station,station,runNum);
 	TFile *NewCWFile = TFile::Open(cw_file_name);
 	if(!NewCWFile) {
 		std::cerr << "Can't open new CW file\n";
@@ -711,7 +708,7 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 	}
 	for(int pol=0; pol<2; pol++){
 		char run_summary_filename[400];
-		sprintf(run_summary_filename,"%s/RunSummary/A%d/by_config/c%d/run_summary_station_%d_run_%d.root",DataDirPath,station,config,station,runNum);
+		sprintf(run_summary_filename,"%s/RunSummary/A%d/all_runs/run_summary_station_%d_run_%d.root",DataDirPath,station,station,runNum);
 		TFile *SummaryFile = TFile::Open(run_summary_filename);
 		if(!SummaryFile) {
 			std::cerr << "Can't open summary file\n";
@@ -912,6 +909,18 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 		}
 	}
 
+	// printf("Trying to reconstruct theta\n");
+	// AraGeomTool *araGeom = AraGeomTool::Instance();
+	// double dist=abs(araGeom->getStationInfo(station)->getAntennaInfo(3)->antLocation[2] - araGeom->getStationInfo(station)->getAntennaInfo(7)->antLocation[2]);
+	// TGraph *corr = FFTtools::getInterpolatedCorrelationGraph(waveforms[7],waveforms[3],0.5);
+	// int peak_bin=FFTtools::getPeakBin(corr);
+	// double delay=corr->GetX()[peak_bin];
+	// cout<<"Delay is "<<delay<<endl;
+	// delay*=1e-9;
+	// double theta = TMath::ASin(3e8*delay/1.78/dist)*TMath::RadToDeg();
+	// printf("Delay is %.2f, and reco theta is %.2f \n", delay,theta);
+	// delete corr;
+
 	bool do_reco=true;
 	if(do_reco){
 		TH2D *map_30m_V;
@@ -1063,6 +1072,7 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 		chan_list_V.push_back(5);
 		chan_list_V.push_back(6);
 		chan_list_V.push_back(7);
+
 		chan_list_H.push_back(12);
 		chan_list_H.push_back(13);
 		chan_list_H.push_back(14);
