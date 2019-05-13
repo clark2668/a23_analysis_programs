@@ -409,11 +409,11 @@ int main(int argc, char **argv)
 			
 			//draw a box around the cal pulser
 			for (int pol = 0; pol < 2; pol++){
-				if (bestPhi_pulser[pol] > -30 && bestPhi_pulser[pol] < -20 && bestTheta_pulser[pol] > -25 && bestTheta_pulser[pol] < -10){
+				if (bestPhi_pulser[pol] >= -30 && bestPhi_pulser[pol] <= -20 && bestTheta_pulser[pol] >= -25 && bestTheta_pulser[pol] <= -10){
 					isCP5=true;
 				}
 				//if (bestPhi_pulser[pol] > 60 && bestPhi_pulser[pol] < 70 && bestTheta_pulser[pol] > 10 && bestTheta_pulser[pol] < 25){
-				if (bestPhi_pulser[pol] > 60 && bestPhi_pulser[pol] < 70 && bestTheta_pulser[pol] > 0 && bestTheta_pulser[pol] < 15){
+				if (bestPhi_pulser[pol] >= 60 && bestPhi_pulser[pol] <= 70 && bestTheta_pulser[pol] >= 0 && bestTheta_pulser[pol] <= 15){
 					isCP6=true;
 				}
 			}
