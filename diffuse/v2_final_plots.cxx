@@ -45,10 +45,16 @@ int main(int argc, char **argv)
 		cout<< "Usage\n" << argv[0] << " <isSim> <station> <config> <year_or_energy> <ValForCuts filename>"<<endl;;
 		return -1;
 	}
+
 	int isSim = atoi(argv[1]);
 	int station = atoi(argv[2]);
 	int config = atoi(argv[3]);
 	double year_or_energy = double(atof(argv[4]));
+
+	if(station!=2 || station!=3){
+		printf("No good! You asked for station %d, but this code only works for stations 2 and 3 \n",station);
+		return -1;
+	}
 	
 	TH2D *PeakCorr_vs_SNR_all[2];
 	PeakCorr_vs_SNR_all[0]=new TH2D("","V",30,0,30,100,0,1);
@@ -140,7 +146,7 @@ int main(int argc, char **argv)
 			cout<<"Can't open val for cuts file!"<<endl;
 			return -1;
 		}
-		cout << "Run " << file_num << " :: " << argv[file_num] << endl;
+		printf("File %d: run %d \n", file_num, runNum);
 
 		TTree *trees[3];
 		trees[0] = (TTree*) inputFile->Get("VTree");
