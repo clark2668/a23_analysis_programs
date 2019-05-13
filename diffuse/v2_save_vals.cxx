@@ -72,8 +72,6 @@ int main(int argc, char **argv)
 	//just to have the cut parameters up front and easy to find
 	int thresholdBin_pol[]={atoi(argv[7]), atoi(argv[8])}; //bin 3 = 2.3, bin 5 = 2.5 //what is the faceRMS inclusion threshold?
 	double wavefrontRMScut[]={atof(argv[9]),atof(argv[10])}; //event wavefrontRMS < this value
-	// int thresholdBin_pol[]={3,5}; 
-	// double wavefrontRMScut[]={-1.4, -1.4}; 
 
 	//set up the ray tracer
 	Settings *settings = new Settings();
@@ -1125,22 +1123,39 @@ int main(int argc, char **argv)
 						// printf("				old vs new logrms calc in pol %d: %.2f vs %.2f \n",pol,log(bestFaceRMS[pol])/log(10),log(bestFaceRMS_new[pol])/log(10));
 						// printf("				old vs new snr in pol %d: %.2f vs %.2f \n",pol,SNRs[pol],SNRs_new[pol] );
 
-						if(PeakTheta_Recompute_300m_top>=37) isSurfEvent_top[pol]=1;
+						// re-check top face reco
+						if(PeakTheta_Recompute_300m_top>=37)
+							isSurfEvent_top[pol]=1;
 
-						isSurfEvent[0]=1; //assume again it's surface in this pol
-						isSurfEvent[1]=1;
-						if(PeakTheta_Recompute_300m<37){ //recheck for surface
-							isSurfEvent[pol]=0;  //mark it as not a surface event
-							//recheck wrms and use the recomputed SNR
-							WFRMS[pol]=1; //assume it will fail
-							if(log(bestFaceRMS_new[pol])/log(10) < wavefrontRMScut[pol]){ //recheck if it *passes* the WRMS cut
-								// cout<<"new wavefront RMS is "<<log(bestFaceRMS_new[pol])/log(10)<<endl;
-								WFRMS[pol]=0; //actually, it passes!
-								//save this out for use in optimization later
-								corr_val[pol]=PeakCorr_Recompute_300m;
-								snr_val[pol]=SNRs_new[pol];
-							} //WFRMS cut on new event
-						} //recheck the surface cut
+						// re-check surface cut
+						if(PeakTheta_Recompute_300m>=37)
+							isSurfEvent[pol]=1;
+						else
+							isSurfEvent[pol]=0;
+
+						// re-check wavefront RMS cut
+						if(log(bestFaceRMS_new[pol])/log(10) < wavefrontRMScut[pol])
+							WFRMS[pol]=0;
+						else
+							WFRMS[pol]=1;
+
+						// assign the newly computed corr and snr values
+						corr_val[pol]=PeakCorr_Recompute_300m;
+						snr_val[pol]=SNRs_new[pol];
+
+						// isSurfEvent[pol]=1; //assume again it's surface in this pol
+						// if(PeakTheta_Recompute_300m<37){ //recheck for surface
+						// 	isSurfEvent[pol]=0;  //mark it as not a surface event
+						// 	//recheck wrms and use the recomputed SNR
+						// 	WFRMS[pol]=1; //assume it will fail
+						// 	if(log(bestFaceRMS_new[pol])/log(10) < wavefrontRMScut[pol]){ //recheck if it *passes* the WRMS cut
+						// 		// cout<<"new wavefront RMS is "<<log(bestFaceRMS_new[pol])/log(10)<<endl;
+						// 		WFRMS[pol]=0; //actually, it passes!
+						// 		//save this out for use in optimization later
+						// 		corr_val[pol]=PeakCorr_Recompute_300m;
+						// 		snr_val[pol]=SNRs_new[pol];
+						// 	} //WFRMS cut on new event
+						// } //recheck the surface cut
 						delete map_300m;
 						delete map_300m_top;
 						delete map_30m;
