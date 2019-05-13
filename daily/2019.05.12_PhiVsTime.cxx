@@ -170,25 +170,6 @@ int main(int argc, char **argv)
 		
 		int numEntries = trees[0]->GetEntries();
 
-		// char *DataDirPath(getenv("DATA_DIR"));
-
-		// char run_file_name[400];
-		// sprintf(run_file_name,"%s/RawData/A%d/by_config/c%d/event%d.root",DataDirPath,station,config,runNum);
-		// TFile *mapFile = TFile::Open(run_file_name);
-		// if(!mapFile){
-		// 	cout<<"Can't open data file for map!"<<endl;
-		// 	return -1;
-		// }
-		// TTree *eventTree = (TTree*) mapFile-> Get("eventTree");
-		// if(!eventTree){
-		// 	cout<<"Can't find eventTree for map"<<endl;
-		// 	return -1;
-		// }	
-
-		// RawAtriStationEvent *rawPtr =0;
-		// eventTree->SetBranchAddress("event",&rawPtr);
-
-
 		//now to loop over events
 		for(int event=0; event<numEntries; event++){
 
@@ -203,7 +184,6 @@ int main(int argc, char **argv)
 			}
 
 			if(!isCal && !isSoft && !isShort && !isNewBox){
-				// int unixTime = (int)rawPtr->unixTime;
 				// printf("	Unixtime is %d \n", unixTime);
 				for(int pol=0; pol<2; pol++){
 					phi_vs_event[pol]->Fill(unixTime, phi_300[pol]);
@@ -213,7 +193,6 @@ int main(int argc, char **argv)
 				}	
 			}
 		}
-		// mapFile->Close();
 		inputFile->Close();
 		delete inputFile;
 
