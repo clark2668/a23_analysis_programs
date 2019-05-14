@@ -24,9 +24,6 @@
 #include "TLine.h"
 
 //AraRoot includes
-#include "RawAtriStationEvent.h"
-#include "UsefulAtriStationEvent.h"
-#include "AraQualCuts.h"
 #include "tools_PlottingFns.h"
 #include "tools_RecoFns.h"
 #include "tools_Cuts.h"
@@ -38,11 +35,10 @@ int main(int argc, char **argv)
 {
 
 	if(argc<3){
-		cout<< "Usage\n" << argv[0] << " <station> <config> <ValForCuts filename>"<<endl;;
+		cout<< "Usage\n" << argv[0] << " <station> <ValForCuts filename>"<<endl;;
 		return -1;
 	}
 	int station = atoi(argv[1]);
-	int config = atoi(argv[2]);
 	
 	time_t time_now = time(0); //get the time now                                                                                                                                                                  
 	tm *time = localtime(&time_now);
@@ -62,10 +58,15 @@ int main(int argc, char **argv)
 	// TDatime stop(2015, 01, 03, 16, 00,0);
 	// int stop_bin = stop.Convert();
 
-	TDatime start(2014, 01, 10, 19, 05,0);
+	TDatime start(2014, 01, 10, 12, 05,0);
 	int start_bin = start.Convert();
-	TDatime stop(2014, 01, 10, 19, 30,0);
+	TDatime stop(2014, 01, 10, 24, 30,0);
 	int stop_bin = stop.Convert();
+
+	// TDatime start(2016, 01, 12, 00, 00,0);
+	// int start_bin = start.Convert();
+	// TDatime stop(2016, 01, 12, 24, 00,0);
+	// int stop_bin = stop.Convert();
 
 	TH2D *phi_vs_event[2];
 	TH2D *theta_vs_event[2];
@@ -81,7 +82,10 @@ int main(int argc, char **argv)
 		// phi_vs_event[i]->GetXaxis()->SetNdivisions(31,0,0,false);
 	}
 
-	for(int file_num=3; file_num<argc; file_num++){
+	vector<double> unixTimes;
+	vector<double> phis;
+
+	for(int file_num=2; file_num<argc; file_num++){
 
 		string chRun = "run";
 		string file = string(argv[file_num]);
@@ -89,9 +93,6 @@ int main(int argc, char **argv)
 		string strRunNum = file.substr(foundRun+4,4);
 		int runNum = atoi(strRunNum.c_str());
 		int isThisBadABadRun = isBadRun(station,runNum);
-
-		// if(isThisBadABadRun)
-		// 	continue;
 
 		TFile *inputFile = TFile::Open(argv[file_num]);
 		if(!inputFile){
@@ -171,7 +172,9 @@ int main(int argc, char **argv)
 		int numEntries = trees[0]->GetEntries();
 
 		//now to loop over events
-		for(int event=0; event<numEntries; event++){
+		int start=0;
+		// numEntries=10000;
+		for(int event=start; event<numEntries; event++){
 
 			trees[0]->GetEvent(event);
 			trees[1]->GetEvent(event);
@@ -179,6 +182,31 @@ int main(int argc, char **argv)
 
 			if(isBadEvent){
 				continue;
+			}
+
+			// run 4775 problems
+			if((unixTime==1420317755 && event==9520) ||
+				(unixTime==1420317755 && event==9520) ||
+				(unixTime==1420317765 && event==9533) ||
+				(unixTime==1420317765 && event==9533) ||
+				(unixTime==1420317765 && event==9536) ||
+				(unixTime==1420317765 && event==9536) ||
+				(unixTime==1420317810 && event==9563) ||
+				(unixTime==1420317816 && event==9570) ||
+				(unixTime==1420317831 && event==9596) ||
+				(unixTime==1420317832 && event==9598) || 
+				(unixTime==1420317835 && event==9603) ||
+				(unixTime==1420317835 && event==9604) ||
+				(unixTime==1420317859 && event==9615)
+			){
+				unixTimes.push_back(double(unixTime));
+				phis.push_back(double(phi_300[0]));
+			}			
+
+			// run 2868 problems
+			if(unixTime==1389382075 || unixTime==1389383363 || unixTime==1389383366){
+				unixTimes.push_back(double(unixTime));
+				phis.push_back(double(phi_300[0]));
 			}
 
 			if(!isCal && !isSoft && !isShort && !isNewBox){
@@ -194,6 +222,9 @@ int main(int argc, char **argv)
 		inputFile->Close();
 		delete inputFile;
 
+		TGraph *gr_outlier = new TGraph(unixTimes.size(),&unixTimes[0],&phis[0]);
+		gr_outlier->GetXaxis()->SetTimeDisplay(1); //turn on a time axis
+
 		char title[300];
 		gStyle->SetOptStat(111111);
 		TCanvas *c_phi_vs_event = new TCanvas("","",2*850,2*850);
@@ -204,6 +235,10 @@ int main(int argc, char **argv)
 			phi_vs_event[0]->GetYaxis()->SetTitle("Phi");
 			// surface_distro[0]->GetYaxis()->SetTitleOffset(1.3);
 			// surface_distro_good[0]->Draw("same");
+			gr_outlier->Draw("sameP");
+			gr_outlier->SetMarkerColor(kRed);
+			gr_outlier->SetMarkerStyle(27);
+			gr_outlier->SetMarkerSize(2);
 		c_phi_vs_event->cd(2);
 			phi_vs_event[1]->Draw("");
 			phi_vs_event[1]->GetXaxis()->SetTitle("Unixtime");
