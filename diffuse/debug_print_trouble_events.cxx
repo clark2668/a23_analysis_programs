@@ -151,6 +151,8 @@ int main(int argc, char **argv)
 		// 	continue;
 		if(isThisBadABadRun)
 			continue;
+		// if(runNum==6705 || runNum==4775)
+		// 	continue;
 
 		TFile *inputFile = TFile::Open(argv[file_num]);
 		if(!inputFile){
@@ -201,6 +203,7 @@ int main(int argc, char **argv)
 		int isSurf[2];
 		int isBadEvent;
 		int isSurfEvent_top[2];
+		int unixTime;
 
 		trees[2]->SetBranchAddress("cal",&isCal);
 		trees[2]->SetBranchAddress("soft",&isSoft);
@@ -212,6 +215,7 @@ int main(int argc, char **argv)
 		trees[2]->SetBranchAddress("bad",&isBadEvent);
 		trees[2]->SetBranchAddress("surf_top_V",&isSurfEvent_top[0]);
 		trees[2]->SetBranchAddress("surf_top_H",&isSurfEvent_top[1]);
+		trees[2]->SetBranchAddress("unixTime",&unixTime);
 
 		stringstream ss;
 		for(int i=0; i<8; i++){
@@ -238,6 +242,9 @@ int main(int argc, char **argv)
 			num_total++;
 
 			if(isBadEvent){
+				continue;
+			}
+			if(isBadLivetime(station,unixTime)){
 				continue;
 			}
 
@@ -304,7 +311,7 @@ int main(int argc, char **argv)
 													spatial_distro_remaining[pol]->Fill(phi_41[pol],theta_41[pol]);
 													spatial_distro_remaining[pol+2]->Fill(phi_300[pol], theta_300[pol]);
 
-													PlotThisEvent(station,config,runNum,event, settings, detector, theCorrelators);
+													// PlotThisEvent(station,config,runNum,event, settings, detector, theCorrelators);
 												}
 											}
 										} //refiltered?
@@ -315,7 +322,7 @@ int main(int argc, char **argv)
 												spatial_distro_remaining[pol]->Fill(phi_41[pol],theta_41[pol]);
 												spatial_distro_remaining[pol+2]->Fill(phi_300[pol], theta_300[pol]);
 												
-												PlotThisEvent(station,config,runNum,event, settings, detector, theCorrelators);
+												// PlotThisEvent(station,config,runNum,event, settings, detector, theCorrelators);
 											}
 										}
 										num_in_final_plot++;
