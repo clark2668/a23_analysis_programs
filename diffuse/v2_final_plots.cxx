@@ -178,6 +178,7 @@ int main(int argc, char **argv)
 		int isBadEvent;
 		double weight;
 		int isSurfEvent_top[2];
+		int unixTime;
 
 		trees[2]->SetBranchAddress("cal",&isCal);
 		trees[2]->SetBranchAddress("soft",&isSoft);
@@ -190,6 +191,7 @@ int main(int argc, char **argv)
 		trees[2]->SetBranchAddress("weight",&weight);
 		trees[2]->SetBranchAddress("surf_top_V",&isSurfEvent_top[0]);
 		trees[2]->SetBranchAddress("surf_top_H",&isSurfEvent_top[1]);
+		trees[2]->SetBranchAddress("unixTime",&unixTime);
 
 		stringstream ss;
 		for(int i=0; i<8; i++){
@@ -211,6 +213,9 @@ int main(int argc, char **argv)
 			trees[1]->GetEvent(event);
 			trees[2]->GetEvent(event);
 			if(isBadEvent){
+				continue;
+			}
+			if(isBadLivetime(station,unixTime)){
 				continue;
 			}
 
