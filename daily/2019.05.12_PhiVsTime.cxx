@@ -56,16 +56,16 @@ int main(int argc, char **argv)
 
 	TTimeStamp start;
 	TTimeStamp stop;
-	start.Set(2014,01,10,19,15,0,0,true,0);
-	stop.Set(2014,01,10,20,15,0,0,true,0);
+	// start.Set(2014,01,10,19,15,0,0,true,0);
+	// stop.Set(2014,01,10,20,15,0,0,true,0);
 
 	// run 4775
 	// start.Set(2015, 01, 03, 15, 30,0,0,true,0);
 	// stop.Set(2015, 01, 03, 16, 00,0,0,true,0);
 
 	// run 6705
-	// start.Set(2016, 01, 12, 00, 00,0,0,true,0);
-	// stop.Set(2016, 01, 12, 24, 00,0,0,true,0);
+	start.Set(2015, 12, 04, 00, 40,0,0,true,0);
+	stop.Set(2015, 12, 04, 00, 50,0,0,true,0);
 
 	int start_bin = start.GetSec();
 	int stop_bin = stop.GetSec();
@@ -246,6 +246,10 @@ int main(int argc, char **argv)
 						unixTimes[0].push_back(double(unixTime)); phis[0].push_back(double(phi_300[0])); thetas[0].push_back(double(theta_300[0]));
 					}
 					if(runNum==2868 && pol==0 && unixTime==1389383366 && event==1777){
+						unixTimes[0].push_back(double(unixTime)); phis[0].push_back(double(phi_300[0])); thetas[0].push_back(double(theta_300[0]));
+					}
+
+					if(runNum==6507 && pol==0 && unixTime==1449189933 && event==7856){
 						unixTimes[0].push_back(double(unixTime)); phis[0].push_back(double(phi_300[0])); thetas[0].push_back(double(theta_300[0]));
 					}
 
