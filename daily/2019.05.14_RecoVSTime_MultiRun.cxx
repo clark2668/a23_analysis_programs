@@ -71,8 +71,6 @@ int main(int argc, char **argv)
 
 		int runNum=getThisRunNum(argv[file_num]);
 		
-		int isThisBadABadRun = isBadRun(station,runNum);
-
 		TFile *inputFile = TFile::Open(argv[file_num]);
 		if(!inputFile){
 			cout<<"Can't open joined file!"<<endl;
@@ -119,7 +117,6 @@ int main(int argc, char **argv)
 		TTimeStamp stop(unixStop);
 		int start_bin = start.GetSec();
 		int stop_bin = stop.GetSec();
-		// gStyle->SetTimeOffset(0.,"GMT");
 
 		TH2D *phi_vs_event[2];
 		TH2D *theta_vs_event[2];
@@ -173,6 +170,9 @@ int main(int argc, char **argv)
 			phi_vs_event[1]->GetXaxis()->SetTitle("Unixtime");
 			phi_vs_event[1]->GetYaxis()->SetTitle("Hpol Phi");
 			phi_vs_event[1]->GetZaxis()->SetRangeUser(1,6);
+			char bad_run_info[150];
+			sprintf(bad_run_info,"known bad run? %d ", isBadRun(station,runNum));
+			phi_vs_event[1]->SetTitle(bad_run_info);
 		c_temp->cd(3);
 			theta_vs_event[0]->Draw("colz");
 			theta_vs_event[0]->GetXaxis()->SetTitle("Unixtime");
