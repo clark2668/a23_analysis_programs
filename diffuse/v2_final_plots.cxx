@@ -139,7 +139,8 @@ int main(int argc, char **argv)
 		string strRunNum = file.substr(foundRun+4,4);
 		int runNum = atoi(strRunNum.c_str());
 
-		if(isBadRun(station,runNum)) continue;
+		if(isBadRun(station,runNum))
+			continue;
 
 		TFile *inputFile = TFile::Open(argv[file_num]);
 		if(!inputFile){
