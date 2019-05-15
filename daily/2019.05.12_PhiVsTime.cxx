@@ -58,9 +58,9 @@ int main(int argc, char **argv)
 	// TDatime stop(2015, 01, 03, 16, 00,0);
 	// int stop_bin = stop.Convert();
 
-	TDatime start(2014, 01, 10, 12, 05,0);
+	TDatime start(2014, 01, 10, 12, 15,0);
 	int start_bin = start.Convert();
-	TDatime stop(2014, 01, 10, 24, 30,0);
+	TDatime stop(2014, 01, 10, 21, 15,0);
 	int stop_bin = stop.Convert();
 
 	// TDatime start(2016, 01, 12, 00, 00,0);
@@ -82,8 +82,12 @@ int main(int argc, char **argv)
 		// phi_vs_event[i]->GetXaxis()->SetNdivisions(31,0,0,false);
 	}
 
-	vector<double> unixTimes;
-	vector<double> phis;
+	vector<vector<double> > unixTimes;
+	vector<vector<double> > phis;
+	vector<vector<double> > thetas;
+	unixTimes.resize(2);
+	phis.resize(2);
+	thetas.resize(2);
 
 	for(int file_num=2; file_num<argc; file_num++){
 
@@ -184,36 +188,55 @@ int main(int argc, char **argv)
 				continue;
 			}
 
-			// run 4775 problems
-			if((unixTime==1420317755 && event==9520) ||
-				(unixTime==1420317755 && event==9520) ||
-				(unixTime==1420317765 && event==9533) ||
-				(unixTime==1420317765 && event==9533) ||
-				(unixTime==1420317765 && event==9536) ||
-				(unixTime==1420317765 && event==9536) ||
-				(unixTime==1420317810 && event==9563) ||
-				(unixTime==1420317816 && event==9570) ||
-				(unixTime==1420317831 && event==9596) ||
-				(unixTime==1420317832 && event==9598) || 
-				(unixTime==1420317835 && event==9603) ||
-				(unixTime==1420317835 && event==9604) ||
-				(unixTime==1420317859 && event==9615)
-			){
-				unixTimes.push_back(double(unixTime));
-				phis.push_back(double(phi_300[0]));
-			}			
-
-			// run 2868 problems
-			if(unixTime==1389382075 || unixTime==1389383363 || unixTime==1389383366){
-				unixTimes.push_back(double(unixTime));
-				phis.push_back(double(phi_300[0]));
-			}
-
 			if(!isCal && !isSoft && !isShort && !isNewBox){
-				// printf("	Unixtime is %d \n", unixTime);
 				for(int pol=0; pol<2; pol++){
 					phi_vs_event[pol]->Fill(unixTime, phi_300[pol]);
 					theta_vs_event[pol]->Fill(unixTime, theta_300[pol]);
+
+					if(runNum==4775 && pol==0 && unixTime==1420317755 && event==9520){
+						unixTimes[0].push_back(double(unixTime)); phis[0].push_back(double(phi_300[0])); thetas[0].push_back(double(theta_300[0]));
+					}
+					if(runNum==4775 && pol==1 && unixTime==1420317755 && event==9520){
+						unixTimes[1].push_back(double(unixTime)); phis[1].push_back(double(phi_300[1])); thetas[1].push_back(double(theta_300[1]));
+					}
+					if(runNum==4775 && pol==0 && unixTime==1420317765 && event==9533){
+						unixTimes[0].push_back(double(unixTime)); phis[0].push_back(double(phi_300[0])); thetas[0].push_back(double(theta_300[0]));
+					}
+					if(runNum==4775 && pol==1 && unixTime==1420317765 && event==9533){
+						unixTimes[1].push_back(double(unixTime)); phis[1].push_back(double(phi_300[1])); thetas[1].push_back(double(theta_300[1]));
+					}
+					if(runNum==4775 && pol==0 && unixTime==1420317765 && event==9536){
+						unixTimes[0].push_back(double(unixTime)); phis[0].push_back(double(phi_300[0])); thetas[0].push_back(double(theta_300[0]));
+					}
+					if(runNum==4775 && pol==1 && unixTime==1420317765 && event==9536){
+						unixTimes[1].push_back(double(unixTime)); phis[1].push_back(double(phi_300[1])); thetas[1].push_back(double(theta_300[1]));
+					}
+					if(runNum==4775 && pol==1 && unixTime==1420317816 && event==9570){
+						unixTimes[1].push_back(double(unixTime)); phis[1].push_back(double(phi_300[1])); thetas[1].push_back(double(theta_300[1]));
+					}
+					if(runNum==4775 && pol==0 && unixTime==1420317831 && event==9596){
+						unixTimes[0].push_back(double(unixTime)); phis[0].push_back(double(phi_300[0])); thetas[0].push_back(double(theta_300[0]));
+					}
+					if(runNum==4775 && pol==0 && unixTime==1420317832 && event==9598){
+						unixTimes[0].push_back(double(unixTime)); phis[0].push_back(double(phi_300[0])); thetas[0].push_back(double(theta_300[0]));
+					}
+					if(runNum==4775 && pol==0 && unixTime==1420317835 && event==9604){
+						unixTimes[0].push_back(double(unixTime)); phis[0].push_back(double(phi_300[0])); thetas[0].push_back(double(theta_300[0]));
+					}
+					if(runNum==4775 && pol==0 && unixTime==1420317859 && event==9615){
+						unixTimes[0].push_back(double(unixTime)); phis[0].push_back(double(phi_300[0])); thetas[0].push_back(double(theta_300[0]));
+					}
+
+					if(runNum==2868 && pol==0 && unixTime==1389382075 && event==928){
+						unixTimes[0].push_back(double(unixTime)); phis[0].push_back(double(phi_300[0])); thetas[0].push_back(double(theta_300[0]));
+					}
+					if(runNum==2868 && pol==0 && unixTime==1389383363 && event==1774){
+						unixTimes[0].push_back(double(unixTime)); phis[0].push_back(double(phi_300[0])); thetas[0].push_back(double(theta_300[0]));
+					}
+					if(runNum==2868 && pol==0 && unixTime==1389383366 && event==1777){
+						unixTimes[0].push_back(double(unixTime)); phis[0].push_back(double(phi_300[0])); thetas[0].push_back(double(theta_300[0]));
+					}
+
 					if(WFRMS[pol])
 						continue;
 				}	
@@ -222,8 +245,15 @@ int main(int argc, char **argv)
 		inputFile->Close();
 		delete inputFile;
 
-		TGraph *gr_outlier = new TGraph(unixTimes.size(),&unixTimes[0],&phis[0]);
-		gr_outlier->GetXaxis()->SetTimeDisplay(1); //turn on a time axis
+		TGraph *gr_outlier_phi_V = new TGraph(unixTimes[0].size(),&unixTimes[0][0],&phis[0][0]);
+		gr_outlier_phi_V->GetXaxis()->SetTimeDisplay(1); //turn on a time axis
+		TGraph *gr_outlier_thetas_V = new TGraph(unixTimes[0].size(),&unixTimes[0][0],&thetas[0][0]);
+		gr_outlier_thetas_V->GetXaxis()->SetTimeDisplay(1); //turn on a time axis
+
+		TGraph *gr_outlier_phi_H = new TGraph(unixTimes[1].size(),&unixTimes[1][0],&phis[1][0]);
+		gr_outlier_phi_H->GetXaxis()->SetTimeDisplay(1); //turn on a time axis
+		TGraph *gr_outlier_thetas_H = new TGraph(unixTimes[1].size(),&unixTimes[1][0],&thetas[1][0]);
+		gr_outlier_thetas_H->GetXaxis()->SetTimeDisplay(1); //turn on a time axis
 
 		char title[300];
 		gStyle->SetOptStat(111111);
@@ -233,24 +263,34 @@ int main(int argc, char **argv)
 			phi_vs_event[0]->Draw("");
 			phi_vs_event[0]->GetXaxis()->SetTitle("Unixtime");
 			phi_vs_event[0]->GetYaxis()->SetTitle("Phi");
-			// surface_distro[0]->GetYaxis()->SetTitleOffset(1.3);
-			// surface_distro_good[0]->Draw("same");
-			gr_outlier->Draw("sameP");
-			gr_outlier->SetMarkerColor(kRed);
-			gr_outlier->SetMarkerStyle(27);
-			gr_outlier->SetMarkerSize(2);
+			gr_outlier_phi_V->Draw("sameP");
+			gr_outlier_phi_V->SetMarkerColor(kRed);
+			gr_outlier_phi_V->SetMarkerStyle(27);
+			gr_outlier_phi_V->SetMarkerSize(2);
 		c_phi_vs_event->cd(2);
 			phi_vs_event[1]->Draw("");
 			phi_vs_event[1]->GetXaxis()->SetTitle("Unixtime");
 			phi_vs_event[1]->GetYaxis()->SetTitle("Phi");
+			gr_outlier_phi_H->Draw("sameP");
+			gr_outlier_phi_H->SetMarkerColor(kRed);
+			gr_outlier_phi_H->SetMarkerStyle(27);
+			gr_outlier_phi_H->SetMarkerSize(2);
 		c_phi_vs_event->cd(3);
 			theta_vs_event[0]->Draw("");
 			theta_vs_event[0]->GetXaxis()->SetTitle("Unixtime");
 			theta_vs_event[0]->GetYaxis()->SetTitle("Theta");
+			gr_outlier_thetas_V->Draw("sameP");
+			gr_outlier_thetas_V->SetMarkerColor(kRed);
+			gr_outlier_thetas_V->SetMarkerStyle(27);
+			gr_outlier_thetas_V->SetMarkerSize(2);			
 		c_phi_vs_event->cd(4);
 			theta_vs_event[1]->Draw("");
 			theta_vs_event[1]->GetXaxis()->SetTitle("Unixtime");
 			theta_vs_event[1]->GetYaxis()->SetTitle("Theta");
+			gr_outlier_thetas_H->Draw("sameP");
+			gr_outlier_thetas_H->SetMarkerColor(kRed);
+			gr_outlier_thetas_H->SetMarkerStyle(27);
+			gr_outlier_thetas_H->SetMarkerSize(2);	
 		sprintf(title, "%s/%d.%d.%d_A%d_Run%d_RecoVsTime.png",plotPath,year_now, month_now, day_now,station,runNum);
 		c_phi_vs_event->SaveAs(title);
 		delete c_phi_vs_event;
