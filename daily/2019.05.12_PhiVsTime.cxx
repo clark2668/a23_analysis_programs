@@ -22,6 +22,7 @@
 #include "TStyle.h"
 #include "TF1.h"
 #include "TLine.h"
+#include "TTimeStamp.h"
 
 //AraRoot includes
 #include "tools_PlottingFns.h"
@@ -53,20 +54,21 @@ int main(int argc, char **argv)
 
 	gStyle->SetOptStat(0);
 
-	// TDatime start(2015, 01, 03, 15, 30,0);
-	// int start_bin = start.Convert();
-	// TDatime stop(2015, 01, 03, 16, 00,0);
-	// int stop_bin = stop.Convert();
+	TTimeStamp start;
+	TTimeStamp stop;
+	start.Set(2014,01,10,19,15,0,0,true,0);
+	stop.Set(2014,01,10,20,15,0,0,true,0);
 
-	TDatime start(2014, 01, 10, 12, 15,0);
-	int start_bin = start.Convert();
-	TDatime stop(2014, 01, 10, 21, 15,0);
-	int stop_bin = stop.Convert();
+	// run 4775
+	// start.Set(2015, 01, 03, 15, 30,0,0,true,0);
+	// stop.Set(2015, 01, 03, 16, 00,0,0,true,0);
 
-	// TDatime start(2016, 01, 12, 00, 00,0);
-	// int start_bin = start.Convert();
-	// TDatime stop(2016, 01, 12, 24, 00,0);
-	// int stop_bin = stop.Convert();
+	// run 6705
+	// start.Set(2016, 01, 12, 00, 00,0,0,true,0);
+	// stop.Set(2016, 01, 12, 24, 00,0,0,true,0);
+
+	int start_bin = start.GetSec();
+	int stop_bin = stop.GetSec();
 
 	TH2D *phi_vs_event[2];
 	TH2D *theta_vs_event[2];
@@ -79,7 +81,8 @@ int main(int argc, char **argv)
 		phi_vs_event[i]->GetXaxis()->SetTimeFormat("%H:%M");
 		theta_vs_event[i]->GetXaxis()->SetTimeDisplay(1); //turn on a time axis
 		theta_vs_event[i]->GetXaxis()->SetTimeFormat("%H:%M");
-		// phi_vs_event[i]->GetXaxis()->SetNdivisions(31,0,0,false);
+		phi_vs_event[i]->GetXaxis()->SetTimeOffset(0.,"GMT");
+		theta_vs_event[i]->GetXaxis()->SetTimeOffset(0.,"GMT");
 	}
 
 	vector<vector<double> > unixTimes;
@@ -88,6 +91,12 @@ int main(int argc, char **argv)
 	unixTimes.resize(2);
 	phis.resize(2);
 	thetas.resize(2);
+	vector<vector<double> > all_unixTimes;
+	vector<vector<double> > all_phis;
+	vector<vector<double> > all_thetas;
+	all_unixTimes.resize(2);
+	all_phis.resize(2);
+	all_thetas.resize(2);	
 
 	for(int file_num=2; file_num<argc; file_num++){
 
@@ -192,6 +201,9 @@ int main(int argc, char **argv)
 				for(int pol=0; pol<2; pol++){
 					phi_vs_event[pol]->Fill(unixTime, phi_300[pol]);
 					theta_vs_event[pol]->Fill(unixTime, theta_300[pol]);
+					all_unixTimes[pol].push_back(unixTime);
+					all_phis[pol].push_back(phi_300[pol]);
+					all_thetas[pol].push_back(theta_300[pol]);
 
 					if(runNum==4775 && pol==0 && unixTime==1420317755 && event==9520){
 						unixTimes[0].push_back(double(unixTime)); phis[0].push_back(double(phi_300[0])); thetas[0].push_back(double(theta_300[0]));
@@ -255,46 +267,113 @@ int main(int argc, char **argv)
 		TGraph *gr_outlier_thetas_H = new TGraph(unixTimes[1].size(),&unixTimes[1][0],&thetas[1][0]);
 		gr_outlier_thetas_H->GetXaxis()->SetTimeDisplay(1); //turn on a time axis
 
+		vector<TGraph*> g_phi_vs_event;
+		vector<TGraph*> g_theta_vs_event;
+		for(int pol=0; pol<2; pol++){
+			g_phi_vs_event.push_back(new TGraph(all_unixTimes[pol].size(), &all_unixTimes[pol][0], &all_phis[pol][0]));
+			g_theta_vs_event.push_back(new TGraph(all_unixTimes[pol].size(), &all_unixTimes[pol][0], &all_thetas[pol][0]));
+			
+			g_phi_vs_event[pol]->GetXaxis()->SetTimeDisplay(1); //turn on a time axis
+			g_theta_vs_event[pol]->GetXaxis()->SetTimeDisplay(1); //turn on a time axis
+			g_phi_vs_event[pol]->GetXaxis()->SetTimeFormat("%H:%M");
+			g_theta_vs_event[pol]->GetXaxis()->SetTimeFormat("%H:%M");
+			g_phi_vs_event[pol]->GetXaxis()->SetTimeOffset(0.,"GMT");
+			g_theta_vs_event[pol]->GetXaxis()->SetTimeOffset(0.,"GMT");
+		}
+
 		char title[300];
 		gStyle->SetOptStat(111111);
-		TCanvas *c_phi_vs_event = new TCanvas("","",2*850,2*850);
+		TCanvas *c_phi_vs_event = new TCanvas("","",2*1100,2*850);
 		c_phi_vs_event->Divide(2,2);
 		c_phi_vs_event->cd(1);
-			phi_vs_event[0]->Draw("");
-			phi_vs_event[0]->GetXaxis()->SetTitle("Unixtime");
-			phi_vs_event[0]->GetYaxis()->SetTitle("Phi");
+			g_phi_vs_event[0]->Draw("AP");
+			g_phi_vs_event[0]->GetXaxis()->SetTitle("Unixtime");
+			g_phi_vs_event[0]->GetYaxis()->SetTitle("Phi");
+			g_phi_vs_event[0]->SetMarkerSize(0.5);
+			g_phi_vs_event[0]->SetMarkerStyle(31);
+			g_phi_vs_event[0]->GetXaxis()->SetRangeUser(start_bin, stop_bin);
 			gr_outlier_phi_V->Draw("sameP");
 			gr_outlier_phi_V->SetMarkerColor(kRed);
-			gr_outlier_phi_V->SetMarkerStyle(27);
+			gr_outlier_phi_V->SetMarkerStyle(4);
 			gr_outlier_phi_V->SetMarkerSize(2);
 		c_phi_vs_event->cd(2);
-			phi_vs_event[1]->Draw("");
-			phi_vs_event[1]->GetXaxis()->SetTitle("Unixtime");
-			phi_vs_event[1]->GetYaxis()->SetTitle("Phi");
+			g_phi_vs_event[1]->Draw("AP");
+			g_phi_vs_event[1]->GetXaxis()->SetTitle("Unixtime");
+			g_phi_vs_event[1]->GetYaxis()->SetTitle("Phi");
+			g_phi_vs_event[1]->SetMarkerSize(0.5);
+			g_phi_vs_event[1]->SetMarkerStyle(31);
+			g_phi_vs_event[1]->GetXaxis()->SetRangeUser(start_bin, stop_bin);
 			gr_outlier_phi_H->Draw("sameP");
 			gr_outlier_phi_H->SetMarkerColor(kRed);
-			gr_outlier_phi_H->SetMarkerStyle(27);
+			gr_outlier_phi_H->SetMarkerStyle(4);
 			gr_outlier_phi_H->SetMarkerSize(2);
 		c_phi_vs_event->cd(3);
-			theta_vs_event[0]->Draw("");
-			theta_vs_event[0]->GetXaxis()->SetTitle("Unixtime");
-			theta_vs_event[0]->GetYaxis()->SetTitle("Theta");
+			g_theta_vs_event[0]->Draw("AP");
+			g_theta_vs_event[0]->GetXaxis()->SetTitle("Unixtime");
+			g_theta_vs_event[0]->GetYaxis()->SetTitle("Theta");
+			g_theta_vs_event[0]->SetMarkerSize(0.5);
+			g_theta_vs_event[0]->SetMarkerStyle(31);
+			g_theta_vs_event[0]->GetXaxis()->SetRangeUser(start_bin, stop_bin);
 			gr_outlier_thetas_V->Draw("sameP");
 			gr_outlier_thetas_V->SetMarkerColor(kRed);
-			gr_outlier_thetas_V->SetMarkerStyle(27);
+			gr_outlier_thetas_V->SetMarkerStyle(4);
 			gr_outlier_thetas_V->SetMarkerSize(2);			
 		c_phi_vs_event->cd(4);
-			theta_vs_event[1]->Draw("");
-			theta_vs_event[1]->GetXaxis()->SetTitle("Unixtime");
-			theta_vs_event[1]->GetYaxis()->SetTitle("Theta");
+			g_theta_vs_event[1]->Draw("AP");
+			g_theta_vs_event[1]->GetXaxis()->SetTitle("Unixtime");
+			g_theta_vs_event[1]->GetYaxis()->SetTitle("Theta");
+			g_theta_vs_event[1]->SetMarkerSize(0.5);
+			g_theta_vs_event[1]->SetMarkerStyle(31);
+			g_theta_vs_event[1]->GetXaxis()->SetRangeUser(start_bin, stop_bin);
 			gr_outlier_thetas_H->Draw("sameP");
 			gr_outlier_thetas_H->SetMarkerColor(kRed);
-			gr_outlier_thetas_H->SetMarkerStyle(27);
+			gr_outlier_thetas_H->SetMarkerStyle(4);
 			gr_outlier_thetas_H->SetMarkerSize(2);	
 		sprintf(title, "%s/%d.%d.%d_A%d_Run%d_RecoVsTime.png",plotPath,year_now, month_now, day_now,station,runNum);
 		c_phi_vs_event->SaveAs(title);
 		delete c_phi_vs_event;
-		delete phi_vs_event[0]; delete phi_vs_event[1];	
+		delete g_phi_vs_event[0]; delete g_theta_vs_event[1];
+
+		// char title[300];
+		// gStyle->SetOptStat(111111);
+		// TCanvas *c_phi_vs_event = new TCanvas("","",2*1100,2*850);
+		// c_phi_vs_event->Divide(2,2);
+		// c_phi_vs_event->cd(1);
+		// 	phi_vs_event[0]->Draw("");
+		// 	phi_vs_event[0]->GetXaxis()->SetTitle("Unixtime");
+		// 	phi_vs_event[0]->GetYaxis()->SetTitle("Phi");
+		// 	gr_outlier_phi_V->Draw("sameP");
+		// 	gr_outlier_phi_V->SetMarkerColor(kRed);
+		// 	gr_outlier_phi_V->SetMarkerStyle(27);
+		// 	gr_outlier_phi_V->SetMarkerSize(2);
+		// c_phi_vs_event->cd(2);
+		// 	phi_vs_event[1]->Draw("");
+		// 	phi_vs_event[1]->GetXaxis()->SetTitle("Unixtime");
+		// 	phi_vs_event[1]->GetYaxis()->SetTitle("Phi");
+		// 	gr_outlier_phi_H->Draw("sameP");
+		// 	gr_outlier_phi_H->SetMarkerColor(kRed);
+		// 	gr_outlier_phi_H->SetMarkerStyle(27);
+		// 	gr_outlier_phi_H->SetMarkerSize(2);
+		// c_phi_vs_event->cd(3);
+		// 	theta_vs_event[0]->Draw("");
+		// 	theta_vs_event[0]->GetXaxis()->SetTitle("Unixtime");
+		// 	theta_vs_event[0]->GetYaxis()->SetTitle("Theta");
+		// 	gr_outlier_thetas_V->Draw("sameP");
+		// 	gr_outlier_thetas_V->SetMarkerColor(kRed);
+		// 	gr_outlier_thetas_V->SetMarkerStyle(27);
+		// 	gr_outlier_thetas_V->SetMarkerSize(2);			
+		// c_phi_vs_event->cd(4);
+		// 	theta_vs_event[1]->Draw("");
+		// 	theta_vs_event[1]->GetXaxis()->SetTitle("Unixtime");
+		// 	theta_vs_event[1]->GetYaxis()->SetTitle("Theta");
+		// 	gr_outlier_thetas_H->Draw("sameP");
+		// 	gr_outlier_thetas_H->SetMarkerColor(kRed);
+		// 	gr_outlier_thetas_H->SetMarkerStyle(27);
+		// 	gr_outlier_thetas_H->SetMarkerSize(2);	
+		// sprintf(title, "%s/%d.%d.%d_A%d_Run%d_RecoVsTime.png",plotPath,year_now, month_now, day_now,station,runNum);
+		// c_phi_vs_event->SaveAs(title);
+		// delete c_phi_vs_event;
+		// delete phi_vs_event[0]; delete phi_vs_event[1];	
 	}
 
 }
