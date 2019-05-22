@@ -126,7 +126,8 @@ int main(int argc, char **argv)
 	xLabel = "Frequency (Hz)"; yLabel = "Power Spectral Density (mV/Hz)";
 	vector<TGraph*> grWaveformsPowerSpectrum = makePowerSpectrumGraphs(grWaveformsPadded, xLabel, yLabel, titlesForGraphs);
 
-	bool do_reco=false;
+	gStyle->SetOptStat(0);
+	bool do_reco=true;
 	if(do_reco){
 		//set up the ray tracer
 		Settings *settings = new Settings();
@@ -150,25 +151,40 @@ int main(int argc, char **argv)
 		map_30m_H = theCorrelators[0]->getInterferometricMap_RT(settings, detector, realAtriEvPtr, Hpol, 0, 0);
 		map_300m_H = theCorrelators[1]->getInterferometricMap_RT(settings, detector, realAtriEvPtr, Hpol, 0, 0);
 
-		int PeakTheta_Recompute_30m;
-		int PeakTheta_Recompute_300m;
-		int PeakPhi_Recompute_30m;
-		int PeakPhi_Recompute_300m;
-		double PeakCorr_Recompute_30m;
-		double PeakCorr_Recompute_300m;
-		double MinCorr_Recompute_30m;
-		double MinCorr_Recompute_300m;
-		double MeanCorr_Recompute_30m;
-		double MeanCorr_Recompute_300m;
-		double RMSCorr_Recompute_30m;
-		double RMSCorr_Recompute_300m;
-		double PeakSigma_Recompute_30m;
-		double PeakSigma_Recompute_300m;
-		getCorrMapPeak_wStats(map_30m_H,PeakTheta_Recompute_30m,PeakPhi_Recompute_30m,PeakCorr_Recompute_30m,MinCorr_Recompute_30m,MeanCorr_Recompute_30m,RMSCorr_Recompute_30m,PeakSigma_Recompute_30m);
-		getCorrMapPeak_wStats(map_300m_H,PeakTheta_Recompute_300m,PeakPhi_Recompute_300m,PeakCorr_Recompute_300m,MinCorr_Recompute_300m,MeanCorr_Recompute_300m,RMSCorr_Recompute_300m,PeakSigma_Recompute_300m);
+		int PeakTheta_Recompute_30m_H;
+		int PeakTheta_Recompute_300m_H;
+		int PeakPhi_Recompute_30m_H;
+		int PeakPhi_Recompute_300m_H;
+		double PeakCorr_Recompute_30m_H;
+		double PeakCorr_Recompute_300m_H;
+		int PeakTheta_Recompute_30m_V;
+		int PeakTheta_Recompute_300m_V;
+		int PeakPhi_Recompute_30m_V;
+		int PeakPhi_Recompute_300m_V;
+		double PeakCorr_Recompute_30m_V;
+		double PeakCorr_Recompute_300m_V;
+		getCorrMapPeak(map_30m_H,PeakTheta_Recompute_30m_H,PeakPhi_Recompute_30m_H,PeakCorr_Recompute_30m_H);
+		getCorrMapPeak(map_300m_H,PeakTheta_Recompute_300m_H,PeakPhi_Recompute_300m_H,PeakCorr_Recompute_300m_H);
+		getCorrMapPeak(map_30m_V,PeakTheta_Recompute_30m_V,PeakPhi_Recompute_30m_V,PeakCorr_Recompute_30m_V);
+		getCorrMapPeak(map_300m_V,PeakTheta_Recompute_300m_V,PeakPhi_Recompute_300m_V,PeakCorr_Recompute_300m_V);
 
-		printf("30m theta and phi %d and %d \n", PeakTheta_Recompute_30m, PeakPhi_Recompute_30m);
-		printf("300m theta and phi %d and %d \n", PeakTheta_Recompute_300m, PeakPhi_Recompute_300m);
+		printf("	Rconstruction Information\n");
+		printf("		30m H theta and phi %d and %d \n", PeakTheta_Recompute_30m_H, PeakPhi_Recompute_30m_H);
+		stringstream ss30H;
+		ss30H<<" 30m H Peak Theta, Phi is "<<PeakTheta_Recompute_30m_H<<" , "<<PeakPhi_Recompute_30m_H;
+		map_30m_H->SetTitle(ss30H.str().c_str());
+		printf("		300m H theta and phi %d and %d \n", PeakTheta_Recompute_300m_H, PeakPhi_Recompute_300m_H);
+		stringstream ss300H;
+		ss300H<<" 300m H Peak Theta, Phi is "<<PeakTheta_Recompute_300m_H<<" , "<<PeakPhi_Recompute_300m_H;
+		map_300m_H->SetTitle(ss300H.str().c_str());
+		printf("		30m V theta and phi %d and %d \n", PeakTheta_Recompute_30m_V, PeakPhi_Recompute_30m_V);
+		stringstream ss30V;
+		ss30V<<" 30m V Peak Theta, Phi is "<<PeakTheta_Recompute_30m_V<<" , "<<PeakPhi_Recompute_30m_V;
+		map_30m_V->SetTitle(ss30V.str().c_str());
+		printf("		300m V theta and phi %d and %d \n", PeakTheta_Recompute_300m_V, PeakPhi_Recompute_300m_V);
+		stringstream ss300V;
+		ss300V<<" 300m V Peak Theta, Phi is "<<PeakTheta_Recompute_300m_V<<" , "<<PeakPhi_Recompute_300m_V;
+		map_300m_V->SetTitle(ss300V.str().c_str());
 
 		TCanvas *cMaps = new TCanvas("","",2*1100,2*850);
 		cMaps->Divide(2,2);
@@ -180,10 +196,85 @@ int main(int argc, char **argv)
 			map_300m_V->Draw("colz");
 			cMaps->cd(2);
 			map_300m_H->Draw("colz");
-			// cMaps->cd(5);
-			// map_30m_V_select->Draw("colz");
 		char save_temp_title[400];		
 		sprintf(save_temp_title,"%s/single_events/%d.%d.%d_Run%d_Ev%d_Maps.png",plotPath,year_now,month_now,day_now,runNum,event);
+		cMaps->SaveAs(save_temp_title);
+		delete cMaps;
+		delete map_30m_V; delete map_300m_V; delete map_30m_H; delete map_300m_H; 
+		// delete map_30m_V_select;
+	}
+
+	bool do_reco_snrweighted=true;
+	if(do_reco_snrweighted){
+		//set up the ray tracer
+		Settings *settings = new Settings();
+		string setupfile = "setup.txt";
+		settings->ReadFile(setupfile);
+		cout << "Read " << setupfile << " file!" << endl;
+		settings->NOFZ=1;
+		Detector *detector=0;
+		RayTraceCorrelator *theCorrelators[2];
+		theCorrelators[0] =  new RayTraceCorrelator(station, 41., settings, 1, 4); //41 m, cal puser
+		theCorrelators[1] =  new RayTraceCorrelator(station, 300., settings, 1, 4);//300 m, far reco
+
+		TH2D *map_30m_V;
+		TH2D *map_300m_V;
+		TH2D *map_30m_H;
+		TH2D *map_300m_H;
+		TH2D *map_30m_V_select;
+
+		map_30m_V = theCorrelators[0]->getInterferometricMap_RT_SNRweighted(settings, detector, realAtriEvPtr, Vpol, 0, 0);
+		map_300m_V = theCorrelators[1]->getInterferometricMap_RT_SNRweighted(settings, detector, realAtriEvPtr, Vpol, 0, 0);
+		map_30m_H = theCorrelators[0]->getInterferometricMap_RT_SNRweighted(settings, detector, realAtriEvPtr, Hpol, 0, 0);
+		map_300m_H = theCorrelators[1]->getInterferometricMap_RT_SNRweighted(settings, detector, realAtriEvPtr, Hpol, 0, 0);
+
+		int PeakTheta_Recompute_30m_H;
+		int PeakTheta_Recompute_300m_H;
+		int PeakPhi_Recompute_30m_H;
+		int PeakPhi_Recompute_300m_H;
+		double PeakCorr_Recompute_30m_H;
+		double PeakCorr_Recompute_300m_H;
+		int PeakTheta_Recompute_30m_V;
+		int PeakTheta_Recompute_300m_V;
+		int PeakPhi_Recompute_30m_V;
+		int PeakPhi_Recompute_300m_V;
+		double PeakCorr_Recompute_30m_V;
+		double PeakCorr_Recompute_300m_V;
+		getCorrMapPeak(map_30m_H,PeakTheta_Recompute_30m_H,PeakPhi_Recompute_30m_H,PeakCorr_Recompute_30m_H);
+		getCorrMapPeak(map_300m_H,PeakTheta_Recompute_300m_H,PeakPhi_Recompute_300m_H,PeakCorr_Recompute_300m_H);
+		getCorrMapPeak(map_30m_V,PeakTheta_Recompute_30m_V,PeakPhi_Recompute_30m_V,PeakCorr_Recompute_30m_V);
+		getCorrMapPeak(map_300m_V,PeakTheta_Recompute_300m_V,PeakPhi_Recompute_300m_V,PeakCorr_Recompute_300m_V);
+
+		printf("	Rconstruction Information\n");
+		printf("		30m H theta and phi %d and %d \n", PeakTheta_Recompute_30m_H, PeakPhi_Recompute_30m_H);
+		stringstream ss30H;
+		ss30H<<" 30m H Peak Theta, Phi is "<<PeakTheta_Recompute_30m_H<<" , "<<PeakPhi_Recompute_30m_H;
+		map_30m_H->SetTitle(ss30H.str().c_str());
+		printf("		300m H theta and phi %d and %d \n", PeakTheta_Recompute_300m_H, PeakPhi_Recompute_300m_H);
+		stringstream ss300H;
+		ss300H<<" 300m H Peak Theta, Phi is "<<PeakTheta_Recompute_300m_H<<" , "<<PeakPhi_Recompute_300m_H;
+		map_300m_H->SetTitle(ss300H.str().c_str());
+		printf("		30m V theta and phi %d and %d \n", PeakTheta_Recompute_30m_V, PeakPhi_Recompute_30m_V);
+		stringstream ss30V;
+		ss30V<<" 30m V Peak Theta, Phi is "<<PeakTheta_Recompute_30m_V<<" , "<<PeakPhi_Recompute_30m_V;
+		map_30m_V->SetTitle(ss30V.str().c_str());
+		printf("		300m V theta and phi %d and %d \n", PeakTheta_Recompute_300m_V, PeakPhi_Recompute_300m_V);
+		stringstream ss300V;
+		ss300V<<" 300m V Peak Theta, Phi is "<<PeakTheta_Recompute_300m_V<<" , "<<PeakPhi_Recompute_300m_V;
+		map_300m_V->SetTitle(ss300V.str().c_str());
+
+		TCanvas *cMaps = new TCanvas("","",2*1100,2*850);
+		cMaps->Divide(2,2);
+			cMaps->cd(3);
+			map_30m_V->Draw("colz");
+			cMaps->cd(4);
+			map_30m_H->Draw("colz");
+			cMaps->cd(1);
+			map_300m_V->Draw("colz");
+			cMaps->cd(2);
+			map_300m_H->Draw("colz");
+		char save_temp_title[400];		
+		sprintf(save_temp_title,"%s/single_events/%d.%d.%d_Run%d_Ev%d_Maps_SNRweighted.png",plotPath,year_now,month_now,day_now,runNum,event);
 		cMaps->SaveAs(save_temp_title);
 		delete cMaps;
 		delete map_30m_V; delete map_300m_V; delete map_30m_H; delete map_300m_H; 
