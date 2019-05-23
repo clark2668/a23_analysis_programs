@@ -21,6 +21,7 @@
 #include "TCanvas.h"
 #include "TStyle.h"
 #include "TF1.h"
+#include "TLine.h"
 
 //AraRoot includes
 #include "RawAtriStationEvent.h"
@@ -29,6 +30,7 @@
 #include "Detector.h"
 #include "Report.h"
 #include "RayTraceCorrelator.h"
+#include "AraGeomTool.h"
 AraAntPol::AraAntPol_t Vpol = AraAntPol::kVertical;
 AraAntPol::AraAntPol_t Hpol = AraAntPol::kHorizontal;
 
@@ -49,7 +51,7 @@ using namespace std;
 
 int main(int argc, char **argv)
 {
-	gStyle->SetOptStat(0);
+	gStyle->SetOptStat(1111);
 	
 	time_t time_now = time(0); //get the time now                                                                                                                                                                  
 	tm *time = localtime(&time_now);
@@ -58,11 +60,13 @@ int main(int argc, char **argv)
 	int day_now = time -> tm_mday;
 
 	if(argc<3){
-		cout<< "Usage\n" << argv[0] << " <station> <config> <reco_val_save_file_1> <reco_val_save_file_2 > ... <reco_val_save_file_x>"<<endl;
+		cout<< "Usage\n" << argv[0] << " <station> <config> <pulser> <pol> <reco_val_save_file_1> <reco_val_save_file_2 > ... <reco_val_save_file_x>"<<endl;
 		return 0;
 	}
 	int station = atoi(argv[1]);
 	int config = atoi(argv[2]);
+	int pulser = atoi(argv[3]);
+	int pol = atoi(argv[4]);
 
 	//set up the ray tracer
 	Settings *settings = new Settings();
@@ -95,7 +99,7 @@ int main(int argc, char **argv)
 
 	int num_total=0;
 
-	for(int file_num=3; file_num<argc; file_num++){
+	for(int file_num=5; file_num<argc; file_num++){
 
 		cout << "Run " << file_num << " :: " << argv[file_num] << endl;
 
@@ -154,10 +158,9 @@ int main(int argc, char **argv)
 				locations_phi_slice[0]->Fill(phi_41_V);
 				locations_theta_slice[0]->Fill(theta_41_V);
 
-				double this_phi = phi_41_V;
-				double this_theta = theta_41_V;
-				// if(this_phi>100 && this_phi<150){
-				// if(this_phi<63){
+				// double this_phi = phi_41_V;
+				// double this_theta = theta_41_V;
+				// if(this_phi>-50 && this_phi<0 && this_theta<-30){
 				// 	PlotThisEvent(station, config, runNum, event, settings, detector, theCorrelators);
 				// }
 
@@ -187,134 +190,127 @@ int main(int argc, char **argv)
 		locations[pol]->GetXaxis()->SetTitle("Phi (deg)");
 		locations[pol]->SetTitle(graph_title[pol]);
 		gPad->SetLogz();
-		// locations[pol]->GetXaxis()->SetRangeUser(0,10);
-		// locations[pol]->GetYaxis()->SetRangeUser(0,0.5);
 	}
-	sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_DistroCalPulses.png",plotPath,year_now, month_now, day_now,station,config,num_total);
+	sprintf(title, "%s/cal_cut/%d.%d.%d_A%d_c%d_%dEvents_DistroCalPulses.png",plotPath,year_now, month_now, day_now,station,config,num_total);
 	c->SaveAs(title);
 	delete c;
 	delete locations[0]; delete locations[1];
 
-	int peakPhi_bin, peakTheta_bin, peakZ;
-	locations_zoom[0]->GetMaximumBin(peakPhi_bin, peakTheta_bin, peakZ);
+
+
+	int projectX_low, projectX_high, projectY_low, projectY_high;
+	getCalCutPlotBoundary(station,config,pulser,pol,false,projectX_low,projectX_high,projectY_low,projectY_high);
+
+	double real_phi, real_theta;
+	cout<<"Pulser is "<<pulser<<endl;
+	getRealLocation(station,pulser,pol,real_theta,real_phi);
+	printf("Theta, Phi %.2f %.2f\n", real_theta, real_phi);
+	TLine theta_line_2D(projectX_low,double(real_theta),projectX_high,double(real_theta));
+	TLine phi_line_2D(real_phi,projectY_low,real_phi,projectY_high);
 
 	TCanvas *c2 = new TCanvas("","",3*850,850);
 	c2->Divide(3,1);
 	c2->cd(1);
-		locations_zoom[0]->Draw("colz");
-		locations_zoom[0]->GetYaxis()->SetTitle("Theta (deg)");
-		locations_zoom[0]->GetXaxis()->SetTitle("Phi (deg)");
-		locations_zoom[0]->SetTitle(graph_title[0]);
+		locations_zoom[pol]->Draw("colz");
+		locations_zoom[pol]->GetYaxis()->SetTitle("Theta (deg)");
+		locations_zoom[pol]->GetXaxis()->SetTitle("Phi (deg)");
+		locations_zoom[pol]->SetTitle(graph_title[0]);
 		gPad->SetLogz();
-		locations_zoom[0]->GetXaxis()->SetRangeUser(55,75);
-		locations_zoom[0]->GetYaxis()->SetRangeUser(-4,14);
+		locations_zoom[pol]->GetXaxis()->SetRangeUser(projectX_low,projectX_high);
+		locations_zoom[pol]->GetYaxis()->SetRangeUser(projectY_low,projectY_high);
 
+	TH2D *locations_zoom_clone[2];
+	locations_zoom_clone[0] = (TH2D*) locations_zoom[0]->Clone();
+	locations_zoom_clone[1] = (TH2D*) locations_zoom[1]->Clone();
+
+	getCalCutPlotBoundary(station,config,pulser,pol,true,projectX_low,projectX_high,projectY_low,projectY_high);
 	TH1D *project_V[2];
-	project_V[0] = (TH1D*) locations_zoom[0]->ProjectionX("",peakTheta_bin-5,peakTheta_bin+5)->Clone();
-	project_V[1] = locations_zoom[0]->ProjectionY("",peakPhi_bin-5,peakPhi_bin+5);
+	project_V[0] = (TH1D*) locations_zoom_clone[pol]->ProjectionX("",projectY_low,projectY_high)->Clone();
+	project_V[1] = (TH1D*) locations_zoom_clone[pol]->ProjectionY("",projectX_low,projectX_high)->Clone();
 	project_V[0]->SetTitle("Phi Projection near peak");
 	project_V[1]->SetTitle("Theta Projection near peak");
+	Double_t scale = 1/project_V[0]->Integral();
+	project_V[0]->Scale(scale);
+	scale = 1/project_V[1]->Integral();
+	project_V[1]->Scale(scale);
+
+	double startPhiFit, stopPhiFit, startThetaFit, stopThetaFit;
+	getCalFitRange(station, config, pulser,pol, startPhiFit, stopPhiFit, startThetaFit, stopThetaFit);
 
 	char equation_phi[150];
 	sprintf(equation_phi,"gaus");
-	TF1 *fit_phi = new TF1("GausFit_phi",equation_phi,62.,70.);
+	TF1 *fit_phi = new TF1("GausFit_phi",equation_phi,startPhiFit,stopPhiFit);
 	project_V[0]->Fit("GausFit_phi");
 	printf("Chi-Square/NDF %.2f / %.2f \n",fit_phi->GetChisquare(),double(fit_phi->GetNDF()));
 	char fit_graph_title_phi[150];
-	// sprintf(fit_graph_title,"Vpol %.2f*exp(-0.5((x-%.2f)/%.2f)^2)     #chi^{2}/NDF = %.2f / %d \n",fit->GetParameter(0), fit->GetParameter(1),fit->GetParameter(2),fit->GetChisquare(),fit->GetNDF());
-	sprintf(fit_graph_title_phi,"Vpol %.2f*exp(-0.5((x-%.2f)/%.2f)^2)\n",fit_phi->GetParameter(0), fit_phi->GetParameter(1),fit_phi->GetParameter(2));
+	// sprintf(fit_graph_title_phi,"Vpol %.2f*exp(-0.5((x-%.2f)/%.2f)^2)     #chi^{2}/NDF = %.2f / %d \n",fit_phi->GetParameter(0), fit_phi->GetParameter(1),fit_phi->GetParameter(2),fit_phi->GetChisquare(),fit_phi->GetNDF());
+	// sprintf(fit_graph_title_phi,"Vpol %.2f*exp(-0.5((x-%.2f)/%.2f)^2)\n",fit_phi->GetParameter(0), fit_phi->GetParameter(1),fit_phi->GetParameter(2));
+	sprintf(fit_graph_title_phi,"Phi Fit #mu=%.2f, #sigma=%.2f. Expected: %.2f. ",fit_phi->GetParameter(1),fit_phi->GetParameter(2),real_phi);
+
 
 	char equation_theta[150];
 	sprintf(equation_theta,"gaus");
-	TF1 *fit_theta= new TF1("GausFit_theta",equation_theta,2.,10.);
+	TF1 *fit_theta= new TF1("GausFit_theta",equation_theta,startThetaFit,stopThetaFit);
 	project_V[1]->Fit("GausFit_theta");
 	printf("Chi-Square/NDF %.2f / %.2f \n",fit_theta->GetChisquare(),double(fit_theta->GetNDF()));
 	char fit_graph_title_theta[150];
-	// sprintf(fit_graph_title,"Vpol %.2f*exp(-0.5((x-%.2f)/%.2f)^2)     #chi^{2}/NDF = %.2f / %d \n",fit->GetParameter(0), fit->GetParameter(1),fit->GetParameter(2),fit->GetChisquare(),fit->GetNDF());
-	sprintf(fit_graph_title_theta,"Vpol %.2f*exp(-0.5((x-%.2f)/%.2f)^2)\n",fit_theta->GetParameter(0), fit_theta->GetParameter(1),fit_theta->GetParameter(2));  
+	// sprintf(fit_graph_title_theta,"Vpol %.2f*exp(-0.5((x-%.2f)/%.2f)^2)     #chi^{2}/NDF = %.2f / %d \n",fit_theta->GetParameter(0), fit_theta->GetParameter(1),fit_theta->GetParameter(2),fit_theta->GetChisquare(),fit_theta->GetNDF());
+	// sprintf(fit_graph_title_theta,"Vpol %.2f*exp(-0.5((x-%.2f)/%.2f)^2)\n",fit_theta->GetParameter(0), fit_theta->GetParameter(1),fit_theta->GetParameter(2));  
+	sprintf(fit_graph_title_theta,"Theta Fit #mu=%.2f, #sigma=%.2f. Expected %.2f ",fit_theta->GetParameter(1),fit_theta->GetParameter(2),real_theta);
 
-	locations_zoom[0]->Draw("colz");
 	printf("Six sigma point phi %.2f \n",6.*fit_phi->GetParameter(2));
 	printf("Six sigma points phi %.2f to %.2f \n",(fit_phi->GetParameter(1) - 6.*fit_phi->GetParameter(2)),(fit_phi->GetParameter(1) + 6.*fit_phi->GetParameter(2)));	
 	printf("Six sigma point theta %.2f to %.2f \n",(fit_theta->GetParameter(1) - 6.*fit_theta->GetParameter(2)),(fit_theta->GetParameter(1) + 6.*fit_theta->GetParameter(2)));
 
+	/*
+		We live in ROOT's world where we now need to redraw things...
+	*/
+
+	locations_zoom[0]->Draw("colz");
+	phi_line_2D.Draw("");
+	theta_line_2D.Draw("");
+	phi_line_2D.SetLineStyle(9);
+	theta_line_2D.SetLineStyle(9);
+	theta_line_2D.SetLineWidth(2);
+	phi_line_2D.SetLineWidth(2);
+
+	// double max_amp;
+	// max_amp=project_V[0]->GetMaximum()*7;
+	// if(project_V[1]->GetMaximum()*7 > max_amp)
+	// 	max_amp=project_V[1]->GetMaximum()*7;
+
 	c2->cd(2);
 		project_V[0]->Draw();
-		project_V[0]->GetYaxis()->SetTitle("Events");
+		project_V[0]->GetYaxis()->SetTitle("Normalized Number of Events");
 		project_V[0]->GetXaxis()->SetTitle("Phi (deg)");
 		project_V[0]->SetTitle(fit_graph_title_phi);
 		gPad->SetLogy();
-		project_V[0]->GetYaxis()->SetRangeUser(0.1,4e6);
+		project_V[0]->GetYaxis()->SetTitleOffset(1.5);
+		// project_V[0]->GetYaxis()->SetRangeUser(0.1,max_amp);
+		// TLine phi_proj_line(real_phi,0.1,real_phi,max_amp);
+		project_V[0]->GetYaxis()->SetRangeUser(1e-7,3);
+		TLine phi_proj_line(real_phi,1e-7,real_phi,3);
+		phi_proj_line.Draw("");
+		phi_proj_line.SetLineStyle(9);
+		phi_proj_line.SetLineWidth(2);
 	c2->cd(3);
 		project_V[1]->Draw();
-		project_V[1]->GetYaxis()->SetTitle("Events");
+		project_V[1]->GetYaxis()->SetTitle("Normalized Number of Events");
 		project_V[1]->GetXaxis()->SetTitle("Theta (deg)");
 		project_V[1]->SetTitle(graph_title[0]);
 		project_V[1]->SetTitle(fit_graph_title_theta);
 		gPad->SetLogy();
-		project_V[1]->GetYaxis()->SetRangeUser(0.1,4e6);
-	sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_DistroCalPulses_Vpol_Zoom.png",plotPath, year_now, month_now, day_now,station,config,num_total);
+		project_V[1]->GetYaxis()->SetTitleOffset(1.5);
+		// project_V[1]->GetYaxis()->SetRangeUser(0.1,max_amp);
+		// TLine theta_proj_line(real_theta,0.1,real_theta,max_amp);		
+		project_V[1]->GetYaxis()->SetRangeUser(1e-7,3);
+		TLine theta_proj_line(real_theta,1e-7,real_theta,3);
+		theta_proj_line.Draw("");
+		theta_proj_line.SetLineStyle(9);
+		theta_proj_line.SetLineWidth(2);
+	sprintf(title, "%s/cal_cut/%d.%d.%d_A%d_c%d_%dEvents_DistroCalPulses_Pol%d_CP%d_Zoom.png",plotPath, year_now, month_now, day_now,station,config,num_total,pol,pulser);
 	c2->SaveAs(title);
 	delete c2;
-
-	// TCanvas *c3 = new TCanvas("","",3.1*850,850);
-	// c3->Divide(3,1);
-	// c3->cd(1);
-	// 	locations_zoom[0]->Draw("colz");
-	// 	locations_zoom[0]->GetYaxis()->SetTitle("Theta (deg)");
-	// 	locations_zoom[0]->GetXaxis()->SetTitle("Phi (deg)");
-	// 	locations_zoom[0]->SetTitle(graph_title[0]);
-	// 	gPad->SetLogz();
-	// 	locations_zoom[0]->GetXaxis()->SetRangeUser(-50,0);
-	// 	locations_zoom[0]->GetYaxis()->SetRangeUser(-40,0);
-
-	// TH1D *project_V_2[2];
-	// project_V_2[0] = (TH1D*) locations_zoom[0]->ProjectionX("",-20+90,0+90)->Clone();
-	// project_V_2[1] = locations_zoom[0]->ProjectionY("",-50+180,0+180);
-	// project_V_2[0]->SetTitle("Phi Projection near peak");
-	// project_V_2[1]->SetTitle("Theta Projection near peak");
-
-	// char equation_phi_2[150];
-	// sprintf(equation_phi_2,"gaus");
-	// TF1 *fit_phi_2 = new TF1("GausFit_phi_2",equation_phi_2,-50.,0);
-	// project_V_2[0]->Fit("GausFit_phi_2","R");
-	// printf("Chi-Square/NDF %.2f / %.2f \n",fit_phi_2->GetChisquare(),double(fit_phi_2->GetNDF()));
-	// char fit_graph_title_phi_2[150];
-	// // sprintf(fit_graph_title,"Vpol %.2f*exp(-0.5((x-%.2f)/%.2f)^2)     #chi^{2}/NDF = %.2f / %d \n",fit->GetParameter(0), fit->GetParameter(1),fit->GetParameter(2),fit->GetChisquare(),fit->GetNDF());
-	// sprintf(fit_graph_title_phi_2,"Vpol %.2f*exp(-0.5((x-%.2f)/%.2f)^2)\n",fit_phi_2->GetParameter(0), fit_phi_2->GetParameter(1),fit_phi_2->GetParameter(2));
-
-	// char equation_theta_2[150];
-	// sprintf(equation_theta_2,"gaus");
-	// TF1 *fit_theta_2= new TF1("GausFit_theta_2",equation_theta_2,-40,0);
-	// project_V_2[1]->Fit("GausFit_theta_2","R");
-	// printf("Chi-Square/NDF %.2f / %.2f \n",fit_theta_2->GetChisquare(),double(fit_theta_2->GetNDF()));
-	// char fit_graph_title_theta_2[150];
-	// // sprintf(fit_graph_title,"Vpol %.2f*exp(-0.5((x-%.2f)/%.2f)^2)     #chi^{2}/NDF = %.2f / %d \n",fit->GetParameter(0), fit->GetParameter(1),fit->GetParameter(2),fit->GetChisquare(),fit->GetNDF());
-	// sprintf(fit_graph_title_theta_2,"Vpol %.2f*exp(-0.5((x-%.2f)/%.2f)^2)\n",fit_theta_2->GetParameter(0), fit_theta_2->GetParameter(1),fit_theta_2->GetParameter(2));  
-
-	// locations_zoom[0]->Draw("colz");
-	// printf("Five sigma points phi %.2f to %.2f \n",(fit_phi_2->GetParameter(1) - 5.*fit_phi_2->GetParameter(2)),(fit_phi_2->GetParameter(1) + 5.*fit_phi_2->GetParameter(2)));	
-	// printf("Five sigma point theta %.2f to %.2f \n",(fit_theta_2->GetParameter(1) - 5.*fit_theta_2->GetParameter(2)),(fit_theta_2->GetParameter(1) + 5.*fit_theta_2->GetParameter(2)));
-
-	// c3->cd(2);
-	// 	project_V_2[0]->Draw();
-	// 	project_V_2[0]->GetYaxis()->SetTitle("Events");
-	// 	project_V_2[0]->GetXaxis()->SetTitle("Phi (deg)");
-	// 	project_V_2[0]->SetTitle(fit_graph_title_phi_2);
-	// 	gPad->SetLogy();
-	// 	// locations_phi_slice[0]->GetXaxis()->SetRangeUser(50,80);
-	// c3->cd(3);
-	// 	project_V_2[1]->Draw();
-	// 	project_V_2[1]->GetYaxis()->SetTitle("Events");
-	// 	project_V_2[1]->GetXaxis()->SetTitle("Theta (deg)");
-	// 	project_V_2[1]->SetTitle(graph_title[0]);
-	// 	project_V_2[1]->SetTitle(fit_graph_title_theta_2);
-	// 	gPad->SetLogy();
-	// 	// locations_theta_slice[0]->GetXaxis()->SetRangeUser(0,12);
-	// sprintf(title, "/users/PAS0654/osu0673/A23_analysis/results/%d.%d.%d_A%d_%d_%dEvents_DistroCalPulses_Vpol_Zoom_2.png",year_now, month_now, day_now,station,year,num_total);
-	// c3->SaveAs(title);
-	// delete c3;
-	// delete locations_zoom[0]; delete locations_zoom[1];
 
 }
 
@@ -431,7 +427,7 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 			cMaps->cd(5);
 			map_30m_V_select->Draw("colz");
 		char save_temp_title[400];		
-		sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_Maps.png",plotPath,year_now,month_now,day_now,runNum,event);
+		sprintf(save_temp_title,"%s/cal_reco_events/%d.%d.%d_Run%d_Ev%d_Maps.png",plotPath,year_now,month_now,day_now,runNum,event);
 		cMaps->SaveAs(save_temp_title);
 		delete cMaps;
 		delete map_30m_V; delete map_300m_V; delete map_30m_H; delete map_300m_H; 
@@ -440,7 +436,7 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 
 
 	char save_temp_title[300];
-	sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_Waveforms.png",plotPath,year_now,month_now,day_now,runNum,event);
+	sprintf(save_temp_title,"%s/cal_reco_events/%d.%d.%d_Run%d_Ev%d_Waveforms.png",plotPath,year_now,month_now,day_now,runNum,event);
 	TCanvas *cWave = new TCanvas("","",4*1100,4*850);
 	cWave->Divide(4,4);
 	for(int i=0; i<16; i++){
@@ -451,7 +447,7 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 	cWave->SaveAs(save_temp_title);
 	delete cWave;
 
-	sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_Spectra.png",plotPath,year_now,month_now,day_now,runNum,event);
+	sprintf(save_temp_title,"%s/cal_reco_events/%d.%d.%d_Run%d_Ev%d_Spectra.png",plotPath,year_now,month_now,day_now,runNum,event);
 	TCanvas *cSpec = new TCanvas("","",4*1100,4*850);
 	cSpec->Divide(4,4);
 	for(int i=0; i<16; i++){
