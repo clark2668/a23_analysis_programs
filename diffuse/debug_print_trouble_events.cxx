@@ -147,12 +147,8 @@ int main(int argc, char **argv)
 		int runNum = atoi(strRunNum.c_str());
 		int isThisBadABadRun = isBadRun(station,runNum);
 
-		// if(isThisBadABadRun || runNum==4775)
-		// 	continue;
 		if(isThisBadABadRun)
 			continue;
-		// if(runNum==6705 || runNum==4775)
-		// 	continue;
 
 		TFile *inputFile = TFile::Open(argv[file_num]);
 		if(!inputFile){
@@ -244,9 +240,9 @@ int main(int argc, char **argv)
 			if(isBadEvent){
 				continue;
 			}
-			if(isBadLivetime(station,unixTime)){
-				continue;
-			}
+			// if(isBadLivetime(station,unixTime)){
+			// 	continue;
+			// }
 
 			// if(!isCal && !isSoft && !isShort && !isNewBox){
 				
@@ -287,7 +283,7 @@ int main(int argc, char **argv)
 
 										bool condition = false;
 										if(snr_val[pol]>=8.) condition=true;
-										if(corr_val[pol]>=0.12) condition=true;
+										if(corr_val[pol]>=0.14) condition=true;
 										if(snr_val[pol]>=7 && corr_val[pol]>=0.12) condition=true;
 
 										if(Refilt[pol]){
@@ -307,11 +303,14 @@ int main(int argc, char **argv)
 													// printf("		Event %d is refiltered in pol %d \n", event,pol);
 													// cout<<"			Frac of power notched is "<<frac[2]<<endl;
 													// printf("Event has condition in pol %d \n", pol);
+													// printf("Event %d Unixtime is %d \n", event, unixTime);
+													
+													printf("if(runNum==%d && pol==%d && unixTime==%d && event==%d){\n\tunixTimes[%d].push_back(double(unixTime)); phis[%d].push_back(double(phi_300[%d])); thetas[%d].push_back(double(theta_300[%d]));\n}\n",runNum,pol,unixTime,event,pol,pol,pol,pol,pol);
 
 													spatial_distro_remaining[pol]->Fill(phi_41[pol],theta_41[pol]);
 													spatial_distro_remaining[pol+2]->Fill(phi_300[pol], theta_300[pol]);
 
-													// PlotThisEvent(station,config,runNum,event, settings, detector, theCorrelators);
+													PlotThisEvent(station,config,runNum,event, settings, detector, theCorrelators);
 												}
 											}
 										} //refiltered?
@@ -321,8 +320,10 @@ int main(int argc, char **argv)
 												// printf("		Event %d is NOT refiltered in pol %d \n", event,pol);
 												spatial_distro_remaining[pol]->Fill(phi_41[pol],theta_41[pol]);
 												spatial_distro_remaining[pol+2]->Fill(phi_300[pol], theta_300[pol]);
+												// printf("Event %d Unixtime is %d \n", event, unixTime);
+													printf("if(runNum==%d && pol==%d && unixTime==%d && event==%d){\n\tunixTimes[%d].push_back(double(unixTime)); phis[%d].push_back(double(phi_300[%d])); thetas[%d].push_back(double(theta_300[%d]));\n}\n",runNum,pol,unixTime,event,pol,pol,pol,pol,pol);
 												
-												// PlotThisEvent(station,config,runNum,event, settings, detector, theCorrelators);
+												PlotThisEvent(station,config,runNum,event, settings, detector, theCorrelators);
 											}
 										}
 										num_in_final_plot++;
@@ -349,64 +350,65 @@ int main(int argc, char **argv)
 
 	char title[300];
 
-	TLegend *leg = new TLegend(0.52,0.7,0.75,0.9);
-	leg->AddEntry(surface_distro[0],"All Events","l");
-	leg->AddEntry(surface_distro_good[0],"Events in 'Good' Runs","l");
-	leg->SetTextSize(0.02);
 
-	TLine l(37,0.1,37,surface_distro[0]->GetMaximum()*1.2);
-	l.SetLineStyle(9);
+	bool print_surface_stuff=true;
+	if(print_surface_stuff){
 
-	TCanvas *c_spatial_distro = new TCanvas("","",2.1*850,2.1*850);
-	c_spatial_distro->Divide(2,2);
-	for(int pol=0; pol<2; pol++){
-		c_spatial_distro->cd(pol+1);
-			spatial_distro_remaining[pol]->Draw("colz");
-		c_spatial_distro->cd(pol+3);
-			spatial_distro_remaining[pol+2]->Draw("colz");
-	}
-	sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_SpatialDistroRemainingEvents.png",plotPath,year_now, month_now, day_now,station,config,num_total);
-	c_spatial_distro->SaveAs(title);
-	delete c_spatial_distro;
+		TLegend *leg = new TLegend(0.52,0.7,0.75,0.9);
+		leg->AddEntry(surface_distro[0],"All Events","l");
+		leg->AddEntry(surface_distro_good[0],"Events in 'Good' Runs","l");
+		leg->SetTextSize(0.02);
 
-	TH1D *project_theta[2];
-	project_theta[0]=(TH1D*) spatial_distro_remaining[2]->ProjectionY("")->Clone();
-	project_theta[1]=(TH1D*) spatial_distro_remaining[3]->ProjectionY("")->Clone();
-	TH1D *project_phi[2];
-	project_phi[0]=(TH1D*) spatial_distro_remaining[2]->ProjectionX("")->Clone();
-	project_phi[1]=(TH1D*) spatial_distro_remaining[3]->ProjectionX("")->Clone();
+		TLine l(37,0.1,37,surface_distro[0]->GetMaximum()*1.2);
+		l.SetLineStyle(9);
 
-	TCanvas *c_spatial_distro_project = new TCanvas("","",2.1*850,850);
-	c_spatial_distro_project->Divide(2,2);
-	for(int pol=0; pol<2; pol++){
-		c_spatial_distro_project->cd(pol+1);
-			project_theta[pol]->Draw("");
-			project_theta[pol]->GetXaxis()->SetTitle("Theta");
-			project_theta[pol]->GetYaxis()->SetTitle("Number of Events");
-		c_spatial_distro_project->cd(pol+3);
-			project_phi[pol]->Draw("");
-			project_phi[pol]->GetXaxis()->SetTitle("Phi");
-			project_phi[pol]->GetYaxis()->SetTitle("Number of Events");
-		if(pol==0){
-			project_theta[pol]->SetTitle("VPol Theta Distribution of Stragglers");
-			project_phi[pol]->SetTitle("VPol Phi Distribution of Stragglers");
+		TCanvas *c_spatial_distro = new TCanvas("","",2.1*850,2.1*850);
+		c_spatial_distro->Divide(2,2);
+		for(int pol=0; pol<2; pol++){
+			c_spatial_distro->cd(pol+1);
+				spatial_distro_remaining[pol]->Draw("colz");
+				spatial_distro_remaining[pol]->GetZaxis()->SetRangeUser(1,3);
+			c_spatial_distro->cd(pol+3);
+				spatial_distro_remaining[pol+2]->Draw("colz");
+				spatial_distro_remaining[pol+2]->GetZaxis()->SetRangeUser(1,3);
 		}
-		else{
-			project_theta[pol]->SetTitle("HPol Theta Distribution of Stragglers");
-			project_phi[pol]->SetTitle("Hpol Phi Distribution of Stragglers");
+		sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_SpatialDistroRemainingEvents.png",plotPath,year_now, month_now, day_now,station,config,num_total);
+		c_spatial_distro->SaveAs(title);
+		delete c_spatial_distro;
+
+		TH1D *project_theta[2];
+		project_theta[0]=(TH1D*) spatial_distro_remaining[2]->ProjectionY("")->Clone();
+		project_theta[1]=(TH1D*) spatial_distro_remaining[3]->ProjectionY("")->Clone();
+		TH1D *project_phi[2];
+		project_phi[0]=(TH1D*) spatial_distro_remaining[2]->ProjectionX("")->Clone();
+		project_phi[1]=(TH1D*) spatial_distro_remaining[3]->ProjectionX("")->Clone();
+
+		TCanvas *c_spatial_distro_project = new TCanvas("","",2.1*850,850);
+		c_spatial_distro_project->Divide(2,2);
+		for(int pol=0; pol<2; pol++){
+			c_spatial_distro_project->cd(pol+1);
+				project_theta[pol]->Draw("");
+				project_theta[pol]->GetXaxis()->SetTitle("Theta");
+				project_theta[pol]->GetYaxis()->SetTitle("Number of Events");
+			c_spatial_distro_project->cd(pol+3);
+				project_phi[pol]->Draw("");
+				project_phi[pol]->GetXaxis()->SetTitle("Phi");
+				project_phi[pol]->GetYaxis()->SetTitle("Number of Events");
+			if(pol==0){
+				project_theta[pol]->SetTitle("VPol Theta Distribution of Stragglers");
+				project_phi[pol]->SetTitle("VPol Phi Distribution of Stragglers");
+			}
+			else{
+				project_theta[pol]->SetTitle("HPol Theta Distribution of Stragglers");
+				project_phi[pol]->SetTitle("Hpol Phi Distribution of Stragglers");
+			}
+
 		}
-
-	}
-	sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_ThetaPhiDistroRemainingEvents.png",plotPath,year_now, month_now, day_now,station,config,num_total);
-	c_spatial_distro_project->SaveAs(title);
-	delete c_spatial_distro_project;
-	delete project_theta[0]; delete project_theta[1];
-	delete spatial_distro_remaining[0]; delete spatial_distro_remaining[1]; delete spatial_distro_remaining[2]; delete spatial_distro_remaining[3];
-
-	bool print_summary=true;
-	if(print_summary){
-
-		gStyle->SetOptStat(11);
+		sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_ThetaPhiDistroRemainingEvents.png",plotPath,year_now, month_now, day_now,station,config,num_total);
+		c_spatial_distro_project->SaveAs(title);
+		delete c_spatial_distro_project;
+		delete project_theta[0]; delete project_theta[1];
+		delete spatial_distro_remaining[0]; delete spatial_distro_remaining[1]; delete spatial_distro_remaining[2]; delete spatial_distro_remaining[3];
 
 		gStyle->SetOptStat(111111);
 		TCanvas *c_num_surface_per_run = new TCanvas("","",850,850);
@@ -452,6 +454,12 @@ int main(int argc, char **argv)
 		c_surface_event_distro->SaveAs(title);
 		delete c_surface_event_distro;
 		delete surface_distro[0]; delete surface_distro[1];
+	}
+
+	bool print_summary=false;
+	if(print_summary){
+
+		gStyle->SetOptStat(11);
 
 
 		cout<<"Num total is "<<num_total<<endl;
@@ -957,6 +965,13 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 				chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 15), chan_list_H.end());
 			}
 		}
+		// chan_list_V.clear();
+		// chan_list_V.push_back(2);
+		// chan_list_V.push_back(3);
+		// chan_list_V.push_back(4);
+		// chan_list_V.push_back(5);
+		// chan_list_V.push_back(6);
+		// chan_list_V.push_back(7);
 
 		// chan_list_V.clear();
 		// chan_list_V.push_back(0);
