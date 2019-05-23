@@ -55,7 +55,7 @@ int main(int argc, char **argv)
 	int day_now = time -> tm_mday;
 	
 	if(argc<7) {
-		std::cout << "Usage\n" << argv[0] << " <simulation_flag> <station> <year> <radius_bin> <output directory> <input file> <pedestal file> \n";
+		std::cout << "Usage\n" << argv[0] << " <1-simulation_flag> <2-station> <3-year> <4-radius_bin> <5-output directory> <6-input file> <7-pedestal file> \n";
 		return -1;
 	}
 
@@ -203,7 +203,6 @@ int main(int argc, char **argv)
 	
 	int runNum = getrunNum(argv[6]);
 	printf("Reco Run Number %d \n", runNum);
-	
 	string processedFilename = getProcessedFilename_recoRadius(station_num, argv[5], argv[6], radii[radiusBin]);
 	TFile *OutputFile = TFile::Open(processedFilename.c_str(), "RECREATE");
 	TTree* OutputSettingsTree = new TTree("OutputSettingsTree", "OutputSettingsTree");
