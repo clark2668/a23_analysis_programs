@@ -53,6 +53,7 @@ int main(int argc, char **argv)
 		double corr_val_H;
 		int isCal;
 		int isBad;
+		int unixTime_out;
 		trees->Branch("phi_41_V",&phi_41_V);
 		trees->Branch("theta_41_V",&theta_41_V);
 		trees->Branch("phi_41_H",&phi_41_H);
@@ -61,6 +62,7 @@ int main(int argc, char **argv)
 		trees->Branch("corr_val_H",&corr_val_H);
 		trees->Branch("cal",&isCal);
 		trees->Branch("isBad",&isBad);
+		trees->Branch("unixTime",&unixTime_out);
 
 		cout << "Run " << file_num << " :: " << argv[file_num] << endl;
 		
@@ -80,8 +82,10 @@ int main(int argc, char **argv)
 		}
 		bool isCalPulser;
 		bool hasDigitizerError;
+		int unixTime_in;
 		inputTree_filter->SetBranchAddress("isCalpulser",&isCalPulser);
 		inputTree_filter->SetBranchAddress("hasDigitizerError",&hasDigitizerError);
+		inputTree_filter->SetBranchAddress("unixTime",&unixTime_in);
 
 		//next, load the reco tree
 		TTree *inputTree_reco[35];
@@ -127,6 +131,7 @@ int main(int argc, char **argv)
 			inputTree_filter->GetEvent(event);
 			if(isCalPulser) isCal=1;
 			isBad=hasDigitizerError;
+			unixTime_out=unixTime_in;
 
 			for (int i = 0; i < 35; i++){
 				if (i == recoBinSelect || i == recoBinCalpulser){
