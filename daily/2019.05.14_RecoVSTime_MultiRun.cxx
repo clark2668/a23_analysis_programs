@@ -62,10 +62,10 @@ int main(int argc, char **argv)
 	int stopRun = getThisRunNum(argv[argc-1]);
 
 	char title[300];
-	TCanvas *c_start = new TCanvas("start","start",2*850,2*850);
-	c_start->Divide(2,2);
-	sprintf(title, "%s/%d.%d.%d_A%d_Run%d_to_Run%d_RecoVsTime.pdf(",argv[2],year_now, month_now, day_now,station,startRun,stopRun);
-	c_start->Print(title,"pdf");
+	// TCanvas *c_start = new TCanvas("start","start",2*850,2*850);
+	// c_start->Divide(2,2);
+	// sprintf(title, "%s/%d.%d.%d_A%d_Run%d_to_Run%d_RecoVsTime.pdf(",argv[2],year_now, month_now, day_now,station,startRun,stopRun);
+	// c_start->Print(title,"pdf");
 
 	for(int file_num=3; file_num<argc; file_num++){
 
@@ -113,8 +113,8 @@ int main(int argc, char **argv)
 		trees[2]->GetEvent(numEntries-1);
 		int unixStop = unixTime;
 
-		TTimeStamp start(unixStart);
-		TTimeStamp stop(unixStop);
+		TTimeStamp start(unixStart-600);
+		TTimeStamp stop(unixStop+600);
 		int start_bin = start.GetSec();
 		int stop_bin = stop.GetSec();
 
@@ -189,8 +189,19 @@ int main(int argc, char **argv)
 			sprintf(stop_string,"stop: %s",stop.AsString("s"));
 			theta_vs_event[1]->SetTitle(stop_string);
 			theta_vs_event[1]->GetZaxis()->SetRangeUser(1,6);
-		sprintf(title, "%s/%d.%d.%d_A%d_Run%d_to_Run%d_RecoVsTime.pdf",argv[2],year_now, month_now, day_now,station,startRun,stopRun);
-		c_temp->Print(title,"pdf");
+		// sprintf(title, "%s/%d.%d.%d_A%d_Run%d_to_Run%d_RecoVsTime.pdf",argv[2],year_now, month_now, day_now,station,startRun,stopRun);
+		sprintf(title, "%s/%d.%d.%d_A%d_Run%d_RecoVsTime.png",argv[2],year_now, month_now, day_now,station,runNum);
+		if(runNum<1000){
+			sprintf(title, "%s/%d.%d.%d_A%d_Run0%d_RecoVsTime.png",argv[2],year_now, month_now, day_now,station,runNum);
+			if(runNum<100){
+				sprintf(title, "%s/%d.%d.%d_A%d_Run00%d_RecoVsTime.png",argv[2],year_now, month_now, day_now,station,runNum);
+				if(runNum<10){
+					sprintf(title, "%s/%d.%d.%d_A%d_Run000%d_RecoVsTime.png",argv[2],year_now, month_now, day_now,station,runNum);
+				}
+			}
+		}
+
+		c_temp->Print(title,"png");
 		delete c_temp;
 		delete phi_vs_event[0]; delete phi_vs_event[1];	delete theta_vs_event[0]; delete theta_vs_event[1];
 
@@ -198,9 +209,8 @@ int main(int argc, char **argv)
 		inputFile->Close();
 		delete inputFile;
 	}
-	TCanvas *c_stop= new TCanvas("stop","stop",2*850,2*850);
-	c_stop->Divide(2,2);
-	sprintf(title, "%s/%d.%d.%d_A%d_Run%d_to_Run%d_RecoVsTime.pdf)",argv[2],year_now, month_now, day_now,station,startRun,stopRun);
-	c_stop->Print(title,"pdf");
-
+	// TCanvas *c_stop= new TCanvas("stop","stop",2*850,2*850);
+	// c_stop->Divide(2,2);
+	// sprintf(title, "%s/%d.%d.%d_A%d_Run%d_to_Run%d_RecoVsTime.pdf)",argv[2],year_now, month_now, day_now,station,startRun,stopRun);
+	// c_stop->Print(title,"pdf");
 }
