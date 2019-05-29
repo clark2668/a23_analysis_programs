@@ -952,7 +952,9 @@ int main(int argc, char **argv)
 						}
 						AraGeomTool * geomTool = new AraGeomTool();
 						vector<int> polarizations;
+						vector<int> antenna_numbers;
 						polarizations.resize(16);
+						antenna_numbers.resize(16);
 						vector< vector <double> > ant_loc; //will be 16x3 vector of the x,y,z's the 16 antennas
 						ant_loc.resize(16);
 						for (int i = 0; i < 16; i++){
@@ -961,11 +963,27 @@ int main(int argc, char **argv)
 							ant_loc[i][1] = geomTool->getStationInfo(station)->getAntennaInfo(i)->antLocation[1];
 							ant_loc[i][2] = geomTool->getStationInfo(station)->getAntennaInfo(i)->antLocation[2];
 							polarizations[i] = (int)geomTool->getStationInfo(station)->getAntennaInfo(i)->polType;
+							antenna_numbers[i]=i;
+						}
+
+						vector<int> chan_exclusion_list;
+						if(dropBadChans){
+							if(station==2){
+								// hpol channel 15
+								chan_exclusion_list.push_back(15);
+							}
+							else if(station==3 && runNum>2972){
+								// vpol sring 4
+								chan_exclusion_list.push_back(3);
+								chan_exclusion_list.push_back(7);
+								chan_exclusion_list.push_back(11);
+								chan_exclusion_list.push_back(15);
+							}
 						}
 
 						vector<double> vThirdVPeakOverRMS_new;
 						double thirdVPeakOverRMS_new[3];
-						getThirdVPeakOverRMS(vVPeakOverRMS_new, polarizations, vThirdVPeakOverRMS_new);
+						getThirdVPeakOverRMS(vVPeakOverRMS_new, polarizations, antenna_numbers, chan_exclusion_list, vThirdVPeakOverRMS_new);
 						for (int i = 0 ; i< 3; i++){ //pull out the first three entries
 							thirdVPeakOverRMS_new[i] = vThirdVPeakOverRMS_new[i];
 						}
