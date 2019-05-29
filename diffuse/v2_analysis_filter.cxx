@@ -138,7 +138,9 @@ int main(int argc, char **argv)
 	}
 	
 	vector<int> polarizations;
+	vector<int> antenna_numbers;
 	polarizations.resize(16);
+	antenna_numbers.resize(16);
 	vector< vector <double> > ant_loc;
 	ant_loc.resize(16);
 	for (int i = 0; i < 16; i++){
@@ -147,6 +149,7 @@ int main(int argc, char **argv)
 		ant_loc[i][1] = geomTool->getStationInfo(station_num)->getAntennaInfo(i)->antLocation[1];
 		ant_loc[i][2] = geomTool->getStationInfo(station_num)->getAntennaInfo(i)->antLocation[2];
 		polarizations[i] = (int)geomTool->getStationInfo(station_num)->getAntennaInfo(i)->polType;
+		antenna_numbers[i]=i;
 	}
 
 	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
@@ -282,6 +285,20 @@ int main(int argc, char **argv)
 		numFaces_new_V = numFaces_A3_drop;
 		numFaces_new_H = numFaces_A3_drop;
 	}
+
+	vector<int> chan_exclusion_list;
+	if(station_num==2){
+		// hpol channel 15
+		chan_exclusion_list.push_back(15);
+	}
+	else if(station_num==3 && runNum>2972){
+		// vpol sring 4
+		chan_exclusion_list.push_back(3);
+		chan_exclusion_list.push_back(7);
+		chan_exclusion_list.push_back(11);
+		chan_exclusion_list.push_back(15);
+	}
+
 	double rms_pol_thresh_face_alternate_V[thresholdSteps][numFaces_new_V];
 	double rms_pol_thresh_face_alternate_H[thresholdSteps][numFaces_new_H];
 	char rms_title_V[300];
@@ -460,7 +477,7 @@ int main(int argc, char **argv)
 			}
 	
 			vector<double> vThirdVPeakOverRMS;
-			getThirdVPeakOverRMS(vVPeakOverRMS, polarizations, vThirdVPeakOverRMS);
+			getThirdVPeakOverRMS(vVPeakOverRMS, polarizations, antenna_numbers, chan_exclusion_list, vThirdVPeakOverRMS);
 			for (int i = 0 ; i< 3; i++){
 				thirdVPeakOverRMS[i] = vThirdVPeakOverRMS[i];
 			}
