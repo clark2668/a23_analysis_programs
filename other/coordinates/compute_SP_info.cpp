@@ -92,6 +92,12 @@ int main(int argc, char **argv)
 	}
 	printf("Station center: %.2f, %.2f, %.2f \n", antenna_average[0], antenna_average[1], antenna_average[2]);
 
+	double S3X = araGeom->getStationInfo(station)->getAntennaInfo(1)->antLocation[0];
+	double S3Y = araGeom->getStationInfo(station)->getAntennaInfo(1)->antLocation[1];
+	S3X-=antenna_average[0];
+	S3Y-=antenna_average[1];
+	printf("Phi of S3 is %.2f \n", TMath::ATan2(S3Y,S3X)*TMath::RadToDeg());
+
 	/*
 	Now we can also see how to use the geom tool to get cal-pulser antenna information
 	*/
