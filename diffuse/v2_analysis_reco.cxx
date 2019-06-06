@@ -16,7 +16,7 @@
 #include "UsefulAraStationEvent.h"
 #include "UsefulAtriStationEvent.h"
 
-//ROOT Includes
+//ROOT Includesf
 #include "TTree.h"
 #include "TFile.h"
 #include "TGraph.h"
@@ -53,9 +53,14 @@ int main(int argc, char **argv)
 	int year_now = time -> tm_year + 1900;
 	int month_now = time -> tm_mon + 1;
 	int day_now = time -> tm_mday;
+
+	char *DataDirPath(getenv("DATA_DIR"));
+	if (DataDirPath == NULL) std::cout << "Warning! $DATA_DIR is not set!" << endl;
+	char *PedDirPath(getenv("PED_DIR"));
+	if (PedDirPath == NULL) std::cout << "Warning! $DATA_DIR is not set!" << endl;
 	
 	if(argc<7) {
-		std::cout << "Usage\n" << argv[0] << " <1-simulation_flag> <2-station> <3-year> <4-radius_bin> <5-output directory> <6-input file> <7-pedestal file> \n";
+		std::cout << "Usage\n" << argv[0] << " <1-simulation_flag> <2-station> <3-radius_bin> <4-filter_file_dir> <5-output directory> <6-input file>\n";
 		return -1;
 	}
 
@@ -64,18 +69,16 @@ int main(int argc, char **argv)
 	0: exec
 	1: simulation (yes/no)
 	2: station num (2/3)
-	3: year (2013-2016)
-	4: radius bin
+	3: radius bin
+	4: filter file dir
 	5: output directory
 	6: input file
-	7: pedestal file
 	*/
 
 	isSimulation=atoi(argv[1]);
 	int station_num=atoi(argv[2]);
-	int year = atoi(argv[3]);
 	calpulserRunMode=0;
-	int radiusBin = atoi(argv[4]);
+	int radiusBin = atoi(argv[3]);
 	
 	int numRadiiScanned = 35;
 	int startingRadiusBin = radiusBin;
@@ -165,18 +168,6 @@ int main(int argc, char **argv)
 		cout << "Setup RTCorr : " << radius_temp << endl;
 		theCorrelators[i] = new RayTraceCorrelator(station_num, radius_temp, settings, angularBinSize, RTTestMode);
 	}	
-
-	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
-	
-	if (argc == 8){
-		cout << "Trying to load named pedestal" << endl;
-		calibrator->setAtriPedFile(argv[7], station_num);
-		cout << "Loaded named pedestal" << endl;
-	} else {
-		cout << "Trying to load blank pedestal" << endl;
-		calibrator->setAtriPedFile("", station_num);
-		cout << "Loaded blank pedestal" << endl;
-	}
 	
 	double weight;
 	int unixTime;
@@ -184,26 +175,56 @@ int main(int argc, char **argv)
 	int eventNumber;
 	double maxPeakVfromSim;
 	double PeakVfromSim[16][2];
+	int runNum;
 
-	eventTree->ResetBranchAddresses();
+	// eventTree->ResetBranchAddresses();
 	
 	if(isSimulation){
 		eventTree->SetBranchAddress("UsefulAtriStationEvent", &realAtriEvPtr);
 		eventTree->SetBranchAddress("weight", &weight);
 		printf("Simulation; load useful event tree straight away \n");
+		runNum = getrunNum(argv[6]);
 	}
 	else{
 		eventTree->SetBranchAddress("event",&rawAtriEvPtr);
+		eventTree->SetBranchAddress("run",&runNum);
 		printf("Data; load raw event tree \n");
+
 	}
 	
 	Long64_t numEntries=eventTree->GetEntries();
 	Long64_t starEvery=numEntries/80;
 	if(starEvery==0) starEvery++;
-	
-	int runNum = getrunNum(argv[6]);
+
+	eventTree->GetEntry(0); //just to get runNum
 	printf("Reco Run Number %d \n", runNum);
-	string processedFilename = getProcessedFilename_recoRadius(station_num, argv[5], argv[6], radii[radiusBin]);
+
+	// load pedestals, if they exist yet
+	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
+	char ped_file_name[400];
+	sprintf(ped_file_name,"%s/run_specific_peds/A%d/all_peds/event%d_specificPeds.dat",PedDirPath,station_num,runNum);
+	calibrator->setAtriPedFile(ped_file_name,station_num); //because someone had a brain (!!), this will error handle itself if the pedestal doesn't exist
+
+	// get the run summary information, if it exists yet
+	char filter_file_name[400];
+	sprintf(filter_file_name,"%s/processed_station_%d_run_%d_filter.root",argv[4],station_num,runNum);
+	bool hasFilterFile = false;
+	TFile *filterFile = TFile::Open(filter_file_name);
+	TTree *filterTree;
+	if(filterFile){
+		printf("Successfully found filter file information \n");
+		hasFilterFile=true;
+		filterTree = (TTree*) filterFile->Get("OutputTree");
+		if(!filterTree) {
+			std::cout << "Can't find filterTree\n";
+			return -1;
+		}
+		filterTree->SetBranchAddress("VPeakOverRMS", &VPeakOverRMS);
+		filterFile->cd();
+	}
+
+	// prepare for output
+	string processedFilename = getProcessedFilename_recoRadius(station_num, argv[5], runNum, radii[radiusBin]);
 	TFile *OutputFile = TFile::Open(processedFilename.c_str(), "RECREATE");
 	TTree* OutputSettingsTree = new TTree("OutputSettingsTree", "OutputSettingsTree");
 	OutputSettingsTree->Branch("detectorCenter", &detectorCenter, "detectorCenter[3]/D");
@@ -237,6 +258,8 @@ int main(int argc, char **argv)
 	OutputTree->Branch("meanCorr_single", &meanCorr_single, "meanCorr_single[2]/D");
 	OutputTree->Branch("rmsCorr_single", &rmsCorr_single, "rmsCorr_single[2]/D");
 	OutputTree->Branch("peakSigma_single", &peakSigma_single, "peakSigma_single[2]/D");
+	OutputTree->Branch("run",&runNumOut, "run/I");
+	runNumOut=runNum;
 
 	OutputTree->Branch("isCalpulser", &isCalpulser, "isCalpulser/O");
 	OutputTree->Branch("isSoftTrigger", &isSoftTrigger, "isSoftTrigger/O");
@@ -256,13 +279,17 @@ int main(int argc, char **argv)
 	OutputTree->Branch("viewAngleAvg", &viewAngleAvg, "viewAngleAvg[2]/D");
 	
 	int eventSim = 0;
-	cerr<<"Run "<<runNum<<" has a starEvery of "<<starEvery<<endl;
+	cerr<<"Run "<<runNum<<" has a starEvery of "<<starEvery<<" and "<<numEntries<<" total events"<<endl;
 	for(Long64_t event=0;event<numEntries;event++) {
 		if(event%starEvery==0) {
-			std::cerr << "*";     
+			std::cout << "*";     
 		}
-	
+
 		eventTree->GetEntry(event);
+		if(hasFilterFile){
+			filterTree->GetEntry(event);
+		}
+
 		if (isSimulation == false){
 			unixTime=(int)rawAtriEvPtr->unixTime;
 			unixTimeUs=(int)rawAtriEvPtr->unixTimeUs;
@@ -368,6 +395,13 @@ int main(int argc, char **argv)
 
 			int radiusBin_adjusted = radiusBin-startingRadiusBin;
 
+			vector<double> chan_SNRs;
+			if(hasFilterFile){
+				for(int i=0; i<16; i++){
+					chan_SNRs.push_back(VPeakOverRMS[i]);
+				}
+			}
+
 			vector <int> chan_list_V;
 			vector <int> chan_list_H;
 			for(int chan=0; chan<=7; chan++){
@@ -380,8 +414,8 @@ int main(int argc, char **argv)
 				chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 15), chan_list_H.end());
 			}
 			else if(station_num==3){
-				//for station 3 years 2014 and 2015, we need to drop string 4 (channels 3, 7, 11, 15) altogether
-				if(year==2014 || year==2015 || year==2016){
+				// for station 3 years 2014 and 2015, we need to drop string 4 (channels 3, 7, 11, 15) altogether above some run
+				if(runNum>getA3BadRunBoundary()){
 
 					chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 3), chan_list_V.end());
 					chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 7), chan_list_V.end());
@@ -391,8 +425,11 @@ int main(int argc, char **argv)
 				}
 			}
 
-			TH2D *map_V_raytrace = theCorrelators[radiusBin_adjusted]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Vpol, isSimulation, chan_list_V);
-			TH2D *map_H_raytrace = theCorrelators[radiusBin_adjusted]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Hpol, isSimulation, chan_list_H);
+			// TH2D *map_V_raytrace = theCorrelators[radiusBin_adjusted]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Vpol, isSimulation, chan_list_V);
+			// TH2D *map_H_raytrace = theCorrelators[radiusBin_adjusted]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Hpol, isSimulation, chan_list_H);
+			int solNum = 0;
+			TH2D *map_V_raytrace = theCorrelators[radiusBin_adjusted]->getInterferometricMap_RT_select_NewNormalization_SNRweighted(settings, detector, realAtriEvPtr, Vpol, isSimulation, chan_list_V, chan_SNRs, solNum);
+			TH2D *map_H_raytrace = theCorrelators[radiusBin_adjusted]->getInterferometricMap_RT_select_NewNormalization_SNRweighted(settings, detector, realAtriEvPtr, Hpol, isSimulation, chan_list_H, chan_SNRs, solNum);
 
 			getCorrMapPeak_wStats(map_V_raytrace, peakTheta_single[0], peakPhi_single[0], peakCorr_single[0], minCorr_single[0], meanCorr_single[0], rmsCorr_single[0], peakSigma_single[0]);
 			getCorrMapPeak_wStats(map_H_raytrace, peakTheta_single[1], peakPhi_single[1], peakCorr_single[1], minCorr_single[1], meanCorr_single[1], rmsCorr_single[1], peakSigma_single[1]);
@@ -425,6 +462,8 @@ int main(int argc, char **argv)
 	
 	OutputFile->Write();
 	OutputFile->Close();
+	if(hasFilterFile)
+		filterFile->Close();
 	fp->Close();
 	
 	for (int i = startingRadiusBin; i < startingRadiusBin-numRadiiScanned; i++){
