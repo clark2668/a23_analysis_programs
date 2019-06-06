@@ -291,7 +291,7 @@ int main(int argc, char **argv)
 		// hpol channel 15
 		chan_exclusion_list.push_back(15);
 	}
-	else if(station_num==3 && runNum>2972){
+	else if(station_num==3 && runNum>getA3BadRunBoundary()){
 		// vpol sring 4
 		chan_exclusion_list.push_back(3);
 		chan_exclusion_list.push_back(7);

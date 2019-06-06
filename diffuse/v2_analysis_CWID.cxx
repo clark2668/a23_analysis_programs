@@ -148,7 +148,7 @@ int main(int argc, char **argv)
 			//drop the last hpol channel
 			chan_exclusion_list.push_back(15);
 		}
-		if(station_num==3 && runNum>2972){
+		if(station_num==3 && runNum>getA3BadRunBoundary()){
 			// drop string four
 			chan_exclusion_list.push_back(3);
 			chan_exclusion_list.push_back(7);
@@ -304,7 +304,7 @@ int main(int argc, char **argv)
 					numPairs_pol[1]=21; // drop channel 15, only 21 pairs left
 				}
 				else if(station_num==3){
-					if(runNum>2972){
+					if(runNum>getA3BadRunBoundary()){
 						// drop string four (two channels per polarization)
 						// only 15 pairs left
 						numPairs_pol[0]=15;
