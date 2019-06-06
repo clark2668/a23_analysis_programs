@@ -34,6 +34,7 @@ AraAntPol::AraAntPol_t Hpol = AraAntPol::kHorizontal;
 #include "tools_RecoFns.h"
 #include "tools_inputParameters.h"
 #include "tools_outputObjects.h"
+#include "tools_Cuts.h"
 
 using namespace std;
 
@@ -373,7 +374,7 @@ int main(int argc, char **argv)
 
 
 			for(int pol=0; pol<2; pol++){
-				printf("Pol %d has theta %d \n",pol,bestTheta[pol]);
+				// printf("Pol %d has theta %d \n",pol,bestTheta[pol]);
 				if(bestTheta[pol] >= 37){
 					isSurf[pol]=true;
 				}
@@ -409,12 +410,32 @@ int main(int argc, char **argv)
 			
 			//draw a box around the cal pulser
 			for (int pol = 0; pol < 2; pol++){
-				if (bestPhi_pulser[pol] >= -30 && bestPhi_pulser[pol] <= -20 && bestTheta_pulser[pol] >= -25 && bestTheta_pulser[pol] <= -10){
-					isCP5=true;
+
+				if(station==2){
+					if (bestPhi_pulser[pol] >= -30 && bestPhi_pulser[pol] <= -20
+					 	&& bestTheta_pulser[pol] >= -25 && bestTheta_pulser[pol] <= -10)
+					{
+						isCP5=true;
+					}
+					//if (bestPhi_pulser[pol] > 60 && bestPhi_pulser[pol] < 70 && bestTheta_pulser[pol] > 10 && bestTheta_pulser[pol] < 25){
+					if (bestPhi_pulser[pol] >= 60 && bestPhi_pulser[pol] <= 70 
+						&& bestTheta_pulser[pol] >= 0 && bestTheta_pulser[pol] <= 15)
+					{
+						isCP6=true;
+					}
 				}
-				//if (bestPhi_pulser[pol] > 60 && bestPhi_pulser[pol] < 70 && bestTheta_pulser[pol] > 10 && bestTheta_pulser[pol] < 25){
-				if (bestPhi_pulser[pol] >= 60 && bestPhi_pulser[pol] <= 70 && bestTheta_pulser[pol] >= 0 && bestTheta_pulser[pol] <= 15){
-					isCP6=true;
+				else if(station==3){
+					if (bestPhi_pulser[pol] >= -28 && bestPhi_pulser[pol] <= -18 
+						&& bestTheta_pulser[pol] >= -20 && bestTheta_pulser[pol] <= -5)
+					{
+						isCP5=true;
+					}
+					//if (bestPhi_pulser[pol] > 60 && bestPhi_pulser[pol] < 70 && bestTheta_pulser[pol] > 10 && bestTheta_pulser[pol] < 25){
+					if (bestPhi_pulser[pol] >= 60 && bestPhi_pulser[pol] <= 70 
+						&& bestTheta_pulser[pol] >= -20 && bestTheta_pulser[pol] <= -5)
+					{
+						isCP6=true;
+					}
 				}
 			}
 			for(int pol=0; pol<2; pol++){
@@ -494,7 +515,7 @@ int main(int argc, char **argv)
 					num_faces_for_H_loop=numFaces_A2_drop;
 				}
 				else if(station==3){
-					if(runNum>2972){ //it's 2014+, drop string four
+					if(runNum>getA3BadRunBoundary()){ //it's 2014+, drop string four
 						rms_faces_V.resize(numFaces_A3_drop);
 						num_faces_for_V_loop=numFaces_A3_drop;
 						rms_faces_H.resize(numFaces_A3_drop);
@@ -603,7 +624,7 @@ int main(int argc, char **argv)
 						chan_list_V.push_back(0);
 						chan_list_V.push_back(1);
 						chan_list_V.push_back(2);
-						if(!(dropBadChans && (station==3 && runNum>2972))){ //if dropping bad chans and station 3, don't keep fourth string
+						if(!(dropBadChans && (station==3 && runNum>getA3BadRunBoundary()))){ //if dropping bad chans and station 3, don't keep fourth string
 							chan_list_V.push_back(3);
 						}
 
@@ -611,7 +632,7 @@ int main(int argc, char **argv)
 						chan_list_H.push_back(8);
 						chan_list_H.push_back(9);
 						chan_list_H.push_back(10);
-						if(!(dropBadChans && (station==3 && runNum>2972))){ //if dropping bad chans and station 3, don't keep fourth string
+						if(!(dropBadChans && (station==3 && runNum>getA3BadRunBoundary()))){ //if dropping bad chans and station 3, don't keep fourth string
 							chan_list_H.push_back(11);
 						}
 
@@ -783,7 +804,7 @@ int main(int argc, char **argv)
 							else if(station==3){
 								//for station 3 years 2014 and 2015, we need to drop string 4 (channels 3, 7, 11, 15) altogether
 								//FIXME! How to decide in simulation when to drop channels....
-								if((!isSimulation && runNum>2972) || (isSimulation && 2==3)){
+								if((!isSimulation && runNum>getA3BadRunBoundary()) || (isSimulation && 2==3)){
 
 									chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 3), chan_list_V.end());
 									chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 7), chan_list_V.end());
@@ -822,7 +843,7 @@ int main(int argc, char **argv)
 						chan_list_V.push_back(0);
 						chan_list_V.push_back(1);
 						chan_list_V.push_back(2);
-						if(!(dropBadChans && station==3 && runNum>2972)){ //if dropping bad chans and station 3, don't keep fourth string
+						if(!(dropBadChans && station==3 && runNum>getA3BadRunBoundary())){ //if dropping bad chans and station 3, don't keep fourth string
 							chan_list_V.push_back(3);
 						}
 
@@ -830,7 +851,7 @@ int main(int argc, char **argv)
 						chan_list_H.push_back(8);
 						chan_list_H.push_back(9);
 						chan_list_H.push_back(10);
-						if(!(dropBadChans && station==3 && runNum>2972)){ //if dropping bad chans and station 3, don't keep fourth string
+						if(!(dropBadChans && station==3 && runNum>getA3BadRunBoundary())){ //if dropping bad chans and station 3, don't keep fourth string
 							chan_list_H.push_back(11);
 						}
 
@@ -972,7 +993,7 @@ int main(int argc, char **argv)
 								// hpol channel 15
 								chan_exclusion_list.push_back(15);
 							}
-							else if(station==3 && runNum>2972){
+							else if(station==3 && runNum>getA3BadRunBoundary()){
 								// vpol sring 4
 								chan_exclusion_list.push_back(3);
 								chan_exclusion_list.push_back(7);
@@ -1088,7 +1109,7 @@ int main(int argc, char **argv)
 								num_faces_for_H_loop=numFaces_A2_drop;
 							}
 							else if(station==3){
-								if(runNum>2972){ //it's 2014+, drop string four
+								if(runNum>getA3BadRunBoundary()){ //it's 2014+, drop string four
 									rms_faces_V_new.resize(numFaces_A3_drop);
 									num_faces_for_V_loop=numFaces_A3_drop;
 									rms_faces_H_new.resize(numFaces_A3_drop);
