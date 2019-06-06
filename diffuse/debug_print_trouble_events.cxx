@@ -40,7 +40,8 @@ AraAntPol::AraAntPol_t Hpol = AraAntPol::kHorizontal;
 
 using namespace std;
 
-int PlotThisEvent(int station, int config, int runNum, int event, Settings *settings, Detector *detector, RayTraceCorrelator *theCorrelators[2]);
+int PlotThisEvent(int station, int config, int runNum, int event, int problempol, Settings *settings, Detector *detector, RayTraceCorrelator *theCorrelators[2]);
+bool ReconsiderThisEventForGlitch(int station,int runNum,int event,Settings *settings, Detector *detector, RayTraceCorrelator *theCorrelators[2]);
 
 int main(int argc, char **argv)
 {
@@ -138,6 +139,8 @@ int main(int argc, char **argv)
 	int num_in_final_plot=0;
 	int num_refilt=0;
 
+	vector<int> BadRunList=BuildBadRunList(station);
+
 	for(int file_num=3; file_num<argc; file_num++){
 
 		string chRun = "run";
@@ -145,7 +148,7 @@ int main(int argc, char **argv)
 		size_t foundRun = file.find(chRun);
 		string strRunNum = file.substr(foundRun+4,4);
 		int runNum = atoi(strRunNum.c_str());
-		int isThisBadABadRun = isBadRun(station,runNum);
+		int isThisBadABadRun = isBadRun(station,runNum,BadRunList);
 
 		if(isThisBadABadRun)
 			continue;
@@ -237,12 +240,15 @@ int main(int argc, char **argv)
 
 			num_total++;
 
+			// if(isBadEvent || event<2){
+			// 	continue;
+			// }
 			if(isBadEvent){
 				continue;
 			}
-			// if(isBadLivetime(station,unixTime)){
-			// 	continue;
-			// }
+			if(isBadLivetime(station,unixTime)){
+				continue;
+			}
 
 			// if(!isCal && !isSoft && !isShort && !isNewBox){
 				
@@ -280,11 +286,14 @@ int main(int argc, char **argv)
 
 
 									if((!isSurf[0] && !isSurf[1])  && !isSurfEvent_top[pol]){
+									// if((!isSurf[0] && !isSurf[1])  && !isSurfEvent_top[0] && !isSurfEvent_top[1]){
 
 										bool condition = false;
-										if(snr_val[pol]>=8.) condition=true;
-										if(corr_val[pol]>=0.14) condition=true;
-										if(snr_val[pol]>=7 && corr_val[pol]>=0.12) condition=true;
+										// if(snr_val[pol]>=8.) condition=true;
+										// if(corr_val[pol]>=0.15) condition=true;
+										// if(snr_val[pol]>=7 && corr_val[pol]>=0.12) condition=true;
+										if(corr_val[pol]>0.15 || snr_val[pol]>=7.) condition=true;
+										// if(snr_val[pol]>=8.) condition=true;
 
 										if(Refilt[pol]){
 											num_refilt++;
@@ -297,34 +306,65 @@ int main(int argc, char **argv)
 											sort(frac.begin(), frac.end(), std::greater<double>());
 											fracs_power_cut[pol]->Fill(frac[2]);
 											if(frac[2]<=0.06){
-												PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol]);
-												if(condition){
-
-													// printf("		Event %d is refiltered in pol %d \n", event,pol);
-													// cout<<"			Frac of power notched is "<<frac[2]<<endl;
-													// printf("Event has condition in pol %d \n", pol);
-													// printf("Event %d Unixtime is %d \n", event, unixTime);
-													
-													printf("if(runNum==%d && pol==%d && unixTime==%d && event==%d){\n\tunixTimes[%d].push_back(double(unixTime)); phis[%d].push_back(double(phi_300[%d])); thetas[%d].push_back(double(theta_300[%d]));\n}\n",runNum,pol,unixTime,event,pol,pol,pol,pol,pol);
-
-													spatial_distro_remaining[pol]->Fill(phi_41[pol],theta_41[pol]);
-													spatial_distro_remaining[pol+2]->Fill(phi_300[pol], theta_300[pol]);
-
-													PlotThisEvent(station,config,runNum,event, settings, detector, theCorrelators);
+												if(!condition){
+													// printf("Run %d, Event %d: Corr %.2f and SNR %.2f \n", runNum, event, corr_val[pol], snr_val[pol]);
+													PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol]);
 												}
+												else{											
+													printf("Run %d, Event %d: Corr %.2f and SNR %.2f and V theta, phi = %d, %d  and H theta, phi = %d, %d \n", runNum, event, corr_val[pol], snr_val[pol],theta_300[0], phi_300[0],theta_300[1], phi_300[1]);
+													printf("	Run %d, Event %d Surface status in pol %d is %d and in pol %d is %d \n",runNum, event, 0,isSurf[0], 1, isSurf[1]);
+													// printf("Reconsiering for Glitch Run %d Event %d in Pol %d\n",runNum,event,pol);
+													bool failsReconsideration=false;
+													failsReconsideration=ReconsiderThisEventForGlitch(station,runNum,event,settings, detector, theCorrelators);
+													if(!failsReconsideration){
+														PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol]);
+														PlotThisEvent(station,config,runNum,event, pol, settings, detector, theCorrelators);
+													}
+												}
+												// PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol]);
+												// if(condition){
+
+												// 	// printf("		Event %d is refiltered in pol %d \n", event,pol);
+												// 	// cout<<"			Frac of power notched is "<<frac[2]<<endl;
+												// 	// printf("Event has condition in pol %d \n", pol);
+												// 	// printf("Event %d Unixtime is %d \n", event, unixTime);
+													
+												// 	// printf("if(runNum==%d && pol==%d && unixTime==%d && event==%d){\n\tunixTimes[%d].push_back(double(unixTime)); phis[%d].push_back(double(phi_300[%d])); thetas[%d].push_back(double(theta_300[%d]));\n}\n",runNum,pol,unixTime,event,pol,pol,pol,pol,pol);
+
+												// 	spatial_distro_remaining[pol]->Fill(phi_41[pol],theta_41[pol]);
+												// 	spatial_distro_remaining[pol+2]->Fill(phi_300[pol], theta_300[pol]);
+												// 	// printf("if(runNum==%d && event==%d) TroubleEvent=true;\n",runNum,event);
+												// 	// printf("Run %d, Event %d: Corr %.2f and SNR %.2f \n", runNum, event, corr_val[pol], snr_val[pol]);
+												// 	PlotThisEvent(station,config,runNum,event, pol, settings, detector, theCorrelators);
+												// }
 											}
 										} //refiltered?
 										else{
-											PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol]);
-											if(condition){
-												// printf("		Event %d is NOT refiltered in pol %d \n", event,pol);
-												spatial_distro_remaining[pol]->Fill(phi_41[pol],theta_41[pol]);
-												spatial_distro_remaining[pol+2]->Fill(phi_300[pol], theta_300[pol]);
-												// printf("Event %d Unixtime is %d \n", event, unixTime);
-													printf("if(runNum==%d && pol==%d && unixTime==%d && event==%d){\n\tunixTimes[%d].push_back(double(unixTime)); phis[%d].push_back(double(phi_300[%d])); thetas[%d].push_back(double(theta_300[%d]));\n}\n",runNum,pol,unixTime,event,pol,pol,pol,pol,pol);
-												
-												PlotThisEvent(station,config,runNum,event, settings, detector, theCorrelators);
+											if(!condition){
+												// printf("Run %d, Event %d: Corr %.2f and SNR %.2f \n", runNum, event, corr_val[pol], snr_val[pol]);
+												PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol]);
 											}
+											else{
+												printf("Run %d, Event %d: Corr 4%.2f and SNR %.2f \n", runNum, event, corr_val[pol], snr_val[pol]);
+												// printf("Reconsiering for Glitch Run %d Event %d in Pol %d\n",runNum,event,pol);
+												bool failsReconsideration=false;
+												failsReconsideration = ReconsiderThisEventForGlitch(station,runNum,event,settings, detector, theCorrelators);
+												if(!failsReconsideration){
+													PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol]);
+													PlotThisEvent(station,config,runNum,event, pol, settings, detector, theCorrelators);
+												}
+											}
+											// PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol]);
+											// if(condition){
+											// 	// printf("		Event %d is NOT refiltered in pol %d \n", event,pol);
+											// 	spatial_distro_remaining[pol]->Fill(phi_41[pol],theta_41[pol]);
+											// 	spatial_distro_remaining[pol+2]->Fill(phi_300[pol], theta_300[pol]);
+											// 	// printf("Event %d Unixtime is %d \n", event, unixTime);
+											// 	// printf("if(runNum==%d && pol==%d && unixTime==%d && event==%d){\n\tunixTimes[%d].push_back(double(unixTime)); phis[%d].push_back(double(phi_300[%d])); thetas[%d].push_back(double(theta_300[%d]));\n}\n",runNum,pol,unixTime,event,pol,pol,pol,pol,pol);
+											// 	// printf("if(runNum==%d && event==%d) TroubleEvent=true;\n",runNum,event);
+											// 	// printf("Run %d, Event %d: Corr %.2f and SNR %.2f \n", runNum, event, corr_val[pol], snr_val[pol]);
+											// 	PlotThisEvent(station,config,runNum,event, pol, settings, detector, theCorrelators);
+											// }
 										}
 										num_in_final_plot++;
 									}
@@ -351,7 +391,7 @@ int main(int argc, char **argv)
 	char title[300];
 
 
-	bool print_surface_stuff=true;
+	bool print_surface_stuff=false;
 	if(print_surface_stuff){
 
 		TLegend *leg = new TLegend(0.52,0.7,0.75,0.9);
@@ -456,7 +496,7 @@ int main(int argc, char **argv)
 		delete surface_distro[0]; delete surface_distro[1];
 	}
 
-	bool print_summary=false;
+	bool print_summary=true;
 	if(print_summary){
 
 		gStyle->SetOptStat(11);
@@ -597,6 +637,7 @@ int main(int argc, char **argv)
 		delete c7;
 		delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[1];
 
+		gStyle->SetOptStat(0);
 		surf=1;
 		sprintf(graph_title[0],"VPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
 		sprintf(graph_title[1],"HPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
@@ -620,7 +661,7 @@ int main(int argc, char **argv)
 
 }
 
-int PlotThisEvent(int station, int config, int runNum, int event, Settings *settings, Detector *detector, RayTraceCorrelator *theCorrelators[2]){
+int PlotThisEvent(int station, int config, int runNum, int event, int problempol, Settings *settings, Detector *detector, RayTraceCorrelator *theCorrelators[2]){
 	time_t time_now = time(0); //get the time now                                                                                                                                                                  
 	tm *time = localtime(&time_now);
 	int year_now = time -> tm_year + 1900;
@@ -797,7 +838,9 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 			}
 		}
 	}
+	bool skipCW=true;
 	for(int pol=0; pol<2; pol++){
+		if(skipCW) continue;
 		if(isCutonCW_fwd[pol] || isCutonCW_back[pol] || isCutonCW_baseline[pol]){
 			printf("	Has CW issue in pol %d \n", pol);
 			printf("		CW in FWD %d, BWD %d, or baseline %d? \n", isCutonCW_fwd[pol], isCutonCW_back[pol], isCutonCW_baseline[pol]);
@@ -887,7 +930,7 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 			vector<TGraph*> grWaveformsPowerSpectrum_notched = makePowerSpectrumGraphs(grNotched, xLabel, yLabel, titlesForGraphs);
 			
 			char save_temp_title[300];
-			sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_WaveformsNotch.png",plotPath,year_now,month_now,day_now,runNum,event);
+			sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_ProblemPol%d_WaveformsNotch.png",plotPath,year_now,month_now,day_now,runNum,event,problempol);
 			TCanvas *cWave = new TCanvas("","",4*1100,4*850);
 			cWave->Divide(4,4);
 			for(int i=0; i<16; i++){
@@ -901,7 +944,7 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 			cWave->SaveAs(save_temp_title);
 			delete cWave;
 
-			sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_SpectraNotch.png",plotPath,year_now,month_now,day_now,runNum,event);
+			sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_ProblemPol%d_SpectraNotch.png",plotPath,year_now,month_now,day_now,runNum,event,problempol);
 			TCanvas *cSpec = new TCanvas("","",4*1100,4*850);
 			cSpec->Divide(4,4);
 			for(int i=0; i<16; i++){
@@ -936,7 +979,7 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 	// printf("Delay is %.2f, and reco theta is %.2f \n", delay,theta);
 	// delete corr;
 
-	bool do_reco=true;
+	bool do_reco=false;
 	if(do_reco){
 		TH2D *map_30m_V;
 		TH2D *map_300m_V;
@@ -957,7 +1000,7 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 		}
 		else if(station==3){
 			//for station 3 years 2014 and 2015, we need to drop string 4 (channels 3, 7, 11, 15) altogether
-			if(runNum>2972){
+			if(runNum>getA3BadRunBoundary()){
 				chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 3), chan_list_V.end());
 				chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 7), chan_list_V.end());
 
@@ -965,25 +1008,6 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 				chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 15), chan_list_H.end());
 			}
 		}
-		// chan_list_V.clear();
-		// chan_list_V.push_back(2);
-		// chan_list_V.push_back(3);
-		// chan_list_V.push_back(4);
-		// chan_list_V.push_back(5);
-		// chan_list_V.push_back(6);
-		// chan_list_V.push_back(7);
-
-		// chan_list_V.clear();
-		// chan_list_V.push_back(0);
-		// chan_list_V.push_back(1);
-		// chan_list_V.push_back(2);
-		// chan_list_V.push_back(3);
-
-		// chan_list_H.clear();
-		// chan_list_H.push_back(8);
-		// chan_list_H.push_back(9);
-		// chan_list_H.push_back(10);
-		// chan_list_H.push_back(11);
 
 		map_30m_V = theCorrelators[0]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Vpol, false,chan_list_V) ;
 		map_300m_V = theCorrelators[1]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Vpol, false,chan_list_V);
@@ -1036,7 +1060,7 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 			cMaps->cd(2);
 			map_300m_H->Draw("colz");
 		char save_temp_title[400];		
-		sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_Maps.png",plotPath,year_now,month_now,day_now,runNum,event);
+		sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_ProblemPol%d_Maps.png",plotPath,year_now,month_now,day_now,runNum,event,problempol);
 		cMaps->SaveAs(save_temp_title);
 		delete cMaps;
 		delete map_30m_V; delete map_300m_V; delete map_30m_H; delete map_300m_H; 
@@ -1045,7 +1069,7 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 		chan_list_V.push_back(0);
 		chan_list_V.push_back(1);
 		chan_list_V.push_back(2);
-		if(!(station==3 && runNum>2972)){ //if dropping bad chans and station 3, don't keep fourth string
+		if(!(station==3 && runNum>getA3BadRunBoundary())){ //if dropping bad chans and station 3, don't keep fourth string
 			chan_list_V.push_back(3);
 		}
 
@@ -1053,7 +1077,7 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 		chan_list_H.push_back(8);
 		chan_list_H.push_back(9);
 		chan_list_H.push_back(10);
-		if(!(station==3 && runNum>2972)){ //if dropping bad chans and station 3, don't keep fourth string
+		if(!(station==3 && runNum>getA3BadRunBoundary())){ //if dropping bad chans and station 3, don't keep fourth string
 			chan_list_H.push_back(11);
 		}
 
@@ -1083,7 +1107,7 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 			map_300m_top_V->Draw("colz");
 			cMaps_top->cd(2);
 			map_300m_top_H->Draw("colz");
-		sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_MapsTop.png",plotPath,year_now,month_now,day_now,runNum,event);
+		sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_ProblemPol%d_MapsTop.png",plotPath,year_now,month_now,day_now,runNum,event,problempol);
 		cMaps_top->SaveAs(save_temp_title);
 		delete cMaps_top;
 		delete map_300m_top_V; delete map_300m_top_H;
@@ -1126,7 +1150,7 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 			map_300m_bottom_V->Draw("colz");
 			cMaps_bottom->cd(2);
 			map_300m_bottom_H->Draw("colz");
-		sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_MapsBottom.png",plotPath,year_now,month_now,day_now,runNum,event);
+		sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_ProblemPol%d_MapsBottom.png",plotPath,year_now,month_now,day_now,runNum,event,problempol);
 		cMaps_bottom->SaveAs(save_temp_title);
 		delete cMaps_bottom;
 		delete map_300m_bottom_V; delete map_300m_bottom_H;
@@ -1145,7 +1169,7 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 
 
 	char save_temp_title[300];
-	sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_Waveforms.png",plotPath,year_now,month_now,day_now,runNum,event);
+	sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_ProblemPol%d_Waveforms.png",plotPath,year_now,month_now,day_now,runNum,event,problempol);
 	TCanvas *cWave = new TCanvas("","",4*1100,4*850);
 	cWave->Divide(4,4);
 	for(int i=0; i<16; i++){
@@ -1161,7 +1185,7 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 	cWave->SaveAs(save_temp_title);
 	delete cWave;
 
-	sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_Spectra.png",plotPath,year_now,month_now,day_now,runNum,event);
+	sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_ProblemPol%d_Spectra.png",plotPath,year_now,month_now,day_now,runNum,event,problempol);
 	TCanvas *cSpec = new TCanvas("","",4*1100,4*850);
 	cSpec->Divide(4,4);
 	for(int i=0; i<16; i++){
@@ -1170,7 +1194,7 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 		grWaveformsPowerSpectrum[i]->SetLineWidth(3);
 		gPad->SetLogy();
 	}
-	cSpec->SaveAs(save_temp_title);
+	// cSpec->SaveAs(save_temp_title);
 	delete cSpec;
 	for(int i=0; i<16; i++){
 		delete waveforms[i];
@@ -1182,4 +1206,327 @@ int PlotThisEvent(int station, int config, int runNum, int event, Settings *sett
 	mapFile->Close();
 	delete mapFile;
 	return 0;
+}
+
+
+double MaxMeanBlock(TGraph *grIn, int evt_num, int chan, vector<double> &means, bool print){
+
+	int n_input = grIn->GetN();
+	double *oldX = grIn->GetX();
+	double *oldY = grIn->GetY();
+
+	deque <double> inX;
+	deque <double> inY;	
+
+	for(int samp=0; samp<n_input; samp++){
+		inX.push_back(oldX[samp]);
+		inY.push_back(oldY[samp]);
+	}
+
+	// vector <double> means;
+	vector <TGraph*> grPieces;
+
+	while(inX.size()>0){
+		vector <double> sub_X;
+		vector <double> sub_Y;
+		double first_time = inX[0];
+		int num_to_pop=0;
+		double mean_this_section=0.;
+		for(int samp=0; samp<inX.size(); samp++){
+			if(inX[samp]<=first_time+20.){
+				sub_X.push_back(inX[samp]);
+				sub_Y.push_back(inY[samp]);
+				num_to_pop++;
+				mean_this_section+=inY[samp];
+			}
+		}
+		mean_this_section/=double(sub_X.size());
+		means.push_back((mean_this_section));
+		for(int samp=0; samp<sub_X.size(); samp++){ //now fix the mean
+			sub_Y[samp]=mean_this_section;
+		}
+		grPieces.push_back(new TGraph(sub_X.size(),&sub_X[0],&sub_Y[0]));
+
+		for(int iPop=0; iPop<num_to_pop; iPop++){
+			inX.pop_front();
+			inY.pop_front();
+		}
+	}
+
+	int colors [28] = { kBlue, kSpring, kYellow, kTeal, kMagenta, kAzure, kRed, kCyan, kViolet, kGreen, kOrange, kPink, kBlue, kSpring, kYellow,kTeal, kMagenta, kAzure, kRed, kCyan, kViolet, kGreen, kOrange, kPink, kBlue, kSpring, kYellow, kTeal}; 
+
+	if(print){
+		TCanvas *c = new TCanvas("","",1100,850);
+		grIn->Draw("AL");
+		for(int i=0; i<grPieces.size(); i++){
+			grPieces[i]->Draw("same");
+			grPieces[i]->SetLineColor(colors[i]);
+			grPieces[i]->SetLineWidth(3);
+		}
+		char title[400];
+		sprintf(title,"/users/PAS0654/osu0673/A23_analysis_new2/results/glitch_detect/GlitchWaveform_ev%d_chan%d.png",evt_num,chan);
+		c->SaveAs(title);	
+		delete c;
+	}
+	for(int i=0; i<grPieces.size(); i++){
+		delete grPieces[i];
+	}
+	// for(int i=0; i<means.size(); i++){
+	// 	printf("Block %d has mean %.2f \n", i, means[i]);
+	// }
+	std::sort(means.begin(), means.end(), std::greater<double>());
+	// printf("Biggest value is %.2f \n", means[0]);
+	return means[0];
+}
+
+int countExcursions(vector<double> maxMeans){
+	if(maxMeans.size()!=16){
+		cout<<"Something wrong! More than 16 elements!"<<endl;
+		return 0;
+	}
+	int numExcursions=0;
+	for(int i=0; i<16; i++){
+		if((i+1)%4==0) continue;
+		if(maxMeans[i]>150)
+			numExcursions++;
+	}
+	return numExcursions;
+}
+
+bool ReconsiderThisEventForGlitch(int station,int runNum, int event,Settings *settings, Detector *detector, RayTraceCorrelator *theCorrelators[2]){
+	time_t time_now = time(0); //get the time now                                                                                                                                                                  
+	tm *time = localtime(&time_now);
+	int year_now = time -> tm_year + 1900;
+	int month_now = time -> tm_mon + 1;
+	int day_now = time -> tm_mday;
+
+	char *DataDirPath(getenv("DATA_DIR"));
+	if (DataDirPath == NULL) std::cout << "Warning! $DATA_DIR is not set!" << endl;
+	char *PedDirPath(getenv("PED_DIR"));
+	if (PedDirPath == NULL) std::cout << "Warning! $DATA_DIR is not set!" << endl;
+	char *plotPath(getenv("PLOT_PATH"));
+	if (plotPath == NULL) std::cout << "Warning! $PLOT_PATH is not set!" << endl;
+
+	char run_file_name[400];
+	sprintf(run_file_name,"%s/RawData/A%d/all_runs/event%d.root",DataDirPath,station,runNum);
+	TFile *mapFile = TFile::Open(run_file_name);
+	if(!mapFile){
+		cout<<"Can't open data file for map!"<<endl;
+	}
+	TTree *eventTree = (TTree*) mapFile-> Get("eventTree");
+	if(!eventTree){
+		cout<<"Can't find eventTree for map"<<endl;
+	}
+
+	RawAtriStationEvent *rawPtr =0;
+	eventTree->SetBranchAddress("event",&rawPtr);
+	eventTree->GetEvent(event);
+	int realEventNumber = rawPtr->eventNumber;
+	bool hasRealEventNumberIssue = false;
+	if(realEventNumber<=4)
+		hasRealEventNumberIssue=true;
+
+	int stationID = rawPtr->stationId;
+	char ped_file_name[400];
+	sprintf(ped_file_name,"%s/run_specific_peds/A%d/all_peds/event%d_specificPeds.dat",PedDirPath,station,runNum);
+	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
+	calibrator->setAtriPedFile(ped_file_name,stationID); //because someone had a brain (!!), this will error handle itself if the pedestal doesn't exist
+
+	AraQualCuts *qualCut = AraQualCuts::Instance();
+	UsefulAtriStationEvent *realAtriEvPtr = new UsefulAtriStationEvent(rawPtr,AraCalType::kLatestCalib);
+	bool isGoodEventNew = qualCut->isGoodEvent(realAtriEvPtr);
+	printf("Run %d, Event %d \n", runNum, realEventNumber);
+
+	stringstream ss1;
+	string xLabel, yLabel;
+	xLabel = "Time (ns)"; yLabel = "Voltage (mV)";
+	vector<string> titlesForGraphs;
+	for (int i = 0; i < 16; i++){
+		ss1.str("");
+		ss1 << "Channel " << i;
+		titlesForGraphs.push_back(ss1.str());
+	}
+
+	vector <TGraph*> waveforms = makeGraphsFromRF(realAtriEvPtr,16,xLabel,yLabel,titlesForGraphs);
+
+
+	/*
+		Rolling means excursion check
+	*/
+
+	// vector<TGraph*> rollingMeans;
+	// vector<double> maxMeans;
+	// rollingMeans.resize(16);
+	// for(int i=0; i<16; i++){
+	// 	if(waveforms[i]->GetN()<64){
+	//  		continue;
+	//  	}
+	//  	TGraph *grInt = FFTtools::getInterpolatedGraph(waveforms[i],0.5);
+	//  	if(grInt->GetN()<101){
+	//  		delete grInt;
+	//  		continue;
+	//  	}
+	//  	rollingMeans[i]=(qualCut->getRollingMean(grInt,100));
+	//  	double thisMax = abs(TMath::MaxElement(rollingMeans[i]->GetN(), rollingMeans[i]->GetY()));
+	//  	double thisMin = abs(TMath::MinElement(rollingMeans[i]->GetN(), rollingMeans[i]->GetY()));
+	//  	double thisAbs;
+	//  	if(abs(thisMax)>abs(thisMin))
+	//  		thisAbs=abs(thisMax);
+	//  	else
+	//  		thisAbs=abs(thisMin);
+	//  	maxMeans.push_back(thisAbs);
+	//  	// printf("Chan %d max abs is %4.2f\n",i,thisAbs);
+	// }
+	// for(int i=0; i<16; i++) delete rollingMeans[i];
+	// int numExcursions = countExcursions(maxMeans);
+	// printf("Num excursions is %d \n", numExcursions);
+
+	bool cutOnExcursions=false;
+	// if(numExcursions>2)
+	// 	cutOnExcursions=true;
+
+	/*
+		Number of non-zero blocks cut
+	*/
+
+	// vector< vector<double> > vvmeans;
+	// vector<int> vNumViolatingBlocksPerChannel;
+	// for(int i=0; i<16; i++){
+	// 	vector<double> vmeans;
+	// 	double this_max = MaxMeanBlock(waveforms[i], event, i, vmeans, false);
+	// 	vvmeans.push_back(vmeans);
+	// }
+	// for(int i=0; i<16; i++){
+	// 	int numViolatingBlocks=0;
+	// 	for(int j=0; j<vvmeans[i].size();j++){
+	// 		if(abs(vvmeans[i][j])>20)
+	// 			numViolatingBlocks++;
+	// 	}
+	// 	vNumViolatingBlocksPerChannel.push_back(numViolatingBlocks);
+	// 	// printf("Chan %2d has %2d num violating blocks \n", i, numViolating);
+	// }
+	// int numChansWithManyViolations=0;
+	// for(int i=0; i<16; i++){
+	// 	if(vNumViolatingBlocksPerChannel[i]>10)
+	// 		numChansWithManyViolations++;
+	// }
+	bool cutOnManyOffsetBlocks=false;
+	// if(numChansWithManyViolations>=4)
+	// 	cutOnManyOffsetBlocks=true;
+	// printf("Num chans with many block violations is %d \n", numChansWithManyViolations);
+
+
+	/*
+		Spare channels cut
+	*/
+
+	vector<TGraph*> electChansGraphs;
+	electChansGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(6));
+	electChansGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(14));
+	electChansGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(22));
+	electChansGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(30));
+	vector<double> spareRMS;
+	for(int i=0; i<4; i++){
+		spareRMS.push_back(electChansGraphs[i]->GetRMS(2));
+	}
+	for(int i=0; i<4; i++)
+		delete electChansGraphs[i];
+	int numBadSpareChans=0;
+	int numReallyBadSpareChans=0;
+	for(int i=0; i<4; i++){
+		printf("Eventd %d Spare RMS string %d is %3.2f\n",event,i,spareRMS[i]);
+		if(spareRMS[i]>20 && i!=3){
+			numBadSpareChans++;
+		}
+		if(spareRMS[i]>60 && i!=3){
+			numReallyBadSpareChans++;
+		}
+	}
+	bool hasBadSpareChansIssue=false;
+	if(numBadSpareChans>1 || numReallyBadSpareChans>0)
+		hasBadSpareChansIssue=true;
+
+
+	for(int i=0; i<16; i++){
+		delete waveforms[i];
+	}
+
+
+	/*
+		SNR Weighted Reconstruction check for rejecting any surface events we'll get rid of later
+	*/
+	bool isSNRWeightedSurfaceEvent=false;
+	// only do these reconstructions if removing the event in every other way has failed...
+	// if(!cutOnManyOffsetBlocks 
+	// 	&& !hasBadSpareChansIssue 
+	// 	&& !hasRealEventNumberIssue){
+
+	// 	vector <int> chan_list_V;
+	// 	vector <int> chan_list_H;
+	// 	vector<double> chan_SNRs;
+	// 	for(int chan=0; chan<=7; chan++){
+	// 		chan_list_V.push_back(chan);
+	// 		chan_list_H.push_back(chan+8);
+	// 	}
+	// 	for(int i=0; i<16; i++){
+	// 		// chan_SNRs.push_back(1.);
+	// 		// chan_SNRs.push_back(VPeakOverRMS[i]);
+	// 		// printf("SNR is %.2f \n", VPeakOverRMS[i]);
+	// 	}
+	// 	// filterFile->Close();
+
+	// 	if(station==2){
+	// 		//for station 2, we need to exclude channel 15 from the analysis
+	// 		chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 15), chan_list_H.end());
+	// 	}
+	// 	else if(station==3){
+	// 		//for station 3 years 2014 and 2015, we need to drop string 4 (channels 3, 7, 11, 15) altogether
+	// 		if(runNum>getA3BadRunBoundary()){
+	// 			chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 3), chan_list_V.end());
+	// 			chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 7), chan_list_V.end());
+	// 			chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 11), chan_list_H.end());
+	// 			chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 15), chan_list_H.end());
+	// 		}
+	// 	}
+	// 	TH2D *map_300m_V;
+	// 	TH2D *map_300m_H;
+	// 	bool AraSim=false;
+	// 	int solNum=0;
+	// 	map_300m_V = theCorrelators[1]->getInterferometricMap_RT_select_NewNormalization_SNRweighted(settings, detector, realAtriEvPtr, Vpol, AraSim, chan_list_V, chan_SNRs,  solNum);
+	// 	map_300m_H = theCorrelators[1]->getInterferometricMap_RT_select_NewNormalization_SNRweighted(settings, detector, realAtriEvPtr, Hpol, AraSim, chan_list_H, chan_SNRs, solNum);
+	// 	int PeakTheta_Recompute_300m_H;
+	// 	int PeakPhi_Recompute_300m_H;
+	// 	double PeakCorr_Recompute_300m_H;
+	// 	int PeakTheta_Recompute_300m_V;
+	// 	int PeakPhi_Recompute_300m_V;
+	// 	double PeakCorr_Recompute_300m_V;
+	// 	getCorrMapPeak(map_300m_H,PeakTheta_Recompute_300m_H,PeakPhi_Recompute_300m_H,PeakCorr_Recompute_300m_H);
+	// 	getCorrMapPeak(map_300m_V,PeakTheta_Recompute_300m_V,PeakPhi_Recompute_300m_V,PeakCorr_Recompute_300m_V);
+
+	// 	if(PeakTheta_Recompute_300m_V >=37 || PeakTheta_Recompute_300m_H>=37){
+	// 		isSNRWeightedSurfaceEvent=true;
+	// 		cout<<"Hey! This one reconstructs to the surface!"<<endl;
+	// 	}
+
+	// 	delete map_300m_V;
+	// 	delete map_300m_H;
+	// }
+
+
+
+
+	// delete realAtriEvPtr;
+	mapFile->Close();
+	delete mapFile;
+	// if( cutOnExcursions || cutOnManyOffsetBlocks || !isGoodEventNew)
+	// if(cutOnManyOffsetBlocks 
+	// 	|| hasBadSpareChansIssue 
+	// 	|| hasRealEventNumberIssue
+	// 	|| isSNRWeightedSurfaceEvent)
+	if(hasRealEventNumberIssue || hasBadSpareChansIssue){
+		cout<<"Rejected by reconsideration!"<<endl;
+		return true;
+	}
+	else
+		return false;
 }
