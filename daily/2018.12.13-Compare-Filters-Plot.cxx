@@ -39,8 +39,10 @@ int main(int argc, char **argv)
 	int month_now = time -> tm_mon + 1;
 	int day_now = time -> tm_mday;
 
+	char *plotPath(getenv("PLOT_PATH"));
+	if (plotPath == NULL) std::cout << "Warning! $PLOT_PATH is not set!" << endl;
+
 	stringstream ss;
-	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
 	
 	if(argc<3){
 		cout<< "Usage\n" << argv[0] << " <isSim?> <thresh bin> <wfrms cut val> <station> <year> <joined filename 1> <joined filename 2 > ... <joined filename x>"<<endl;
@@ -155,10 +157,11 @@ int main(int argc, char **argv)
 		Long64_t starEvery=numEntries/200;
 		if(starEvery==0) starEvery++;
 
+
 		//now to loop over events
 		// numEntries=2;
 		for(int event=0; event<numEntries; event++){
-			inputTree_filter->GetEvent(event, weight);
+			inputTree_filter->GetEvent(event);
 
 			num_total+=weight;
 
@@ -316,7 +319,7 @@ int main(int argc, char **argv)
 	for(int pol=0; pol<2; pol++){
 		printf("Pol %d \n", pol);
 		printf("-----------------------\n");
-		// printf("	Org face: Num thermal passing pol %d: %.3f events, %.3f rate \n", pol, num_passing[pol], 100.*num_passing[pol]/num_thermal);
+		printf("	Org face: Num thermal passing pol %d: %.3f events, %.3f rate \n", pol, num_passing[pol], 100.*num_passing[pol]/num_thermal[pol]);
 		printf("	Alt  face: Num thermal passing pol %d: %.3f/%.3f events, %.3f rate \n", pol, num_passing_alt[pol],num_thermal[pol], 100.*num_passing_alt[pol]/num_thermal[pol]);
 	}
 
@@ -385,8 +388,8 @@ int main(int argc, char **argv)
 			gPad->SetLogy();
 	}
 	char title[300];
-	if(isSim) sprintf(title, "/users/PAS0654/osu0673/A23_analysis_new2/results/%d.%d.%d_sim_A%d_%d_%dEvents_CompareFilters_Vpol%.1f_Hpol%.1f.png",year_now, month_now, day_now,station,year,int(num_total),0.1*double(thresholdBin_pol[0]) + 2.0,0.1*double(thresholdBin_pol[1])+2.0);
-	sprintf(title, "/users/PAS0654/osu0673/A23_analysis_new2/results/%d.%d.%d_data_A%d_%d_%dEvents_CompareFilters_Vpol%.1f_Hpol%.1f.png",year_now, month_now, day_now,station,year,int(num_total),0.1*double(thresholdBin_pol[0]) + 2.0,0.1*double(thresholdBin_pol[1])+2.0);
+	if(isSim) sprintf(title, "%s/%d.%d.%d_sim_A%d_%d_%dEvents_CompareFilters_Vpol%.1f_Hpol%.1f.png",plotPath,year_now, month_now, day_now,station,year,int(num_total),0.1*double(thresholdBin_pol[0]) + 2.0,0.1*double(thresholdBin_pol[1])+2.0);
+	sprintf(title, "%s/%d.%d.%d_data_A%d_%d_%dEvents_CompareFilters_Vpol%.1f_Hpol%.1f.png",plotPath,year_now, month_now, day_now,station,year,int(num_total),0.1*double(thresholdBin_pol[0]) + 2.0,0.1*double(thresholdBin_pol[1])+2.0);
 	c->SaveAs(title);
 	delete c;
 	delete wfrms_plots[0]; delete wfrms_plots[1]; delete wfrms_plots[2]; delete wfrms_plots[3];
