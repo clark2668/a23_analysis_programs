@@ -28,29 +28,24 @@
 
 using namespace std;
 
-double cumulativePowerBelow(TGraph *grIn, double freq);
-
-
 int main(int argc, char **argv)
 {
 
 	if(argc<3) {
-		std::cout << "Usage\n" << argv[0] << " <station> <year> <input_file> <output_location> "<<endl;
+		std::cout << "Usage\n" << argv[0] << " <station> <input_file> <output_location> "<<endl;
 		return -1;
 	}
 	int station = atoi(argv[1]);
-	int year = atoi(argv[2]);
 
 	/*
 	arguments
 	0: exec
 	1: station
-	2: year
 	3: input data file
 	4: output location
 	*/
 	
-	TFile *fpIn = TFile::Open(argv[3]);
+	TFile *fpIn = TFile::Open(argv[2]);
 	if(!fpIn) {
 		std::cout << "Can't open file\n";
 		return -1;
@@ -67,20 +62,18 @@ int main(int argc, char **argv)
 	eventTree->GetEntry(0);
 	printf("Filter Run Number %d \n", run);
 
+	char *PedDirPath(getenv("PED_DIR"));
+	if (PedDirPath == NULL) std::cout << "Warning! $DATA_DIR is not set!" << endl;
+
 	char ped_file_name[400];
-	if(year==2013){
-		sprintf(ped_file_name,"/fs/scratch/PAS0654/ara/peds/run_specific_peds/A%d/%d/event%d_specificPeds.dat",station,year,run);
-	}
-	else if(year==2014 || year==2015 || year==2016){
-		sprintf(ped_file_name,"/fs/scratch/PAS0654/ara/peds/run_specific_peds/A%d/%d/event00%d_specificPeds.dat",station,year,run);
-	}
+	sprintf(ped_file_name,"%s/run_specific_peds/A%d/all_peds/event%d_specificPeds.dat",PedDirPath,station,run);
 	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
 	calibrator->setAtriPedFile(ped_file_name,station); //because someone had a brain (!!), this will error handle itself if the pedestal doesn't exist
 
 	AraQualCuts *qualCut = AraQualCuts::Instance(); //we also need a qual cuts tool
 
 	char outfile_name[400];
-	sprintf(outfile_name,"%s/low_freq_power_run%d.root",argv[4],run);
+	sprintf(outfile_name,"%s/low_freq_power_run%d.root",argv[3],run);
 
 	TFile *fpOut = TFile::Open(outfile_name, "RECREATE");
 	TTree* outTree = new TTree("outTree", "outTree");
@@ -90,6 +83,13 @@ int main(int argc, char **argv)
 	double frac_power_75[16];
 	double frac_power_110[16];
 	double frac_power_150[16];
+	double frac_above_850[16];
+	double frac_between[16];
+	double power_75[16];
+	double power_110[16];
+	double power_150[16];
+	double above_850[16];
+	double between[16];
 	int runNum;
 	bool hasDigitizerError;
 	outTree->Branch("isCal", &isCal, "isCal/O");
@@ -99,10 +99,18 @@ int main(int argc, char **argv)
 	outTree->Branch("frac_power_75", &frac_power_75, "frac_power_75[16]/D");
 	outTree->Branch("frac_power_110", &frac_power_110, "frac_power_110[16]/D");
 	outTree->Branch("frac_power_150", &frac_power_150, "frac_power_150[16]/D");
+	outTree->Branch("frac_above_850", &frac_above_850, "frac_above_850[16]/D");
+	outTree->Branch("frac_between", &frac_between, "frac_between[16]/D");
+	outTree->Branch("power_75", &power_75, "power_75[16]/D");
+	outTree->Branch("power_110", &power_110, "power_110[16]/D");
+	outTree->Branch("power_150", &power_150, "power_150[16]/D");
+	outTree->Branch("above_850", &above_850, "above_850[16]/D");
+	outTree->Branch("between", &between, "between[16]/D");
 	runNum=run;
 	outTree->Branch("run",&runNum);
 
 	Long64_t numEntries=eventTree->GetEntries();
+	// numEntries=20;
 
 	for(Long64_t event=0;event<numEntries;event++) {
 		eventTree->GetEntry(event);
@@ -110,7 +118,8 @@ int main(int argc, char **argv)
 		isSoft = rawAtriEvPtr->isSoftwareTrigger();
 
 		UsefulAtriStationEvent *ev = new UsefulAtriStationEvent(rawAtriEvPtr,AraCalType::kLatestCalib);
-		hasDigitizerError = !(qualCut->isGoodEvent(ev));
+		hasDigitizerError = (qualCut->hasBlockGap(ev) || qualCut->hasTooFewBlocks(ev) || qualCut->hasTimingError(ev));
+		// hasDigitizerError = !(qualCut->isGoodEvent(ev));
 		if(hasDigitizerError){ //cleanup
 			outTree->Fill();
 			delete ev;
@@ -129,15 +138,17 @@ int main(int argc, char **argv)
 		}
 		vector <TGraph*> grWaveformsRaw = makeGraphsFromRF(ev,16,xLabel,yLabel,titlesForGraphs);
 
-		vector<TGraph*> grWaveformsInt = makeInterpolatedGraphs(grWaveformsRaw, 0.6, xLabel, yLabel, titlesForGraphs);
+		vector<TGraph*> grWaveformsInt = makeInterpolatedGraphs(grWaveformsRaw, 0.5, xLabel, yLabel, titlesForGraphs);
 		vector<TGraph*> grWaveformsPadded = makePaddedGraphs(grWaveformsInt, 0, xLabel, yLabel, titlesForGraphs);
 		vector<TGraph*> grSpectra = makePowerSpectrumGraphs(grWaveformsPadded, xLabel, yLabel, titlesForGraphs);
 
 		for(int i=0; i<16; i++){
 			waveform_length[i]=grWaveformsRaw[i]->GetN();
-			frac_power_75[i]=cumulativePowerBelowfromSpectrum(grSpectra[i],75.);
-			frac_power_110[i]=cumulativePowerBelowfromSpectrum(grSpectra[i],110.);
-			frac_power_150[i]=cumulativePowerBelowfromSpectrum(grSpectra[i],150.);
+			frac_power_75[i]=cumulativePowerBelowfromSpectrum(grSpectra[i],75.,power_75[i]);
+			frac_power_110[i]=cumulativePowerBelowfromSpectrum(grSpectra[i],110.,power_110[i]);
+			frac_power_150[i]=cumulativePowerBelowfromSpectrum(grSpectra[i],150.,power_150[i]);
+			frac_above_850[i]=cumulativePowerAbovefromSpectrum(grSpectra[i],850.,above_850[i]);
+			frac_between[i]=cumulativePowerBetweenfromSpectrum(grSpectra[i],75.,850.,between[i]);
 		}
 		outTree->Fill();
 
