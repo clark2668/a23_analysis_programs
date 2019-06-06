@@ -25,6 +25,7 @@
 //AraRoot includes
 #include "RawAtriStationEvent.h"
 #include "UsefulAtriStationEvent.h"
+#include "AraQualCuts.h"
 #include "Settings.h"
 #include "Detector.h"
 #include "Report.h"
@@ -34,8 +35,11 @@ AraAntPol::AraAntPol_t Hpol = AraAntPol::kHorizontal;
 #include "tools_PlottingFns.h"
 #include "tools_RecoFns.h"
 #include "tools_Cuts.h"
+#include "tools_outputObjects.h"
 
 using namespace std;
+
+double MaxMeanBlock(TGraph *grIn, int evt_num, int chan, vector<double> &means, bool print);
 
 int main(int argc, char **argv)
 {
@@ -62,10 +66,12 @@ int main(int argc, char **argv)
 	char *PedDirPath(getenv("PED_DIR"));
 	if (PedDirPath == NULL) std::cout << "Warning! $DATA_DIR is not set!" << endl;
 
+	beautify_TH2D();
+
 	gStyle->SetOptStat(11);
 
 	char run_file_name[400];
-	sprintf(run_file_name,"%s/RawData/A%d/%d/sym_links/event%d.root",DataDirPath,station,year,runNum,runNum);
+	sprintf(run_file_name,"%s/RawData/A%d/all_runs/event%d.root",DataDirPath,station,runNum,runNum);
 	TFile *mapFile = TFile::Open(run_file_name);
 	if(!mapFile){
 		cout<<"Can't open data file for map!"<<endl;
@@ -83,13 +89,7 @@ int main(int argc, char **argv)
 
 	int stationID = rawPtr->stationId;
 	char ped_file_name[400];
-
-	if(year==2013){
-		sprintf(ped_file_name,"%s/run_specific_peds/A%d/%d/event%d_specificPeds.dat",PedDirPath,station,year,runNum);
-	}
-	else if(year==2014 || year==2015 || year==2016){
-		sprintf(ped_file_name,"%s/run_specific_peds/A%d/%d/event00%d_specificPeds.dat",PedDirPath,station,year,runNum);
-	}
+	sprintf(ped_file_name,"%s/run_specific_peds/A%d/all_peds/event%d_specificPeds.dat",PedDirPath,station,runNum);
 	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
 	calibrator->setAtriPedFile(ped_file_name,stationID); //because someone had a brain (!!), this will error handle itself if the pedestal doesn't exist
 	
@@ -103,6 +103,21 @@ int main(int argc, char **argv)
 	printf("timeStamp is %d \n", timeStamp);
 	printf("Event Number is %d \n", realAtriEvPtr->eventNumber);
 
+	AraQualCuts *qualCut = AraQualCuts::Instance();
+	bool quality = qualCut->isGoodEvent(realAtriEvPtr);
+	printf("Quality is %d \n", quality);
+
+	// int length = rawPtr->blockVec.size();
+	// vector <int> single_chan_blocks;
+
+	// for(int i=0; i<length; i++){
+	// 	// cout<<rawAtriEvPtr->blockVec[i].getBlock()<<endl;
+	// 	if(i%4==0) single_chan_blocks.push_back((int) rawPtr->blockVec[i].getBlock());
+	// }
+	// for(int i=0; i<single_chan_blocks.size(); i++){
+	// 	printf("Block %d is %d \n", i, single_chan_blocks[i]);
+	// }
+
 	stringstream ss1;
 	string xLabel, yLabel;
 	xLabel = "Time (ns)"; yLabel = "Voltage (mV)";
@@ -113,18 +128,39 @@ int main(int argc, char **argv)
 		titlesForGraphs.push_back(ss1.str());
 	}
 	vector <TGraph*> waveforms = makeGraphsFromRF(realAtriEvPtr,16,xLabel,yLabel,titlesForGraphs);
+	vector< vector<double> > vvmeans;
 	for(int i=0; i<16; i++){
-		// printf("Chan %d has %d samples\n", i, waveforms[i]->GetN());
-		// for(int j=0; j<realAtriEvPtr->blockVec.size(); j++){
-		// 	printf("Block %d is %d \n", j, realAtriEvPtr->blockVec[j].getBlock());
-		// }
-
+		double thisRMS = waveforms[i]->GetRMS(2);
+		printf("Graph %d RMS is %.2f \n",i,thisRMS);
+		vector<double> vmeans;
+		double this_max = MaxMeanBlock(waveforms[i], event, i, vmeans, false);
+		vvmeans.push_back(vmeans);
+	}
+	for(int i=0; i<16; i++){
+		int numViolating=0;
+		// if(i==2 || i==3 || i==6 || i==7 || i==10 || i==11 || i==14 || i==15) continue;
+		// printf("Chan %2d : ",i);
+		for(int j=0; j<vvmeans[i].size();j++){
+			// printf("%4.f : ", vvmeans[i][j]);
+			if(abs(vvmeans[i][j])>20)
+				numViolating++;
+		}
+		// cout<<endl;
+		// printf("Chan %2d has %2d num violating blocks \n", i, numViolating);
 	}
 
 	vector<TGraph*> grWaveformsInt = makeInterpolatedGraphs(waveforms, 0.5, xLabel, yLabel, titlesForGraphs);
 	vector<TGraph*> grWaveformsPadded = makePaddedGraphs(grWaveformsInt, 0, xLabel, yLabel, titlesForGraphs);
 	xLabel = "Frequency (Hz)"; yLabel = "Power Spectral Density (mV/Hz)";
 	vector<TGraph*> grWaveformsPowerSpectrum = makePowerSpectrumGraphs(grWaveformsPadded, xLabel, yLabel, titlesForGraphs);
+
+	for(int i=0; i<16; i++){
+		double power_below_75;
+		double  frac_power_below_75 = cumulativePowerBelowfromSpectrum(grWaveformsPowerSpectrum[i],75.,power_below_75);
+		double power_above_850;
+		double  frac_power_above_850 = cumulativePowerAbovefromSpectrum(grWaveformsPowerSpectrum[i],850.,power_above_850);
+		// printf("Chan %d Fraction of power below 75MHz %.2f and above 850 MHz %.2f \n", i, frac_power_below_75, frac_power_above_850);
+	}
 
 	gStyle->SetOptStat(0);
 	bool do_reco=false;
@@ -145,7 +181,7 @@ int main(int argc, char **argv)
 		TH2D *map_41m_H;
 		TH2D *map_300m_H;
 		TH2D *map_41m_V_select;
-
+	
 		map_41m_V = theCorrelators[0]->getInterferometricMap_RT(settings, detector, realAtriEvPtr, Vpol, 0, 0);
 		map_300m_V = theCorrelators[1]->getInterferometricMap_RT(settings, detector, realAtriEvPtr, Vpol, 0, 0);
 		map_41m_H = theCorrelators[0]->getInterferometricMap_RT(settings, detector, realAtriEvPtr, Hpol, 0, 0);
@@ -204,8 +240,8 @@ int main(int argc, char **argv)
 		// delete map_41m_V_select;
 	}
 
-	bool do_reco_snrweighted=false;
-	if(do_reco_snrweighted){
+	bool do_reco_snrweighted_newnormalization_select=true;
+	if(do_reco_snrweighted_newnormalization_select){
 		//set up the ray tracer
 		Settings *settings = new Settings();
 		string setupfile = "setup.txt";
@@ -217,16 +253,57 @@ int main(int argc, char **argv)
 		theCorrelators[0] =  new RayTraceCorrelator(station, 41., settings, 1, 4); //41 m, cal puser
 		theCorrelators[1] =  new RayTraceCorrelator(station, 300., settings, 1, 4);//300 m, far reco
 
+		char filter_file_name[400];
+		sprintf(filter_file_name,"%s/ProcessedFile/A%d/%d/processed_station_%d_run_%d_filter.root",DataDirPath,station,year,station,runNum);
+		TFile *filterFile = TFile::Open(filter_file_name);
+		TTree *filterTree = (TTree*) filterFile->Get("OutputTree");
+		filterTree->SetBranchAddress("VPeakOverRMS", &VPeakOverRMS);
+		filterTree->GetEvent(event);
+
+		vector <int> chan_list_V;
+		vector <int> chan_list_H;
+		vector<double> chan_SNRs;
+		for(int chan=0; chan<=7; chan++){
+			chan_list_V.push_back(chan);
+			chan_list_H.push_back(chan+8);
+		}
+		for(int i=0; i<16; i++){
+			// chan_SNRs.push_back(1.);
+			// chan_SNRs.push_back(VPeakOverRMS[i]);
+			// printf("SNR is %.2f \n", VPeakOverRMS[i]);
+		}
+		filterFile->Close();
+
+		if(station==2){
+			//for station 2, we need to exclude channel 15 from the analysis
+			chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 15), chan_list_H.end());
+		}
+		else if(station==3){
+			//for station 3 years 2014 and 2015, we need to drop string 4 (channels 3, 7, 11, 15) altogether
+			if(runNum>getA3BadRunBoundary()){
+				chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 3), chan_list_V.end());
+				chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 7), chan_list_V.end());
+				chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 11), chan_list_H.end());
+				chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 15), chan_list_H.end());
+			}
+		}
+
 		TH2D *map_41m_V;
 		TH2D *map_300m_V;
 		TH2D *map_41m_H;
 		TH2D *map_300m_H;
-		TH2D *map_41m_V_select;
 
-		map_41m_V = theCorrelators[0]->getInterferometricMap_RT_SNRweighted(settings, detector, realAtriEvPtr, Vpol, 0, 0);
-		map_300m_V = theCorrelators[1]->getInterferometricMap_RT_SNRweighted(settings, detector, realAtriEvPtr, Vpol, 0, 0);
-		map_41m_H = theCorrelators[0]->getInterferometricMap_RT_SNRweighted(settings, detector, realAtriEvPtr, Hpol, 0, 0);
-		map_300m_H = theCorrelators[1]->getInterferometricMap_RT_SNRweighted(settings, detector, realAtriEvPtr, Hpol, 0, 0);
+		bool AraSim=false;
+		int solNum=0;
+		map_41m_V = theCorrelators[0]->getInterferometricMap_RT_select_NewNormalization_SNRweighted(settings, detector, realAtriEvPtr, Vpol, AraSim, chan_list_V, chan_SNRs, solNum);
+		map_300m_V = theCorrelators[1]->getInterferometricMap_RT_select_NewNormalization_SNRweighted(settings, detector, realAtriEvPtr, Vpol, AraSim, chan_list_V, chan_SNRs,  solNum);
+		map_41m_H = theCorrelators[0]->getInterferometricMap_RT_select_NewNormalization_SNRweighted(settings, detector, realAtriEvPtr, Hpol, AraSim, chan_list_H, chan_SNRs, solNum);
+		map_300m_H = theCorrelators[1]->getInterferometricMap_RT_select_NewNormalization_SNRweighted(settings, detector, realAtriEvPtr, Hpol, AraSim, chan_list_H, chan_SNRs, solNum);
+
+		// map_41m_V = theCorrelators[0]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Vpol, AraSim, chan_list_V);
+		// map_300m_V = theCorrelators[1]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Vpol, AraSim, chan_list_V);
+		// map_41m_H = theCorrelators[0]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Hpol, AraSim, chan_list_H);
+		// map_300m_H = theCorrelators[1]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Hpol, AraSim, chan_list_H);
 
 		int PeakTheta_Recompute_41m_H;
 		int PeakTheta_Recompute_300m_H;
@@ -263,10 +340,14 @@ int main(int argc, char **argv)
 		ss300V<<" 300m V Peak Theta, Phi is "<<PeakTheta_Recompute_300m_V<<" , "<<PeakPhi_Recompute_300m_V;
 		map_300m_V->SetTitle(ss300V.str().c_str());
 
+		beautify_TH2D();
 		TCanvas *cMaps = new TCanvas("","",2*1100,2*850);
 		cMaps->Divide(2,2);
 			cMaps->cd(3);
 			map_41m_V->Draw("colz");
+			// map_41m_V->GetXaxis()->SetRangeUser(50,80);
+			// map_41m_V->GetYaxis()->SetRangeUser(-10,20);
+			// map_41m_V->GetZaxis()->SetRangeUser(0.005,0.04);
 			cMaps->cd(4);
 			map_41m_H->Draw("colz");
 			cMaps->cd(1);
@@ -287,8 +368,12 @@ int main(int argc, char **argv)
 		vector<double> thisY;
 		thisX.push_back(-200.);
 		thisX.push_back(400.);
-		thisY.push_back(-100.);
-		thisY.push_back(100.);
+		// thisX.push_back(45);
+		// thisX.push_back(55);
+		thisY.push_back(-500.);
+		thisY.push_back(500.);
+		// thisY.push_back(-3000.);
+		// thisY.push_back(3000.);
 		dummy.push_back(new TGraph(thisX.size(), &thisX[0], &thisY[0]));
 		dummy[i]->GetXaxis()->SetTitle("Time (ns)");
 		dummy[i]->GetYaxis()->SetTitle("Voltage (mV)");
@@ -296,6 +381,7 @@ int main(int argc, char **argv)
 		dummy[i]->GetYaxis()->SetLabelSize(0.07);
 		dummy[i]->GetXaxis()->SetTitleSize(0.07);
 		dummy[i]->GetYaxis()->SetTitleSize(0.07);
+		dummy[i]->SetTitle(titlesForGraphs[i].c_str());
 	}
 
 	char save_temp_title[300];
@@ -305,11 +391,26 @@ int main(int argc, char **argv)
 	for(int i=0; i<16; i++){
 		cWave->cd(i+1);
 		dummy[i]->Draw("AP");
-		waveforms[i]->Draw("Lsame");
+		waveforms[i]->Draw("LPsame");
 		waveforms[i]->SetLineWidth(2);
+		// waveforms[i]->SetMarkerStyle(kFullCircle);
+		// waveforms[i]->SetMarkerSize(2);
 	}
 	cWave->SaveAs(save_temp_title);
 	delete cWave;
+
+	// vector<TGraph*> vHilbertEnvelope;
+	// sprintf(save_temp_title,"%s/single_events/%d.%d.%d_Run%d_Ev%d_hilbertEnvelopes.png",plotPath,year_now,month_now,day_now,runNum,event);	
+	// TCanvas *cHilbert = new TCanvas("","",4*1100,4*850);
+	// cHilbert->Divide(4,4);
+	// for(int i=0; i<16; i++){
+	// 	vHilbertEnvelope.push_back(FFTtools::getHilbertEnvelope(waveforms[i]));
+	// 	cHilbert->cd(i+1);
+	// 	vHilbertEnvelope[i]->Draw("AL");
+	// 	vHilbertEnvelope[i]->SetLineWidth(3);
+	// }
+	// cHilbert->SaveAs(save_temp_title);
+	// delete cHilbert;
 
 	sprintf(save_temp_title,"%s/single_events/%d.%d.%d_Run%d_Ev%d_Spectra.png",plotPath,year_now,month_now,day_now,runNum,event);
 	TCanvas *cSpec = new TCanvas("","",4*1100,4*850);
@@ -324,24 +425,24 @@ int main(int argc, char **argv)
 	cSpec->SaveAs(save_temp_title);
 	delete cSpec;
 
-	vector <TGraph*> more_spec;
-	for(int i=0; i<16; i++){
-		more_spec.push_back(FFTtools::makePowerSpectrumMilliVoltsNanoSecondsdB(grWaveformsPadded[i]));
-		more_spec[i]->GetXaxis()->SetTitle("Frequency");
-		more_spec[i]->GetYaxis()->SetTitle("Power (dB)");
-		more_spec[i]->SetLineWidth(3);
-		more_spec[i]->GetYaxis()->SetRangeUser(0,80);
-		more_spec[i]->SetTitle("");
-	}
-	TCanvas *cnow = new TCanvas("","",3*1100,850);
-	cnow->Divide(3,1);
-	for(int i=1; i<4; i++){
-		cnow->cd(i);
-		more_spec[i]->Draw("AL");
-	}
-	sprintf(save_temp_title,"%s/single_events/%d.%d.%d_Run%d_Ev%d_Spectra_Special.png",plotPath,year_now,month_now,day_now,runNum,event);
-	cnow->SaveAs(save_temp_title);
-	delete cnow;
+	// vector <TGraph*> more_spec;
+	// for(int i=0; i<16; i++){
+	// 	more_spec.push_back(FFTtools::makePowerSpectrumMilliVoltsNanoSecondsdB(grWaveformsPadded[i]));
+	// 	more_spec[i]->GetXaxis()->SetTitle("Frequency");
+	// 	more_spec[i]->GetYaxis()->SetTitle("Power (dB)");
+	// 	more_spec[i]->SetLineWidth(3);
+	// 	more_spec[i]->GetYaxis()->SetRangeUser(0,80);
+	// 	more_spec[i]->SetTitle("");
+	// }
+	// TCanvas *cnow = new TCanvas("","",3*1100,850);
+	// cnow->Divide(3,1);
+	// for(int i=1; i<4; i++){
+	// 	cnow->cd(i);
+	// 	more_spec[i]->Draw("AL");
+	// }
+	// sprintf(save_temp_title,"%s/single_events/%d.%d.%d_Run%d_Ev%d_Spectra_Special.png",plotPath,year_now,month_now,day_now,runNum,event);
+	// cnow->SaveAs(save_temp_title);
+	// delete cnow;
 
 	for(int i=0; i<16; i++){
 		delete waveforms[i];
@@ -349,8 +450,116 @@ int main(int argc, char **argv)
 		delete grWaveformsPadded[i];
 		delete grWaveformsPowerSpectrum[i];
 	}
+	titlesForGraphs.clear();
+	for (int i = 0; i < 32; i++){
+		ss1.str("");
+		ss1 << "Channel " << i;
+		titlesForGraphs.push_back(ss1.str());
+	}
+	vector<TGraph*> waveformsAll;
+	for(int i=0; i<32; i++){
+		waveformsAll.push_back(realAtriEvPtr->getGraphFromElecChan(i));
+		// printf("RMS of Elec Chan %d is %3.2f\n",i,waveformsAll[i]->GetRMS(2));
+		waveformsAll[i]->SetTitle(titlesForGraphs[i].c_str());
+	}
+	sprintf(save_temp_title,"%s/single_events/%d.%d.%d_Run%d_Ev%d_AllWaveforms.png",plotPath,year_now,month_now,day_now,runNum,event);
+	TCanvas *cAllWave = new TCanvas("","",8*1100,4*850);
+	cAllWave->Divide(8,4);
+	for(int i=0; i<32; i++){
+		cAllWave->cd(i+1);
+		waveformsAll[i]->Draw("ALsame");
+		waveformsAll[i]->SetLineWidth(2);
+		// waveforms[i]->SetMarkerStyle(kFullCircle);
+		// waveforms[i]->SetMarkerSize(2);
+	}
+	cAllWave->SaveAs(save_temp_title);
+	delete cAllWave;
+
+	sprintf(save_temp_title,"%s/single_events/%d.%d.%d_Run%d_Ev%d_ElectChans_DDA1.png",plotPath,year_now,month_now,day_now,runNum,event);
+	TCanvas *cDDA1 = new TCanvas("","",4*850,2*850);
+	cDDA1->Divide(4,2);
+	for(int i=0; i<8; i++){
+		cAllWave->cd(i+1);
+		waveformsAll[i]->Draw("ALsame");
+		waveformsAll[i]->SetLineWidth(2);
+		// waveforms[i]->SetMarkerStyle(kFullCircle);
+		// waveforms[i]->SetMarkerSize(2);
+	}
+	cDDA1->SaveAs(save_temp_title);
+	delete cDDA1;
+
 	delete realAtriEvPtr;
 	mapFile->Close();
 	delete mapFile;
 	return 0;
+}
+
+double MaxMeanBlock(TGraph *grIn, int evt_num, int chan, vector<double> &means, bool print){
+
+	int n_input = grIn->GetN();
+	double *oldX = grIn->GetX();
+	double *oldY = grIn->GetY();
+
+	deque <double> inX;
+	deque <double> inY;	
+
+	for(int samp=0; samp<n_input; samp++){
+		inX.push_back(oldX[samp]);
+		inY.push_back(oldY[samp]);
+	}
+
+	// vector <double> means;
+	vector <TGraph*> grPieces;
+
+	while(inX.size()>0){
+		vector <double> sub_X;
+		vector <double> sub_Y;
+		double first_time = inX[0];
+		int num_to_pop=0;
+		double mean_this_section=0.;
+		for(int samp=0; samp<inX.size(); samp++){
+			if(inX[samp]<=first_time+20.){
+				sub_X.push_back(inX[samp]);
+				sub_Y.push_back(inY[samp]);
+				num_to_pop++;
+				mean_this_section+=inY[samp];
+			}
+		}
+		mean_this_section/=double(sub_X.size());
+		means.push_back((mean_this_section));
+		for(int samp=0; samp<sub_X.size(); samp++){ //now fix the mean
+			sub_Y[samp]=mean_this_section;
+		}
+		grPieces.push_back(new TGraph(sub_X.size(),&sub_X[0],&sub_Y[0]));
+
+		for(int iPop=0; iPop<num_to_pop; iPop++){
+			inX.pop_front();
+			inY.pop_front();
+		}
+	}
+
+	int colors [28] = { kBlue, kSpring, kYellow, kTeal, kMagenta, kAzure, kRed, kCyan, kViolet, kGreen, kOrange, kPink, kBlue, kSpring, kYellow,kTeal, kMagenta, kAzure, kRed, kCyan, kViolet, kGreen, kOrange, kPink, kBlue, kSpring, kYellow, kTeal}; 
+
+	if(print){
+		TCanvas *c = new TCanvas("","",1100,850);
+		grIn->Draw("AL");
+		for(int i=0; i<grPieces.size(); i++){
+			grPieces[i]->Draw("same");
+			grPieces[i]->SetLineColor(colors[i]);
+			grPieces[i]->SetLineWidth(3);
+		}
+		char title[400];
+		sprintf(title,"/users/PAS0654/osu0673/A23_analysis_new2/results/glitch_detect/GlitchWaveform_ev%d_chan%d.png",evt_num,chan);
+		c->SaveAs(title);	
+		delete c;
+	}
+	for(int i=0; i<grPieces.size(); i++){
+		delete grPieces[i];
+	}
+	// for(int i=0; i<means.size(); i++){
+	// 	printf("Block %d has mean %.2f \n", i, means[i]);
+	// }
+	std::sort(means.begin(), means.end(), std::greater<double>());
+	// printf("Biggest value is %.2f \n", means[0]);
+	return means[0];
 }
