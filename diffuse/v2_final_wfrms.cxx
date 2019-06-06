@@ -27,6 +27,7 @@
 #include "tools_PlottingFns.h"
 #include "tools_inputParameters.h"
 #include "tools_outputObjects.h"
+#include "tools_Cuts.h"
 
 using namespace std;
 
@@ -40,10 +41,13 @@ int main(int argc, char **argv)
 	int month_now = time -> tm_mon + 1;
 	int day_now = time -> tm_mday;
 
+	char *plotPath(getenv("PLOT_PATH"));
+	if (plotPath == NULL) std::cout << "Warning! $PLOT_PATH is not set!" << endl;
+
 	stringstream ss;
 	
-	if(argc<5){
-		cout<< "Usage\n" << argv[0] << " <station> <year> <drop_bad_chan> <joined filename 1> <joined filename 2 > ... <joined filename x>"<<endl;
+	if(argc<9){
+		cout<< "Usage\n" << argv[0] << " <1-station> <2-year> <3-drop_bad_chan> <4-v_snr_bin> <5-h_snr_bin> <6-v_thresh_val> <7-h_thresh_val> <8-joined filename 1> <joined filename 2 > ... <joined filename x>"<<endl;
 		return 0;
 	}
 	int station = atoi(argv[1]);
@@ -51,15 +55,15 @@ int main(int argc, char **argv)
 	int dropBadChans = atoi(argv[3]);
 
 	//just to have the cut parameters up front and easy to find
-	int thresholdBin_pol[]={3,4}; //bin 3 = 2.3, bin 5 = 2.5 //what is the faceRMS inclusion threshold?
-	double wavefrontRMScut[]={-1.5, -1.5}; //event wavefrontRMS < this value
+	int thresholdBin_pol[]={atoi(argv[4]),atoi(argv[5])}; //bin 3 = 2.3, bin 5 = 2.5 //what is the faceRMS inclusion threshold?
+	double wavefrontRMScut[]={atof(argv[6]), atof(argv[7])}; //event wavefrontRMS < this value
 
 	TH2D *wfrms_plots[4];
 	wfrms_plots[0] = new TH2D("vpol","vpol",100,-5,5,40,0,40);
 	wfrms_plots[1] = new TH2D("hpol","hpol",100,-5,5,40,0,40);
 	int num_total=0;
 
-	for(int file_num=4; file_num<argc; file_num++){
+	for(int file_num=8; file_num<argc; file_num++){
 
 		string chRun = "run";
 		string file = string(argv[file_num]);
@@ -252,11 +256,19 @@ int main(int argc, char **argv)
 					rms_faces_H.resize(numFaces_A2_drop);
 					num_faces_for_H_loop=numFaces_A2_drop;
 				}
-				else if(station==3 && (year==2014 || year==2015 || year==2016)){
-					rms_faces_V.resize(numFaces_A3_drop);
-					num_faces_for_V_loop=numFaces_A3_drop;
-					rms_faces_H.resize(numFaces_A3_drop);
-					num_faces_for_H_loop=numFaces_A3_drop;
+				else if(station==3){
+					if(runNum>getA3BadRunBoundary()){
+						rms_faces_V.resize(numFaces_A3_drop);
+						num_faces_for_V_loop=numFaces_A3_drop;
+						rms_faces_H.resize(numFaces_A3_drop);
+						num_faces_for_H_loop=numFaces_A3_drop;
+					}
+					else{ //it's 2013-, keep string four
+						rms_faces_V.resize(numFaces);
+						num_faces_for_V_loop=numFaces;
+						rms_faces_H.resize(numFaces);
+						num_faces_for_H_loop=numFaces;
+					}
 				}
 				//now we loop over the faces
 				for(int i=0; i<num_faces_for_V_loop; i++){
@@ -338,7 +350,7 @@ int main(int argc, char **argv)
 			gPad->SetLogy();
 	}
 	char title[300];
-	sprintf(title, "/users/PAS0654/osu0673/A23_analysis_new2/results/%d.%d.%d_data_A%d_%d_%dEvents_WFRMSDistro.png",year_now, month_now, day_now,station,year,int(num_total),0.1*double(thresholdBin_pol[0]) + 2.0,0.1*double(thresholdBin_pol[1])+2.0);
+	sprintf(title, "%s/%d.%d.%d_data_A%d_%d_%dEvents_WFRMSDistro.png",plotPath, year_now, month_now, day_now,station,year,int(num_total),0.1*double(thresholdBin_pol[0]) + 2.0,0.1*double(thresholdBin_pol[1])+2.0);
 	c->SaveAs(title);
 	delete c;
 	for(int i=0; i<2; i++){

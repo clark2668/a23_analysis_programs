@@ -131,6 +131,8 @@ int main(int argc, char **argv)
 	double num_pass_pol[2]={0.};
 	double num_pass_either=0.;
 
+	vector<int> BadRunList=BuildBadRunList(station);	
+
 	for(int file_num=5; file_num<argc; file_num++){
 
 		string chRun = "run";
@@ -139,7 +141,7 @@ int main(int argc, char **argv)
 		string strRunNum = file.substr(foundRun+4,4);
 		int runNum = atoi(strRunNum.c_str());
 
-		if(isBadRun(station,runNum))
+		if(isBadRun(station,runNum,BadRunList))
 			continue;
 
 		TFile *inputFile = TFile::Open(argv[file_num]);
@@ -213,6 +215,9 @@ int main(int argc, char **argv)
 			trees[0]->GetEvent(event);
 			trees[1]->GetEvent(event);
 			trees[2]->GetEvent(event);
+			// if(isBadEvent || event<2){
+			// 	continue;
+			// }
 			if(isBadEvent){
 				continue;
 			}
