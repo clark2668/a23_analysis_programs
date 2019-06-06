@@ -40,8 +40,14 @@ target_link_libraries(CompareFilters AraEvent filterEvent AraSim ${ROOT_LIBRARIE
 add_executable(Plot_CompareFilters ${ANALYSIS_DIRECTORY}/daily/2018.12.13-Compare-Filters-Plot.cxx)
 target_link_libraries(Plot_CompareFilters AraEvent filterEvent AraSim ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES})
 
+add_executable(Plot_CompareFilters ${ANALYSIS_DIRECTORY}/daily/2018.12.13-Compare-Filters-Plot.cxx)
+target_link_libraries(Plot_CompareFilters AraEvent filterEvent AraSim ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES})
+
 add_executable(Debug_PrintEvent ${ANALYSIS_DIRECTORY}/diffuse/debug_print_event.cxx)
 target_link_libraries(Debug_PrintEvent AraEvent AraSim RayTraceCorrelator ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES})
 
+add_executable(OffsetBlockVTime ${ANALYSIS_DIRECTORY}/daily/2019.02.25-OffsetBlockVTime.cxx)
+target_link_libraries(OffsetBlockVTime AraEvent ${ROOT_LIBRARIES} ${ZLIB_LIBRARIES})
 
-install(TARGETS v2_Baselines v2_CWID v2_Filter v2_FinalPlot v2_Join v2_Reco v2_RunSummary v2_SaveVals CompareFilters Plot_CompareFilters Debug_PrintEvent DESTINATION ${ARAROOT_INSTALL_PATH}/bin)
+
+install(TARGETS v2_Baselines v2_CWID v2_Filter v2_FinalPlot v2_Join v2_Reco v2_RunSummary v2_SaveVals CompareFilters Plot_CompareFilters Debug_PrintEvent OffsetBlockVTime DESTINATION ${ARAROOT_INSTALL_PATH}/bin)
