@@ -67,7 +67,7 @@ int main(int argc, char **argv)
 	double numEntries = eventTree -> GetEntries(); //get the number of entries in this file
 
 	AraQualCuts *qual = AraQualCuts::Instance();
-	numEntries=2;
+	numEntries=3;
 	for(int event=0; event<numEntries; event++){ //loop over those entries
 		
 		eventTree->GetEntry(event); //get the event
@@ -87,11 +87,12 @@ int main(int argc, char **argv)
 		UsefulAtriStationEvent *realAtriEvPtr = new UsefulAtriStationEvent(rawAtriEvPtr, AraCalType::kLatestCalib);
 
 		vector<string> conditioning = realAtriEvPtr->fConditioningList;
-		for(int i=0; i<conditioning.size(); i++){
-			cout<<"conditioning value "<<i<<" is "<<conditioning[i]<<endl;
-		}
+		// for(int i=0; i<conditioning.size(); i++){
+		// 	cout<<"conditioning value "<<i<<" is "<<conditioning[i]<<endl;
+		// }
 
 		bool this_qual = qual->isGoodEvent(realAtriEvPtr); //get the quality
+		printf("Iterator event %d, is real event number %d and has qual %d \n", event, eventNumber, this_qual);
 		if(!this_qual) continue;
 		cout<<"Qual is "<<this_qual<<endl;
 	
