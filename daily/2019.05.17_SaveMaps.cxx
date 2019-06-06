@@ -245,8 +245,10 @@ int main(int argc, char **argv)
 	OutputTree->Branch("viewAngleAvg", &viewAngleAvg, "viewAngleAvg[2]/D");
 
 	int eventSim = 0;
+	numEntries=150;
 	cerr<<"Run "<<runNum<<" has a starEvery of "<<starEvery<<endl;
-	for(Long64_t event=0;event<numEntries;event++) {
+	for(Long64_t event=100;event<numEntries;event++) {
+		cout<<"On event "<<event<<endl;
 		if(event%starEvery==0) {
 			std::cerr << "*";     
 		}
@@ -391,8 +393,12 @@ int main(int argc, char **argv)
 					chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 15), chan_list_H.end());
 				}
 			}
-			maps[0] = theCorrelators[radiusBin_adjusted]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Vpol, isSimulation, chan_list_V);
-			maps[1] = theCorrelators[radiusBin_adjusted]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Hpol, isSimulation, chan_list_H);
+			// maps[0] = theCorrelators[radiusBin_adjusted]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Vpol, isSimulation, chan_list_V);
+			// maps[1] = theCorrelators[radiusBin_adjusted]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Hpol, isSimulation, chan_list_H);
+			// maps[0] = theCorrelators[radiusBin_adjusted]->getInterferometricMap_RT_select_SNRweighted(settings, detector, realAtriEvPtr, Vpol, isSimulation, chan_list_V);
+			// maps[1] = theCorrelators[radiusBin_adjusted]->getInterferometricMap_RT_select_SNRweighted(settings, detector, realAtriEvPtr, Hpol, isSimulation, chan_list_H);
+			maps[0] = theCorrelators[radiusBin_adjusted]->getInterferometricMap_RT_select_NewNormalization(settings, detector, realAtriEvPtr, Vpol, isSimulation, chan_list_V);
+			maps[1] = theCorrelators[radiusBin_adjusted]->getInterferometricMap_RT_select_NewNormalization(settings, detector, realAtriEvPtr, Hpol, isSimulation, chan_list_H);
 			// TH2D *map_V_raytrace = theCorrelators[radiusBin_adjusted]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Vpol, isSimulation, chan_list_V);
 			// TH2D *map_H_raytrace = theCorrelators[radiusBin_adjusted]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Hpol, isSimulation, chan_list_H);
 
