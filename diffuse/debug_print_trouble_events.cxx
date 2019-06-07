@@ -82,35 +82,36 @@ int main(int argc, char **argv)
 	theCorrelators[0] =  new RayTraceCorrelator(station, 41., settings, 1, 4); //41 m, cal puser
 	theCorrelators[1] =  new RayTraceCorrelator(station, 300., settings, 1, 4);//300 m, far reco
 	
+	// double max=1.;
+	double max=0.05;
+
 	TH2D *PeakCorr_vs_SNR_all[2];
-	PeakCorr_vs_SNR_all[0]=new TH2D("","V",30,0,30,100,0,1);
-	PeakCorr_vs_SNR_all[1]=new TH2D("","H",30,0,30,100,0,1);
+	PeakCorr_vs_SNR_all[0]=new TH2D("","V",30,0,30,100,0,max);
+	PeakCorr_vs_SNR_all[1]=new TH2D("","H",30,0,30,100,0,max);
 
 	TH2D *PeakCorr_vs_SNR_cutCal[2];
-	PeakCorr_vs_SNR_cutCal[0]=new TH2D("","V",30,0,30,100,0,1);
-	PeakCorr_vs_SNR_cutCal[1]=new TH2D("","H",30,0,30,100,0,1);
+	PeakCorr_vs_SNR_cutCal[0]=new TH2D("","V",30,0,30,100,0,max);
+	PeakCorr_vs_SNR_cutCal[1]=new TH2D("","H",30,0,30,100,0,max);
 
 	TH2D *PeakCorr_vs_SNR_cutCal_cutSoft[2];
-	PeakCorr_vs_SNR_cutCal_cutSoft[0]=new TH2D("","V",30,0,30,100,0,1);
-	PeakCorr_vs_SNR_cutCal_cutSoft[1]=new TH2D("","H",30,0,30,100,0,1);
+	PeakCorr_vs_SNR_cutCal_cutSoft[0]=new TH2D("","V",30,0,30,100,0,max);
+	PeakCorr_vs_SNR_cutCal_cutSoft[1]=new TH2D("","H",30,0,30,100,0,max);
 
 	TH2D *PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[2];
-	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[0]=new TH2D("","V",30,0,30,100,0,1);
-	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[1]=new TH2D("","H",30,0,30,100,0,1);
+	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[0]=new TH2D("","V",30,0,30,100,0,max);
+	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[1]=new TH2D("","H",30,0,30,100,0,max);
 
 	TH2D *PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[2];
-	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[0]=new TH2D("","V",30,0,30,100,0,1);
-	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[1]=new TH2D("","H",30,0,30,100,0,1);
+	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[0]=new TH2D("","V",30,0,30,100,0,max);
+	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[1]=new TH2D("","H",30,0,30,100,0,max);
 
 	TH2D *PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[2];
-	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[0]=new TH2D("","V",30,0,30,100,0,1);
-	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[1]=new TH2D("","H",30,0,30,100,0,1);
+	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[0]=new TH2D("","V",30,0,30,100,0,max);
+	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[1]=new TH2D("","H",30,0,30,100,0,max);
 
 	TH2D *PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[2];
-	// PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[0]=new TH2D("","V",90,0,30,500,0,1);
-	// PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[1]=new TH2D("","H",90,0,30,500,0,1);
-	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[0]=new TH2D("","V",30,0,30,100,0,1);
-	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[1]=new TH2D("","H",30,0,30,100,0,1);
+	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[0]=new TH2D("","V",30,0,30,100,0,max);
+	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[1]=new TH2D("","H",30,0,30,100,0,max);
 
 	TH2D *special[2];
 	special[0]=new TH2D("","V",90,0,30,500,0,1);
@@ -292,7 +293,10 @@ int main(int argc, char **argv)
 										// if(snr_val[pol]>=8.) condition=true;
 										// if(corr_val[pol]>=0.15) condition=true;
 										// if(snr_val[pol]>=7 && corr_val[pol]>=0.12) condition=true;
-										if(corr_val[pol]>0.15 || snr_val[pol]>=7.) condition=true;
+										// if(corr_val[pol]<0.003 || snr_val[pol]>=7.) condition=true;
+										if(corr_val[pol]>0.01) condition=true;
+										// if(corr_val[pol]>0.01) condition=true;
+										// if(snr_val[pol]>=7.) condition=true;
 										// if(snr_val[pol]>=8.) condition=true;
 
 										if(Refilt[pol]){
@@ -306,65 +310,65 @@ int main(int argc, char **argv)
 											sort(frac.begin(), frac.end(), std::greater<double>());
 											fracs_power_cut[pol]->Fill(frac[2]);
 											if(frac[2]<=0.06){
-												if(!condition){
-													// printf("Run %d, Event %d: Corr %.2f and SNR %.2f \n", runNum, event, corr_val[pol], snr_val[pol]);
-													PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol]);
-												}
-												else{											
-													printf("Run %d, Event %d: Corr %.2f and SNR %.2f and V theta, phi = %d, %d  and H theta, phi = %d, %d \n", runNum, event, corr_val[pol], snr_val[pol],theta_300[0], phi_300[0],theta_300[1], phi_300[1]);
-													printf("	Run %d, Event %d Surface status in pol %d is %d and in pol %d is %d \n",runNum, event, 0,isSurf[0], 1, isSurf[1]);
-													// printf("Reconsiering for Glitch Run %d Event %d in Pol %d\n",runNum,event,pol);
-													bool failsReconsideration=false;
-													failsReconsideration=ReconsiderThisEventForGlitch(station,runNum,event,settings, detector, theCorrelators);
-													if(!failsReconsideration){
-														PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol]);
-														PlotThisEvent(station,config,runNum,event, pol, settings, detector, theCorrelators);
-													}
-												}
-												// PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol]);
-												// if(condition){
-
-												// 	// printf("		Event %d is refiltered in pol %d \n", event,pol);
-												// 	// cout<<"			Frac of power notched is "<<frac[2]<<endl;
-												// 	// printf("Event has condition in pol %d \n", pol);
-												// 	// printf("Event %d Unixtime is %d \n", event, unixTime);
-													
-												// 	// printf("if(runNum==%d && pol==%d && unixTime==%d && event==%d){\n\tunixTimes[%d].push_back(double(unixTime)); phis[%d].push_back(double(phi_300[%d])); thetas[%d].push_back(double(theta_300[%d]));\n}\n",runNum,pol,unixTime,event,pol,pol,pol,pol,pol);
-
-												// 	spatial_distro_remaining[pol]->Fill(phi_41[pol],theta_41[pol]);
-												// 	spatial_distro_remaining[pol+2]->Fill(phi_300[pol], theta_300[pol]);
-												// 	// printf("if(runNum==%d && event==%d) TroubleEvent=true;\n",runNum,event);
+												// if(!condition){
 												// 	// printf("Run %d, Event %d: Corr %.2f and SNR %.2f \n", runNum, event, corr_val[pol], snr_val[pol]);
-												// 	PlotThisEvent(station,config,runNum,event, pol, settings, detector, theCorrelators);
+												// 	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol]);
 												// }
-											}
-										} //refiltered?
-										else{
-											if(!condition){
-												// printf("Run %d, Event %d: Corr %.2f and SNR %.2f \n", runNum, event, corr_val[pol], snr_val[pol]);
+												// else{											
+												// 	printf("Run %d, Event %d: Corr %.2f and SNR %.2f and V theta, phi = %d, %d  and H theta, phi = %d, %d \n", runNum, event, corr_val[pol], snr_val[pol],theta_300[0], phi_300[0],theta_300[1], phi_300[1]);
+												// 	printf("	Run %d, Event %d Surface status in pol %d is %d and in pol %d is %d \n",runNum, event, 0,isSurf[0], 1, isSurf[1]);
+												// 	// printf("Reconsiering for Glitch Run %d Event %d in Pol %d\n",runNum,event,pol);
+												// 	bool failsReconsideration=false;
+												// 	failsReconsideration=ReconsiderThisEventForGlitch(station,runNum,event,settings, detector, theCorrelators);
+												// 	if(!failsReconsideration){
+												// 		PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol]);
+												// 		PlotThisEvent(station,config,runNum,event, pol, settings, detector, theCorrelators);
+												// 	}
+												// }
 												PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol]);
-											}
-											else{
-												printf("Run %d, Event %d: Corr 4%.2f and SNR %.2f \n", runNum, event, corr_val[pol], snr_val[pol]);
-												// printf("Reconsiering for Glitch Run %d Event %d in Pol %d\n",runNum,event,pol);
-												bool failsReconsideration=false;
-												failsReconsideration = ReconsiderThisEventForGlitch(station,runNum,event,settings, detector, theCorrelators);
-												if(!failsReconsideration){
-													PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol]);
+												if(condition){
+
+													// printf("		Event %d is refiltered in pol %d \n", event,pol);
+													// cout<<"			Frac of power notched is "<<frac[2]<<endl;
+													// printf("Event has condition in pol %d \n", pol);
+													// printf("Event %d Unixtime is %d \n", event, unixTime);
+													
+													// printf("if(runNum==%d && pol==%d && unixTime==%d && event==%d){\n\tunixTimes[%d].push_back(double(unixTime)); phis[%d].push_back(double(phi_300[%d])); thetas[%d].push_back(double(theta_300[%d]));\n}\n",runNum,pol,unixTime,event,pol,pol,pol,pol,pol);
+
+													spatial_distro_remaining[pol]->Fill(phi_41[pol],theta_41[pol]);
+													spatial_distro_remaining[pol+2]->Fill(phi_300[pol], theta_300[pol]);
+													// printf("if(runNum==%d && event==%d) TroubleEvent=true;\n",runNum,event);
+													// printf("Run %d, Event %d: Corr %.2f and SNR %.2f \n", runNum, event, corr_val[pol], snr_val[pol]);
 													PlotThisEvent(station,config,runNum,event, pol, settings, detector, theCorrelators);
 												}
 											}
-											// PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol]);
-											// if(condition){
-											// 	// printf("		Event %d is NOT refiltered in pol %d \n", event,pol);
-											// 	spatial_distro_remaining[pol]->Fill(phi_41[pol],theta_41[pol]);
-											// 	spatial_distro_remaining[pol+2]->Fill(phi_300[pol], theta_300[pol]);
-											// 	// printf("Event %d Unixtime is %d \n", event, unixTime);
-											// 	// printf("if(runNum==%d && pol==%d && unixTime==%d && event==%d){\n\tunixTimes[%d].push_back(double(unixTime)); phis[%d].push_back(double(phi_300[%d])); thetas[%d].push_back(double(theta_300[%d]));\n}\n",runNum,pol,unixTime,event,pol,pol,pol,pol,pol);
-											// 	// printf("if(runNum==%d && event==%d) TroubleEvent=true;\n",runNum,event);
+										} //refiltered?
+										else{
+											// if(!condition){
 											// 	// printf("Run %d, Event %d: Corr %.2f and SNR %.2f \n", runNum, event, corr_val[pol], snr_val[pol]);
-											// 	PlotThisEvent(station,config,runNum,event, pol, settings, detector, theCorrelators);
+											// 	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol]);
 											// }
+											// else{
+											// 	printf("Run %d, Event %d: Corr 4%.2f and SNR %.2f \n", runNum, event, corr_val[pol], snr_val[pol]);
+											// 	// printf("Reconsiering for Glitch Run %d Event %d in Pol %d\n",runNum,event,pol);
+											// 	bool failsReconsideration=false;
+											// 	failsReconsideration = ReconsiderThisEventForGlitch(station,runNum,event,settings, detector, theCorrelators);
+											// 	if(!failsReconsideration){
+											// 		PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol]);
+											// 		PlotThisEvent(station,config,runNum,event, pol, settings, detector, theCorrelators);
+											// 	}
+											// }
+											PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol]);
+											if(condition){
+												// printf("		Event %d is NOT refiltered in pol %d \n", event,pol);
+												spatial_distro_remaining[pol]->Fill(phi_41[pol],theta_41[pol]);
+												spatial_distro_remaining[pol+2]->Fill(phi_300[pol], theta_300[pol]);
+												// printf("Event %d Unixtime is %d \n", event, unixTime);
+												// printf("if(runNum==%d && pol==%d && unixTime==%d && event==%d){\n\tunixTimes[%d].push_back(double(unixTime)); phis[%d].push_back(double(phi_300[%d])); thetas[%d].push_back(double(theta_300[%d]));\n}\n",runNum,pol,unixTime,event,pol,pol,pol,pol,pol);
+												// printf("if(runNum==%d && event==%d) TroubleEvent=true;\n",runNum,event);
+												// printf("Run %d, Event %d: Corr %.2f and SNR %.2f \n", runNum, event, corr_val[pol], snr_val[pol]);
+												PlotThisEvent(station,config,runNum,event, pol, settings, detector, theCorrelators);
+											}
 										}
 										num_in_final_plot++;
 									}
@@ -838,9 +842,9 @@ int PlotThisEvent(int station, int config, int runNum, int event, int problempol
 			}
 		}
 	}
-	bool skipCW=true;
+	bool skipCW=false;
 	for(int pol=0; pol<2; pol++){
-		if(skipCW) continue;
+		if(skipCW || pol!=problempol) continue;
 		if(isCutonCW_fwd[pol] || isCutonCW_back[pol] || isCutonCW_baseline[pol]){
 			printf("	Has CW issue in pol %d \n", pol);
 			printf("		CW in FWD %d, BWD %d, or baseline %d? \n", isCutonCW_fwd[pol], isCutonCW_back[pol], isCutonCW_baseline[pol]);
@@ -958,6 +962,90 @@ int PlotThisEvent(int station, int config, int runNum, int event, int problempol
 			}
 			cSpec->SaveAs(save_temp_title);
 			delete cSpec;
+
+			TH2D *map_30m_V;
+			TH2D *map_300m_V;
+			TH2D *map_30m_H;
+			TH2D *map_300m_H;
+			vector <int> chan_list_V;
+			vector <int> chan_list_H;
+			for(int chan=0; chan<=7; chan++){
+				chan_list_V.push_back(chan);
+				chan_list_H.push_back(chan+8);
+			}
+
+			vector<double> chan_SNRs;
+
+			if(station==2){
+				//for station 2, we need to exclude channel 15 from the analysis
+				chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 15), chan_list_H.end());
+			}
+			else if(station==3){
+				//for station 3 years 2014 and 2015, we need to drop string 4 (channels 3, 7, 11, 15) altogether
+				if(runNum>getA3BadRunBoundary()){
+					chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 3), chan_list_V.end());
+					chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 7), chan_list_V.end());
+
+					chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 11), chan_list_H.end());
+					chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 15), chan_list_H.end());
+				}
+			}
+
+			map_30m_V = theCorrelators[0]->getInterferometricMap_RT_FiltMany_select_NewNormalization_SNRweighted(settings, detector, realAtriEvPtr, Vpol, false,chan_list_V,chan_SNRs,0,-1,uniqueNotchFreqs,uniqueNotchBands) ;
+			map_300m_V = theCorrelators[1]->getInterferometricMap_RT_FiltMany_select_NewNormalization_SNRweighted(settings, detector, realAtriEvPtr, Vpol, false,chan_list_V,chan_SNRs,0,-1,uniqueNotchFreqs,uniqueNotchBands);
+			map_30m_H = theCorrelators[0]->getInterferometricMap_RT_FiltMany_select_NewNormalization_SNRweighted(settings, detector, realAtriEvPtr, Hpol, false,chan_list_H,chan_SNRs,0,-1,uniqueNotchFreqs,uniqueNotchBands);
+			map_300m_H = theCorrelators[1]->getInterferometricMap_RT_FiltMany_select_NewNormalization_SNRweighted(settings, detector, realAtriEvPtr, Hpol, false,chan_list_H,chan_SNRs,0,-1,uniqueNotchFreqs,uniqueNotchBands);
+
+			int PeakTheta_Recompute_30m_H;
+			int PeakTheta_Recompute_300m_H;
+			int PeakPhi_Recompute_30m_H;
+			int PeakPhi_Recompute_300m_H;
+			double PeakCorr_Recompute_30m_H;
+			double PeakCorr_Recompute_300m_H;
+			int PeakTheta_Recompute_30m_V;
+			int PeakTheta_Recompute_300m_V;
+			int PeakPhi_Recompute_30m_V;
+			int PeakPhi_Recompute_300m_V;
+			double PeakCorr_Recompute_30m_V;
+			double PeakCorr_Recompute_300m_V;
+			getCorrMapPeak(map_30m_H,PeakTheta_Recompute_30m_H,PeakPhi_Recompute_30m_H,PeakCorr_Recompute_30m_H);
+			getCorrMapPeak(map_300m_H,PeakTheta_Recompute_300m_H,PeakPhi_Recompute_300m_H,PeakCorr_Recompute_300m_H);
+			getCorrMapPeak(map_30m_V,PeakTheta_Recompute_30m_V,PeakPhi_Recompute_30m_V,PeakCorr_Recompute_30m_V);
+			getCorrMapPeak(map_300m_V,PeakTheta_Recompute_300m_V,PeakPhi_Recompute_300m_V,PeakCorr_Recompute_300m_V);
+
+			printf("	Rconstruction Information\n");
+			printf("		30m H theta and phi %d and %d \n", PeakTheta_Recompute_30m_H, PeakPhi_Recompute_30m_H);
+			stringstream ss30H;
+			ss30H<<" Peak Theta, Phi is "<<PeakTheta_Recompute_30m_H<<" , "<<PeakPhi_Recompute_30m_H;
+			map_30m_H->SetTitle(ss30H.str().c_str());
+			printf("		300m H theta and phi %d and %d \n", PeakTheta_Recompute_300m_H, PeakPhi_Recompute_300m_H);
+			stringstream ss300H;
+			ss300H<<" Peak Theta, Phi is "<<PeakTheta_Recompute_300m_H<<" , "<<PeakPhi_Recompute_300m_H;
+			map_300m_H->SetTitle(ss300H.str().c_str());
+			printf("		30m V theta and phi %d and %d \n", PeakTheta_Recompute_30m_V, PeakPhi_Recompute_30m_V);
+			stringstream ss30V;
+			ss30V<<" Peak Theta, Phi is "<<PeakTheta_Recompute_30m_V<<" , "<<PeakPhi_Recompute_30m_V;
+			map_30m_V->SetTitle(ss30V.str().c_str());
+			printf("		300m V theta and phi %d and %d \n", PeakTheta_Recompute_300m_V, PeakPhi_Recompute_300m_V);
+			stringstream ss300V;
+			ss300V<<" Peak Theta, Phi is "<<PeakTheta_Recompute_300m_V<<" , "<<PeakPhi_Recompute_300m_V;
+			map_300m_V->SetTitle(ss300V.str().c_str());
+
+			TCanvas *cMaps = new TCanvas("","",2*1100,2*850);
+			cMaps->Divide(2,2);
+				cMaps->cd(3);
+				map_30m_V->Draw("colz");
+				cMaps->cd(4);
+				map_30m_H->Draw("colz");
+				cMaps->cd(1);
+				map_300m_V->Draw("colz");
+				cMaps->cd(2);
+				map_300m_H->Draw("colz");
+			sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_ProblemPol%d_FilteredMaps.png",plotPath,year_now,month_now,day_now,runNum,event,problempol);
+			cMaps->SaveAs(save_temp_title);
+			delete cMaps;
+			delete map_30m_V; delete map_300m_V; delete map_30m_H; delete map_300m_H;
+
 			deleteGraphVector(grWaveformsRaw);
 			deleteGraphVector(grWaveformsInt);
 			deleteGraphVector(grWaveformsPadded);
@@ -979,14 +1067,12 @@ int PlotThisEvent(int station, int config, int runNum, int event, int problempol
 	// printf("Delay is %.2f, and reco theta is %.2f \n", delay,theta);
 	// delete corr;
 
-	bool do_reco=false;
+	bool do_reco=true;
 	if(do_reco){
 		TH2D *map_30m_V;
 		TH2D *map_300m_V;
 		TH2D *map_30m_H;
 		TH2D *map_300m_H;
-		TH2D *map_30m_V_select;
-
 		vector <int> chan_list_V;
 		vector <int> chan_list_H;
 		for(int chan=0; chan<=7; chan++){
@@ -1004,15 +1090,22 @@ int PlotThisEvent(int station, int config, int runNum, int event, int problempol
 				chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 3), chan_list_V.end());
 				chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 7), chan_list_V.end());
 
-				chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 11), chan_list_H.end());
+				chan_list_H.erase(remove(chan_Flist_H.begin(), chan_list_H.end(), 11), chan_list_H.end());
 				chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 15), chan_list_H.end());
 			}
 		}
 
-		map_30m_V = theCorrelators[0]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Vpol, false,chan_list_V) ;
-		map_300m_V = theCorrelators[1]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Vpol, false,chan_list_V);
-		map_30m_H = theCorrelators[0]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Hpol, false,chan_list_H);
-		map_300m_H = theCorrelators[1]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Hpol, false,chan_list_H);
+		vector<double> chan_SNRs;
+
+		map_30m_V = theCorrelators[0]->getInterferometricMap_RT_select_NewNormalization_SNRweighted(settings, detector, realAtriEvPtr, Vpol, false,chan_list_V,chan_SNRs,0,-1) ;
+		map_300m_V = theCorrelators[1]->getInterferometricMap_RT_select_NewNormalization_SNRweighted(settings, detector, realAtriEvPtr, Vpol, false,chan_list_V,chan_SNRs,0,-1);
+		map_30m_H = theCorrelators[0]->getInterferometricMap_RT_select_NewNormalization_SNRweighted(settings, detector, realAtriEvPtr, Hpol, false,chan_list_H,chan_SNRs,0,-1);
+		map_300m_H = theCorrelators[1]->getInterferometricMap_RT_select_NewNormalization_SNRweighted(settings, detector, realAtriEvPtr, Hpol, false,chan_list_H,chan_SNRs,0,-1);
+
+		// map_30m_V = theCorrelators[0]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Vpol, false,chan_list_V) ;
+		// map_300m_V = theCorrelators[1]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Vpol, false,chan_list_V);
+		// map_30m_H = theCorrelators[0]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Hpol, false,chan_list_H);
+		// map_300m_H = theCorrelators[1]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Hpol, false,chan_list_H);
 
 		int PeakTheta_Recompute_30m_H;
 		int PeakTheta_Recompute_300m_H;
@@ -1063,7 +1156,7 @@ int PlotThisEvent(int station, int config, int runNum, int event, int problempol
 		sprintf(save_temp_title,"%s/trouble_events/%d.%d.%d_Run%d_Ev%d_ProblemPol%d_Maps.png",plotPath,year_now,month_now,day_now,runNum,event,problempol);
 		cMaps->SaveAs(save_temp_title);
 		delete cMaps;
-		delete map_30m_V; delete map_300m_V; delete map_30m_H; delete map_300m_H; 
+		delete map_30m_V; delete map_300m_V; delete map_30m_H; delete map_300m_H;
 
 		chan_list_V.clear();
 		chan_list_V.push_back(0);
@@ -1194,7 +1287,7 @@ int PlotThisEvent(int station, int config, int runNum, int event, int problempol
 		grWaveformsPowerSpectrum[i]->SetLineWidth(3);
 		gPad->SetLogy();
 	}
-	// cSpec->SaveAs(save_temp_title);
+	cSpec->SaveAs(save_temp_title);
 	delete cSpec;
 	for(int i=0; i<16; i++){
 		delete waveforms[i];
