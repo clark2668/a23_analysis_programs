@@ -86,6 +86,11 @@ int main(int argc, char **argv)
 	RawAtriStationEvent *rawPtr =0;
 	eventTree->SetBranchAddress("event",&rawPtr);
 	eventTree->GetEvent(event);
+	// while(!rawPtr->isCalpulserEvent()){
+	// 	event++;
+	// 	eventTree->GetEvent(event);
+	// }
+
 
 	int stationID = rawPtr->stationId;
 	char ped_file_name[400];
@@ -269,7 +274,7 @@ int main(int argc, char **argv)
 		}
 		for(int i=0; i<16; i++){
 			// chan_SNRs.push_back(1.);
-			// chan_SNRs.push_back(VPeakOverRMS[i]);
+			chan_SNRs.push_back(VPeakOverRMS[i]);
 			// printf("SNR is %.2f \n", VPeakOverRMS[i]);
 		}
 		filterFile->Close();
