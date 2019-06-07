@@ -99,6 +99,8 @@ int main(int argc, char **argv)
 
 	int num_total=0;
 
+	vector<int> BadRunList=BuildBadRunList(station);
+
 	for(int file_num=5; file_num<argc; file_num++){
 
 		cout << "Run " << file_num << " :: " << argv[file_num] << endl;
@@ -109,7 +111,9 @@ int main(int argc, char **argv)
 		string strRunNum = file.substr(foundRun+4,4);
 		int runNum = atoi(strRunNum.c_str());
 
-		if(isBadRun(station,runNum)) continue;
+		int isThisBadABadRun = isBadRun(station,runNum,BadRunList);
+
+		if(isThisBadABadRun) continue;
 		if(runNum==2428 || runNum==3442) continue;
 
 		TFile *inputFile = TFile::Open(argv[file_num]);
