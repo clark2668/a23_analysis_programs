@@ -54,6 +54,7 @@ int main(int argc, char **argv)
 		int isCal;
 		int isBad;
 		int unixTime_out;
+		int runNumOut;
 		trees->Branch("phi_41_V",&phi_41_V);
 		trees->Branch("theta_41_V",&theta_41_V);
 		trees->Branch("phi_41_H",&phi_41_H);
@@ -63,6 +64,8 @@ int main(int argc, char **argv)
 		trees->Branch("cal",&isCal);
 		trees->Branch("isBad",&isBad);
 		trees->Branch("unixTime",&unixTime_out);
+		runNumOut=runNum;
+		trees->Branch("runNum",&runNumOut);
 
 		cout << "Run " << file_num << " :: " << argv[file_num] << endl;
 		
