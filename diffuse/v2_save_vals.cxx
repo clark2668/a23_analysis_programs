@@ -35,6 +35,7 @@ AraAntPol::AraAntPol_t Hpol = AraAntPol::kHorizontal;
 #include "tools_inputParameters.h"
 #include "tools_outputObjects.h"
 #include "tools_Cuts.h"
+#include "tools_CommandLine.h"
 
 using namespace std;
 
@@ -163,6 +164,9 @@ int main(int argc, char **argv)
 		double outweight;
 		int Trig_Pass_out[16];
 		int unixTime_out;
+		int hasBadSpareChanIssue;
+		int isFirstFiveEvent;
+		int eventNumber_out;
 
 		trees[2]->Branch("cal",&isCal);
 		trees[2]->Branch("soft",&isSoft);
@@ -176,6 +180,9 @@ int main(int argc, char **argv)
 		trees[2]->Branch("bad",&isBadEvent);
 		trees[2]->Branch("weight",&outweight);
 		trees[2]->Branch("unixTime",&unixTime_out);
+		trees[2]->Branch("hasBadSpareChanIssue",&hasBadSpareChanIssue);
+		trees[2]->Branch("isFirstFiveEvent",&isFirstFiveEvent);
+		trees[2]->Branch("eventNumber",&eventNumber_out);
 		if(isSimulation)
 			trees[2]->Branch("Trig_Pass", &Trig_Pass_out, "Trig_Pass_out[16]/I");
 		
@@ -186,7 +193,7 @@ int main(int argc, char **argv)
 		//meaning it should contain "filter" trees and "reco" trees
 		TFile *inputFile = TFile::Open(argv[file_num]);
 		if(!inputFile){
-			cout<<"Can't open joined file!"<<endl;
+			cout<<"Can't open joined file!"<<endl;			
 			return -1;
 		}
 		
@@ -205,12 +212,15 @@ int main(int argc, char **argv)
 		double inweight;
 		int Trig_Pass_in[16];
 		int unixTime_in;
+		int eventNumber_in;
 
+		inputTree_filter->SetBranchAddress("VPeakOverRMS",&VPeakOverRMS); //get SNR's of all channels
 		inputTree_filter->SetBranchAddress("thirdVPeakOverRMS", &thirdVPeakOverRMS);
 		inputTree_filter->SetBranchAddress("rms_pol_thresh_face_V", &rms_pol_thresh_face_V);
 		inputTree_filter->SetBranchAddress("rms_pol_thresh_face_H", &rms_pol_thresh_face_H);
 		inputTree_filter->SetBranchAddress("weight", &inweight);
 		inputTree_filter->SetBranchAddress("unixTime",&unixTime_in);
+		inputTree_filter->SetBranchAddress("eventNumber",&eventNumber_in);
 		if(isSimulation)
 			inputTree_filter->SetBranchAddress("Trig_Pass", &Trig_Pass_in);
 
@@ -316,10 +326,16 @@ int main(int argc, char **argv)
 			}
 			isSurfEvent_top[0]=0;
 			isSurfEvent_top[1]=0;
+			isFirstFiveEvent=false;
+			hasBadSpareChanIssue=false;
 
 			inputTree_filter->GetEvent(event);
 
 			unixTime_out=unixTime_in; //copy over the unixtime
+			eventNumber_out=eventNumber_in;
+			if(eventNumber_out<5){
+				isFirstFiveEvent=true;
+			}
 
 			bool isShort=false;
 			bool isSurf[2]={false};
@@ -573,6 +589,9 @@ int main(int argc, char **argv)
 			for(int pol=0; pol<2; pol++){
 				corr_val[pol]=bestCorr[pol];
 				snr_val[pol]=SNRs[pol];
+
+				// printf(BLUE"Run %4d, Event %5d/%5d, Pol %d : isCal %d, isSoft %d, isShort %d, does Fail WFRMS %d, isCP5 %d, isCP6 %d, isSurf %d and %d, isBad %d, isFirstFive %d \n"RESET
+				// 	,runNum, event, eventNumber_out, pol, isCalPulser, isSoftTrigger, isShort, failWavefrontRMS[pol], isCP5, isCP6, isSurf[0], isSurf[1], isBadEvent, isFirstFiveEvent);
 				
 				if(!isCalPulser
 					&& !isSoftTrigger
@@ -581,42 +600,56 @@ int main(int argc, char **argv)
 					&& !isCP5 && !isCP6
 					&& !isSurf[0] && !isSurf[1] //check both pols for surface
 					&& !isBadEvent
+					&& !isFirstFiveEvent
 				){ //cut cal pulsers
+
+
+					// load in the data for the event
+					char run_file_name[400];
+					if(isSimulation)
+						sprintf(run_file_name,"%s/RawSim/A%d/c%d/E%2.1f/AraOut.A%d_c%d_E%2.1f.txt.run%d.root",SimDirPath,station,config,year_or_energy,station,config,year_or_energy,runNum);
+					else
+						sprintf(run_file_name,"%s/RawData/A%d/by_config/c%d/event%d.root",DataDirPath,station,config,runNum);
+					TFile *mapFile = TFile::Open(run_file_name);
+					if(!mapFile){
+						cout<<"Can't open data file for map!"<<endl;
+						return -1;
+					}
+					TTree *eventTree = (TTree*) mapFile-> Get("eventTree");
+					if(!eventTree){
+						cout<<"Can't find eventTree for map"<<endl;
+						return -1;
+					}
+
+					UsefulAtriStationEvent *realAtriEvPtr=0;
+					RawAtriStationEvent *rawPtr =0;
+
+					if(isSimulation){
+						eventTree->SetBranchAddress("UsefulAtriStationEvent", &realAtriEvPtr);
+						eventTree->GetEvent(event);
+					}
+					else if(!isSimulation){
+						eventTree->SetBranchAddress("event",&rawPtr);
+						eventTree->GetEvent(event);
+						realAtriEvPtr = new UsefulAtriStationEvent(rawPtr,AraCalType::kLatestCalib);
+					}
+
+					// check to see if this event is experiencing a digitizer glitch
+					vector<TGraph*> spareElecChanGraphs;
+					spareElecChanGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(6));
+					spareElecChanGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(14));
+					spareElecChanGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(22));
+					spareElecChanGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(30));
+					hasBadSpareChanIssue = hasSpareChannelIssue(spareElecChanGraphs);
+					deleteGraphVector(spareElecChanGraphs);
+
+					// printf(GREEN"	Event %d has bad channel %d \n"RESET,event,hasBadSpareChanIssue);
 
 					/*
 					if it's not in need of re-filtering, check the "top" reco again
 					*/
 
-					if(!isCutonCW_fwd[pol] && !isCutonCW_back[pol] && !isCutonCW_baseline[pol]){
-						char run_file_name[400];
-						if(isSimulation)
-							sprintf(run_file_name,"%s/RawSim/A%d/c%d/E%2.1f/AraOut.A%d_c%d_E%2.1f.txt.run%d.root",SimDirPath,station,config,year_or_energy,station,config,year_or_energy,runNum);
-						else
-							sprintf(run_file_name,"%s/RawData/A%d/by_config/c%d/event%d.root",DataDirPath,station,config,runNum);
-						TFile *mapFile = TFile::Open(run_file_name);
-						if(!mapFile){
-							cout<<"Can't open data file for map!"<<endl;
-							return -1;
-						}
-						TTree *eventTree = (TTree*) mapFile-> Get("eventTree");
-						if(!eventTree){
-							cout<<"Can't find eventTree for map"<<endl;
-							return -1;
-						}
-
-						UsefulAtriStationEvent *realAtriEvPtr=0;
-						RawAtriStationEvent *rawPtr =0;
-
-						if(isSimulation){
-							eventTree->SetBranchAddress("UsefulAtriStationEvent", &realAtriEvPtr);
-							eventTree->GetEvent(event);
-						}
-						else if(!isSimulation){
-							eventTree->SetBranchAddress("event",&rawPtr);
-							eventTree->GetEvent(event);
-							realAtriEvPtr = new UsefulAtriStationEvent(rawPtr,AraCalType::kLatestCalib);
-						}
-
+					if((!isCutonCW_fwd[pol] && !isCutonCW_back[pol] && !isCutonCW_baseline[pol]) && !hasBadSpareChanIssue){
 						vector <int> chan_list_V;
 						vector <int> chan_list_H;
 						
@@ -636,12 +669,21 @@ int main(int argc, char **argv)
 							chan_list_H.push_back(11);
 						}
 
+						vector<double> chan_SNRs;
+						for(int i=0; i<16; i++){
+							chan_SNRs.push_back(VPeakOverRMS[i]);
+						}
+
+						int solNum=0;
+
 						TH2D *map_300m_top;
 						if(pol==0){
-							map_300m_top = theCorrelators[1]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Vpol, isSimulation, chan_list_V);
+							// map_300m_top = theCorrelators[1]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Vpol, isSimulation, chan_list_V);
+							map_300m_top = theCorrelators[1]->getInterferometricMap_RT_select_NewNormalization_SNRweighted(settings, detector, realAtriEvPtr, Vpol, isSimulation, chan_list_V, chan_SNRs, solNum);
 						}
 						if(pol==1){
-							map_300m_top = theCorrelators[1]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Hpol, isSimulation, chan_list_H);
+							// map_300m_top = theCorrelators[1]->getInterferometricMap_RT_select(settings, detector, realAtriEvPtr, Hpol, isSimulation, chan_list_H);
+							map_300m_top = theCorrelators[1]->getInterferometricMap_RT_select_NewNormalization_SNRweighted(settings, detector, realAtriEvPtr, Hpol, isSimulation, chan_list_H, chan_SNRs, solNum);
 						}
 
 						bool printReco=false;
@@ -664,47 +706,15 @@ int main(int argc, char **argv)
 						}
 
 						delete map_300m_top;
-						if(!isSimulation) delete realAtriEvPtr;
-						mapFile->Close();
-						delete mapFile;
-
 					}
 
 					// and now to do *filtering*
-					if(isCutonCW_fwd[pol] || isCutonCW_back[pol] || isCutonCW_baseline[pol]){
+					if((isCutonCW_fwd[pol] || isCutonCW_back[pol] || isCutonCW_baseline[pol]) && !hasBadSpareChanIssue){
+					// if((isCutonCW_fwd[pol] || isCutonCW_back[pol] || isCutonCW_baseline[pol])){
 						isCW=1;
 						Refilt[pol]=1;
 
-						cout<<"Need to filter event "<<event<<" in pol"<<pol<<endl;
-
-						char run_file_name[400];
-						if(isSimulation)
-							sprintf(run_file_name,"%s/RawSim/A%d/c%d/E%2.1f/AraOut.A%d_c%d_E%2.1f.txt.run%d.root",SimDirPath,station,config,year_or_energy,station,config,year_or_energy,runNum);
-						else
-							sprintf(run_file_name,"%s/RawData/A%d/by_config/c%d/event%d.root",DataDirPath,station,config,runNum);
-						TFile *mapFile = TFile::Open(run_file_name);
-						if(!mapFile){
-							cout<<"Can't open data file for map!"<<endl;
-							return -1;
-						}
-						TTree *eventTree = (TTree*) mapFile-> Get("eventTree");
-						if(!eventTree){
-							cout<<"Can't find eventTree for map"<<endl;
-							return -1;
-						}
-
-						UsefulAtriStationEvent *realAtriEvPtr=0;
-						RawAtriStationEvent *rawPtr =0;
-
-						if(isSimulation){
-							eventTree->SetBranchAddress("UsefulAtriStationEvent", &realAtriEvPtr);
-							eventTree->GetEvent(event);
-						}
-						else if(!isSimulation){
-							eventTree->SetBranchAddress("event",&rawPtr);
-							eventTree->GetEvent(event);
-							realAtriEvPtr = new UsefulAtriStationEvent(rawPtr,AraCalType::kLatestCalib);
-						}
+						printf(RED"	Need to filter event %d in pol %d \n"RESET,event,pol);
 
 						//get the frequencies to notch
 						vector<double> badFreqListLocal_fwd;
@@ -788,87 +798,11 @@ int main(int argc, char **argv)
 
 						// for(int iFreq=0; iFreq<uniqueNotchFreqs.size(); iFreq++)
 						// 	printf("				Unique freq %d is %.2f with band %.2f\n",iFreq,uniqueNotchFreqs[iFreq],uniqueNotchBands[iFreq]);
-						
-						//now, we must re-do the interferometry
-						vector <int> chan_list_V;
-						vector <int> chan_list_H;
-						for(int chan=0; chan<=7; chan++){
-							chan_list_V.push_back(chan);
-							chan_list_H.push_back(chan+8);
-						}
-						if(dropBadChans){
-							if(station==2){
-								//for station 2, we need to exclude channel 15 from the analysis
-								chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 15), chan_list_H.end());
-							}
-							else if(station==3){
-								//for station 3 years 2014 and 2015, we need to drop string 4 (channels 3, 7, 11, 15) altogether
-								//FIXME! How to decide in simulation when to drop channels....
-								if((!isSimulation && runNum>getA3BadRunBoundary()) || (isSimulation && 2==3)){
 
-									chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 3), chan_list_V.end());
-									chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 7), chan_list_V.end());
+						/*
+							First we must re-do the SNR calculation (so much code...)
+						*/
 
-									chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 11), chan_list_H.end());
-									chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 15), chan_list_H.end());
-								}
-							}
-						}
-
-						TH2D *map_30m;
-						TH2D *map_300m;
-						if(pol==0){
-							map_30m = theCorrelators[0]->getInterferometricMap_RT_FiltMany_select(settings, detector, realAtriEvPtr, Vpol, 0, chan_list_V, 0,-1,uniqueNotchFreqs,uniqueNotchBands);
-							map_300m = theCorrelators[1]->getInterferometricMap_RT_FiltMany_select(settings, detector, realAtriEvPtr, Vpol, 0, chan_list_V, 0,-1,uniqueNotchFreqs,uniqueNotchBands);
-						}
-						if(pol==1){
-							map_30m = theCorrelators[0]->getInterferometricMap_RT_FiltMany_select(settings, detector, realAtriEvPtr, Hpol, 0, chan_list_H, 0,-1,uniqueNotchFreqs,uniqueNotchBands);
-							map_300m = theCorrelators[1]->getInterferometricMap_RT_FiltMany_select(settings, detector, realAtriEvPtr, Hpol, 0, chan_list_H, 0,-1,uniqueNotchFreqs,uniqueNotchBands);
-						}
-						int PeakTheta_Recompute_30m;
-						int PeakTheta_Recompute_300m;
-						int PeakPhi_Recompute_30m;
-						int PeakPhi_Recompute_300m;
-						double PeakCorr_Recompute_30m;
-						double PeakCorr_Recompute_300m;
-						getCorrMapPeak(map_30m,PeakTheta_Recompute_30m,PeakPhi_Recompute_30m,PeakCorr_Recompute_30m);
-						getCorrMapPeak(map_300m,PeakTheta_Recompute_300m,PeakPhi_Recompute_300m,PeakCorr_Recompute_300m);
-
-						theta_300[pol]=PeakTheta_Recompute_300m;
-						phi_300[pol]=PeakPhi_Recompute_300m;
-						theta_41[pol]=PeakTheta_Recompute_30m;
-						phi_41[pol]=PeakPhi_Recompute_30m;
-
-						chan_list_V.clear();
-						chan_list_V.push_back(0);
-						chan_list_V.push_back(1);
-						chan_list_V.push_back(2);
-						if(!(dropBadChans && station==3 && runNum>getA3BadRunBoundary())){ //if dropping bad chans and station 3, don't keep fourth string
-							chan_list_V.push_back(3);
-						}
-
-						chan_list_H.clear();
-						chan_list_H.push_back(8);
-						chan_list_H.push_back(9);
-						chan_list_H.push_back(10);
-						if(!(dropBadChans && station==3 && runNum>getA3BadRunBoundary())){ //if dropping bad chans and station 3, don't keep fourth string
-							chan_list_H.push_back(11);
-						}
-
-						TH2D *map_300m_top;
-						if(pol==0){
-							map_300m_top = theCorrelators[1]->getInterferometricMap_RT_FiltMany_select(settings, detector, realAtriEvPtr, Vpol, 0, chan_list_V, 0,-1,uniqueNotchFreqs,uniqueNotchBands);
-						}
-						if(pol==1){
-							map_300m_top = theCorrelators[1]->getInterferometricMap_RT_FiltMany_select(settings, detector, realAtriEvPtr, Hpol, 0, chan_list_H, 0,-1,uniqueNotchFreqs,uniqueNotchBands);
-						}
-
-						int PeakTheta_Recompute_300m_top;
-						int PeakPhi_Recompute_300m_top;
-						double PeakCorr_Recompute_300m_top;
-						getCorrMapPeak(map_300m_top,PeakTheta_Recompute_300m_top,PeakPhi_Recompute_300m_top,PeakCorr_Recompute_300m_top);
-
-						//and we must also redo the WRMS calculation
 						stringstream ss1;
 						string xLabel, yLabel;
 						xLabel = "Time (ns)"; yLabel = "Voltage (mV)";
@@ -1046,7 +980,7 @@ int main(int argc, char **argv)
 
 						vector< vector< int > > pairs_V_new;
 						vector< vector< int > > pairs_H_new;
-						setupCorrelationPairs(2, pairs_V_new, pairs_H_new); //just sets up the pairs (like, 0,1, 0,2 etc) that go into the correlation
+						setupCorrelationPairs(station, pairs_V_new, pairs_H_new); //just sets up the pairs (like, 0,1, 0,2 etc) that go into the correlation
 
 						vector<double> bestTimes_V_new;
 						vector<double> bestCorrs_V_new;
@@ -1094,7 +1028,7 @@ int main(int argc, char **argv)
 							}
 						} // end threshold scan
 
-						int thresholdBin_pol_new[]={3,5};
+						int thresholdBin_pol_new[]={thresholdBin_pol[0],thresholdBin_pol[1]};
 
 						vector <double> rms_faces_V_new;
 						vector <double> rms_faces_H_new;
@@ -1148,12 +1082,105 @@ int main(int argc, char **argv)
 						bestFaceRMS_new[0]=rms_faces_V_new[0];
 						bestFaceRMS_new[1]=rms_faces_H_new[0];
 
-						//cout<<"New vpol log rms value "<<log(bestFaceRMS_new[0])/log(10)<<endl;
-						//cout<<"New third highest vpeak over rms "<<vThirdVPeakOverRMS_new[0]<<endl;
-
 						double SNRs_new[2];
 						SNRs_new[0] = vThirdVPeakOverRMS_new[0];
 						SNRs_new[1] = vThirdVPeakOverRMS_new[1];
+
+						/*
+							Now we must re-do the reconstructions
+						*/
+						
+						vector <int> chan_list_V;
+						vector <int> chan_list_H;
+						for(int chan=0; chan<=7; chan++){
+							chan_list_V.push_back(chan);
+							chan_list_H.push_back(chan+8);
+						}
+						if(dropBadChans){
+							if(station==2){
+								//for station 2, we need to exclude channel 15 from the analysis
+								chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 15), chan_list_H.end());
+							}
+							else if(station==3){
+								//FIXME! How to decide in simulation when to drop channels....
+								if((!isSimulation && runNum>getA3BadRunBoundary()) || (isSimulation && 2==3)){
+
+									chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 3), chan_list_V.end());
+									chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 7), chan_list_V.end());
+
+									chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 11), chan_list_H.end());
+									chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 15), chan_list_H.end());
+								}
+							}
+						}
+
+						// get those filtered SNR's we just computed
+						vector<double> chan_SNRs;
+						for(int i=0; i<16; i++){
+							chan_SNRs.push_back(vVPeakOverRMS_new[i]);
+						}
+
+						TH2D *map_30m;
+						TH2D *map_300m;
+						int solNum = 0;
+						if(pol==0){
+							// map_30m = theCorrelators[0]->getInterferometricMap_RT_FiltMany_select(settings, detector, realAtriEvPtr, Vpol, isSimulation, chan_list_V, solNum,-1,uniqueNotchFreqs,uniqueNotchBands);
+							// map_300m = theCorrelators[1]->getInterferometricMap_RT_FiltMany_select(settings, detector, realAtriEvPtr, Vpol, isSimulation, chan_list_V, solNum,-1,uniqueNotchFreqs,uniqueNotchBands);
+
+							map_30m = theCorrelators[0]->getInterferometricMap_RT_FiltMany_select_NewNormalization_SNRweighted(settings, detector, realAtriEvPtr, Vpol, isSimulation, chan_list_V, chan_SNRs, solNum,-1,uniqueNotchFreqs,uniqueNotchBands);
+							map_300m = theCorrelators[1]->getInterferometricMap_RT_FiltMany_select_NewNormalization_SNRweighted(settings, detector, realAtriEvPtr, Vpol, isSimulation, chan_list_V, chan_SNRs, solNum,-1,uniqueNotchFreqs,uniqueNotchBands);
+
+						}
+						if(pol==1){
+							// map_30m = theCorrelators[0]->getInterferometricMap_RT_FiltMany_select(settings, detector, realAtriEvPtr, Hpol, isSimulation, chan_list_H, solNum,-1,uniqueNotchFreqs,uniqueNotchBands);
+							// map_300m = theCorrelators[1]->getInterferometricMap_RT_FiltMany_select(settings, detector, realAtriEvPtr, Hpol, isSimulation, chan_list_H, solNum,-1,uniqueNotchFreqs,uniqueNotchBands);
+
+							map_30m = theCorrelators[0]->getInterferometricMap_RT_FiltMany_select_NewNormalization_SNRweighted(settings, detector, realAtriEvPtr, Hpol, isSimulation, chan_list_H, chan_SNRs, solNum,-1,uniqueNotchFreqs,uniqueNotchBands);
+							map_300m = theCorrelators[1]->getInterferometricMap_RT_FiltMany_select_NewNormalization_SNRweighted(settings, detector, realAtriEvPtr, Hpol, isSimulation, chan_list_H, chan_SNRs, solNum,-1,uniqueNotchFreqs,uniqueNotchBands);
+
+						}
+						int PeakTheta_Recompute_30m;
+						int PeakTheta_Recompute_300m;
+						int PeakPhi_Recompute_30m;
+						int PeakPhi_Recompute_300m;
+						double PeakCorr_Recompute_30m;
+						double PeakCorr_Recompute_300m;
+						getCorrMapPeak(map_30m,PeakTheta_Recompute_30m,PeakPhi_Recompute_30m,PeakCorr_Recompute_30m);
+						getCorrMapPeak(map_300m,PeakTheta_Recompute_300m,PeakPhi_Recompute_300m,PeakCorr_Recompute_300m);
+
+						theta_300[pol]=PeakTheta_Recompute_300m;
+						phi_300[pol]=PeakPhi_Recompute_300m;
+						theta_41[pol]=PeakTheta_Recompute_30m;
+						phi_41[pol]=PeakPhi_Recompute_30m;
+
+						chan_list_V.clear();
+						chan_list_V.push_back(0);
+						chan_list_V.push_back(1);
+						chan_list_V.push_back(2);
+						if(!(dropBadChans && station==3 && runNum>getA3BadRunBoundary())){ //if dropping bad chans and station 3, don't keep fourth string
+							chan_list_V.push_back(3);
+						}
+
+						chan_list_H.clear();
+						chan_list_H.push_back(8);
+						chan_list_H.push_back(9);
+						chan_list_H.push_back(10);
+						if(!(dropBadChans && station==3 && runNum>getA3BadRunBoundary())){ //if dropping bad chans and station 3, don't keep fourth string
+							chan_list_H.push_back(11);
+						}
+
+						TH2D *map_300m_top;
+						if(pol==0){
+							map_300m_top = theCorrelators[1]->getInterferometricMap_RT_FiltMany_select(settings, detector, realAtriEvPtr, Vpol, 0, chan_list_V, 0,-1,uniqueNotchFreqs,uniqueNotchBands);
+						}
+						if(pol==1){
+							map_300m_top = theCorrelators[1]->getInterferometricMap_RT_FiltMany_select(settings, detector, realAtriEvPtr, Hpol, 0, chan_list_H, 0,-1,uniqueNotchFreqs,uniqueNotchBands);
+						}
+
+						int PeakTheta_Recompute_300m_top;
+						int PeakPhi_Recompute_300m_top;
+						double PeakCorr_Recompute_300m_top;
+						getCorrMapPeak(map_300m_top,PeakTheta_Recompute_300m_top,PeakPhi_Recompute_300m_top,PeakCorr_Recompute_300m_top);
 
 						//cleanup
 						deleteGraphVector(grWaveformsRaw);
@@ -1163,10 +1190,11 @@ int main(int argc, char **argv)
 						deleteGraphVector(grNotched);
 						deleteGraphVector(grWaveformsPowerSpectrum);
 						deleteGraphVector(grWaveformsPowerSpectrum_notched);
-						summaryFile->Close();
-						delete summaryFile;
-						// printf("				old vs new logrms calc in pol %d: %.2f vs %.2f \n",pol,log(bestFaceRMS[pol])/log(10),log(bestFaceRMS_new[pol])/log(10));
-						// printf("				old vs new snr in pol %d: %.2f vs %.2f \n",pol,SNRs[pol],SNRs_new[pol] );
+
+						printf("		old vs new logrms calc in pol %d: %.2f vs %.2f \n",pol,log(bestFaceRMS[pol])/log(10),log(bestFaceRMS_new[pol])/log(10));
+						printf("		old vs new snr in pol %d: %.2f vs %.2f \n",pol,SNRs[pol],SNRs_new[pol] );
+						printf("		old vs new corr in pol %d: %.4f vs %.4f \n",pol,corr_val[pol],PeakCorr_Recompute_300m);
+
 
 						// re-check top face reco
 						if(PeakTheta_Recompute_300m_top>=37)
@@ -1188,26 +1216,19 @@ int main(int argc, char **argv)
 						corr_val[pol]=PeakCorr_Recompute_300m;
 						snr_val[pol]=SNRs_new[pol];
 
-						// isSurfEvent[pol]=1; //assume again it's surface in this pol
-						// if(PeakTheta_Recompute_300m<37){ //recheck for surface
-						// 	isSurfEvent[pol]=0;  //mark it as not a surface event
-						// 	//recheck wrms and use the recomputed SNR
-						// 	WFRMS[pol]=1; //assume it will fail
-						// 	if(log(bestFaceRMS_new[pol])/log(10) < wavefrontRMScut[pol]){ //recheck if it *passes* the WRMS cut
-						// 		// cout<<"new wavefront RMS is "<<log(bestFaceRMS_new[pol])/log(10)<<endl;
-						// 		WFRMS[pol]=0; //actually, it passes!
-						// 		//save this out for use in optimization later
-						// 		corr_val[pol]=PeakCorr_Recompute_300m;
-						// 		snr_val[pol]=SNRs_new[pol];
-						// 	} //WFRMS cut on new event
-						// } //recheck the surface cut
 						delete map_300m;
 						delete map_300m_top;
 						delete map_30m;
-						if(!isSimulation) delete realAtriEvPtr;
-						mapFile->Close();
-						delete mapFile;
+
+						// yes, the summary file close and delete needs to be down here
+						// to make ROOT's silly ownership thingy work out and not cause segfault
+						summaryFile->Close();
+						delete summaryFile;
+
 					} //if any frequencies are flagged for filtering
+					if(!isSimulation) delete realAtriEvPtr;
+					mapFile->Close();
+					delete mapFile;
 				} //cal pulser
 				trees[pol]->Fill();
 			}//loop over polarization
