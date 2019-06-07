@@ -55,34 +55,37 @@ int main(int argc, char **argv)
 		printf("No good! You asked for station %d, but this code only works for stations 2 and 3 \n",station);
 		return -1;
 	}
+
+	// double max=1.;
+	double max=0.05;
 	
 	TH2D *PeakCorr_vs_SNR_all[2];
-	PeakCorr_vs_SNR_all[0]=new TH2D("","V",30,0,30,100,0,1);
-	PeakCorr_vs_SNR_all[1]=new TH2D("","H",30,0,30,100,0,1);
+	PeakCorr_vs_SNR_all[0]=new TH2D("","V",30,0,30,100,0,max);
+	PeakCorr_vs_SNR_all[1]=new TH2D("","H",30,0,30,100,0,max);
 
 	TH2D *PeakCorr_vs_SNR_cutCal[2];
-	PeakCorr_vs_SNR_cutCal[0]=new TH2D("","V",30,0,30,100,0,1);
-	PeakCorr_vs_SNR_cutCal[1]=new TH2D("","H",30,0,30,100,0,1);
+	PeakCorr_vs_SNR_cutCal[0]=new TH2D("","V",30,0,30,100,0,max);
+	PeakCorr_vs_SNR_cutCal[1]=new TH2D("","H",30,0,30,100,0,max);
 
 	TH2D *PeakCorr_vs_SNR_cutCal_cutSoft[2];
-	PeakCorr_vs_SNR_cutCal_cutSoft[0]=new TH2D("","V",30,0,30,100,0,1);
-	PeakCorr_vs_SNR_cutCal_cutSoft[1]=new TH2D("","H",30,0,30,100,0,1);
+	PeakCorr_vs_SNR_cutCal_cutSoft[0]=new TH2D("","V",30,0,30,100,0,max);
+	PeakCorr_vs_SNR_cutCal_cutSoft[1]=new TH2D("","H",30,0,30,100,0,max);
 
 	TH2D *PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[2];
-	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[0]=new TH2D("","V",30,0,30,100,0,1);
-	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[1]=new TH2D("","H",30,0,30,100,0,1);
+	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[0]=new TH2D("","V",30,0,30,100,0,max);
+	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[1]=new TH2D("","H",30,0,30,100,0,max);
 
 	TH2D *PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[2];
-	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[0]=new TH2D("","V",30,0,30,100,0,1);
-	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[1]=new TH2D("","H",30,0,30,100,0,1);
+	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[0]=new TH2D("","V",30,0,30,100,0,max);
+	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[1]=new TH2D("","H",30,0,30,100,0,max);
 
 	TH2D *PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[2];
-	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[0]=new TH2D("","V",30,0,30,100,0,1);
-	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[1]=new TH2D("","H",30,0,30,100,0,1);
+	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[0]=new TH2D("","V",30,0,30,100,0,max);
+	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[1]=new TH2D("","H",30,0,30,100,0,max);
 
 	TH2D *PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[2];
-	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[0]=new TH2D("","V",30,0,30,100,0,1);
-	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[1]=new TH2D("","H",30,0,30,100,0,1);
+	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[0]=new TH2D("","V",30,0,30,100,0,max);
+	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[1]=new TH2D("","H",30,0,30,100,0,max);
 
 	TH1D *all_events[2];
 	TH1D *pass_soft_short_cal[2];
@@ -291,6 +294,8 @@ int main(int argc, char **argv)
 											}
 											sort(frac.begin(), frac.end(), std::greater<double>());
 											fracs_power_cut[pol]->Fill(frac[2]);
+											// if(frac[2]>0.06)
+											// 	printf("This event had lots of power cut!\n");
 											if(frac[2]<=0.06){
 												PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol],weight);
 											}
@@ -320,7 +325,7 @@ int main(int argc, char **argv)
 	printf("Num short is %d -- %.2f %\n", num_short, double(num_short)/double(num_total)*100.);
 	printf("Num surf is %d -- %.2f %\n", num_surf, double(num_surf)/double(num_total)*100.);
 
-	gStyle->SetOptStat(0);
+	gStyle->SetOptStat(1);
 	gStyle->SetStatY(0.9);
 	gStyle->SetStatX(0.9);
 	gStyle->SetStatW(0.2);
