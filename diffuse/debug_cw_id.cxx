@@ -117,7 +117,7 @@ int main(int argc, char **argv)
 			runSummaryFilename = "/fs/scratch/PAS0654/ara/sim/RunSummary/run_summary_station_2_run_20.root";
 		}
 		else if(station_num==3){
-			runSummaryFilename = "/fs/scratch/PAS0654/ara/sim/RunSummary/run_summary_station_3_run_0.root";
+			runSummaryFilename = "/fs/scratch/PAS0654/ara/sim/RunSummary/run_summary_station_3_run_30.root";
 		}
 	}
 	TFile *SummaryFile = TFile::Open(runSummaryFilename.c_str());
