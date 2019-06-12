@@ -105,12 +105,13 @@ int main(int argc, char **argv)
 		}
 
 		char outfile_name[300];
-		sprintf(outfile_name,"%s/cutvals_snrbins_%d_%d_wfrmsvals_%.1f_%.1f_run_%d.root",output_location.c_str(),thresholdBin_pol[0], thresholdBin_pol[1], abs(wavefrontRMScut[0]),abs(wavefrontRMScut[1]),runNum);
+		sprintf(outfile_name,"%s/cutvals_snrbins_%d_%d_wfrmsvals_%.1f_%.1f_run_%d.root",output_location.c_str(),thresholdBin_pol[0], thresholdBin_pol[1], (wavefrontRMScut[0]),(wavefrontRMScut[1]),runNum);
 		if(dropBadChans){
-			sprintf(outfile_name,"%s/cutvals_drop_snrbins_%d_%d_wfrmsvals_%.1f_%.1f_run_%d.root",output_location.c_str(),thresholdBin_pol[0], thresholdBin_pol[1], abs(wavefrontRMScut[0]), abs(wavefrontRMScut[1]),runNum);
+			sprintf(outfile_name,"%s/cutvals_drop_snrbins_%d_%d_wfrmsvals_%.1f_%.1f_run_%d.root",output_location.c_str(),thresholdBin_pol[0], thresholdBin_pol[1], (wavefrontRMScut[0]), (wavefrontRMScut[1]),runNum);
+			// sprintf(outfile_name,"%s/cutvals_drop_snrbins_%s%d_%s%d_wfrmsvals_%.1f_%.1f_run_%d.root",output_location.c_str(),thresholdBin_pol[0], thresholdBin_pol[1], wavefrontRMScut[0]<0?'-':'',(wavefrontRMScut[0]), wavefrontRMScut[0]<0?'-':'',(wavefrontRMScut[1]),runNum);
 		}
 		TFile *fpOut = new TFile(outfile_name,"recreate");
-		TTree *trees[3];
+		TTree *trees[4];
 		trees[0]= new TTree("VTree","VTree");
 		trees[1]= new TTree("HTree","HTree");
 		trees[2]= new TTree("AllTree","AllTree");
@@ -244,6 +245,10 @@ int main(int argc, char **argv)
 		inputTree_filter->SetBranchAddress("waveformLength",&waveformLength);
 		inputTree_filter->SetBranchAddress("hasDigitizerError",&hasDigitizerError);
 
+		// copy over the whole filter tree
+		fpOut->cd();
+		trees[3]= inputTree_filter->CloneTree(0);
+
 		//next, load the reco tree
 		TTree *inputTree_reco[35];
 		double peakCorr[35][2];
@@ -267,10 +272,15 @@ int main(int argc, char **argv)
 		}
 
 		char summary_file_name[400];
-		if(isSimulation)
-			sprintf(summary_file_name,"%s/CWID/A%d/c%d/E%2.1f/CWID_station_%d_run_%d.root",SimDirPath,station,config,year_or_energy,station,runNum);
-		else
-			sprintf(summary_file_name,"%s/CWID/A%d/by_config/c%d/CWID_station_%d_run_%d.root",DataDirPath,station,config,station,runNum);
+		if(isSimulation){
+			if(year_or_energy<25)
+				sprintf(summary_file_name,"%s/CWID/A%d/c%d/E%2.1f/CWID_station_%d_run_%d.root",SimDirPath,station,config,year_or_energy,station,runNum);
+			else
+				sprintf(summary_file_name,"%s/CWID/A%d/c%d/E%d/CWID_station_%d_run_%d.root",SimDirPath,station,config,int(year_or_energy),station,runNum);
+		}
+		else{
+			sprintf(summary_file_name,"%s/CWID/A%d/all_runs/CWID_station_%d_run_%d.root",DataDirPath,station,station,runNum);
+		}
 		TFile *NewCWFile = TFile::Open(summary_file_name);
 		if(!NewCWFile) {
 			std::cerr << "Can't open new CW file\n";
@@ -302,7 +312,7 @@ int main(int argc, char **argv)
 		//now to loop over events
 		for(int event=start; event<numEntries; event++){
 			if(event%starEvery==0) {
-				std::cout<<"*";
+				// std::cout<<"*";
 			}
 
 			isCal=0;
@@ -427,32 +437,34 @@ int main(int argc, char **argv)
 			//draw a box around the cal pulser
 			for (int pol = 0; pol < 2; pol++){
 
-				if(station==2){
-					if (bestPhi_pulser[pol] >= -30 && bestPhi_pulser[pol] <= -20
-					 	&& bestTheta_pulser[pol] >= -25 && bestTheta_pulser[pol] <= -10)
-					{
-						isCP5=true;
-					}
-					//if (bestPhi_pulser[pol] > 60 && bestPhi_pulser[pol] < 70 && bestTheta_pulser[pol] > 10 && bestTheta_pulser[pol] < 25){
-					if (bestPhi_pulser[pol] >= 60 && bestPhi_pulser[pol] <= 70 
-						&& bestTheta_pulser[pol] >= 0 && bestTheta_pulser[pol] <= 15)
-					{
-						isCP6=true;
-					}
-				}
-				else if(station==3){
-					if (bestPhi_pulser[pol] >= -28 && bestPhi_pulser[pol] <= -18 
-						&& bestTheta_pulser[pol] >= -20 && bestTheta_pulser[pol] <= -5)
-					{
-						isCP5=true;
-					}
-					//if (bestPhi_pulser[pol] > 60 && bestPhi_pulser[pol] < 70 && bestTheta_pulser[pol] > 10 && bestTheta_pulser[pol] < 25){
-					if (bestPhi_pulser[pol] >= 60 && bestPhi_pulser[pol] <= 70 
-						&& bestTheta_pulser[pol] >= -20 && bestTheta_pulser[pol] <= -5)
-					{
-						isCP6=true;
-					}
-				}
+				identifyCalPulser(station,bestTheta_pulser[pol], bestPhi_pulser[pol], isCP5, isCP6);
+
+				// if(station==2){
+				// 	if (bestPhi_pulser[pol] >= -30 && bestPhi_pulser[pol] <= -20
+				// 	 	&& bestTheta_pulser[pol] >= -25 && bestTheta_pulser[pol] <= -10)
+				// 	{
+				// 		isCP5=true;
+				// 	}
+				// 	//if (bestPhi_pulser[pol] > 60 && bestPhi_pulser[pol] < 70 && bestTheta_pulser[pol] > 10 && bestTheta_pulser[pol] < 25){
+				// 	if (bestPhi_pulser[pol] >= 60 && bestPhi_pulser[pol] <= 70 
+				// 		&& bestTheta_pulser[pol] >= 0 && bestTheta_pulser[pol] <= 15)
+				// 	{
+				// 		isCP6=true;
+				// 	}
+				// }
+				// else if(station==3){
+				// 	if (bestPhi_pulser[pol] >= -28 && bestPhi_pulser[pol] <= -18 
+				// 		&& bestTheta_pulser[pol] >= -20 && bestTheta_pulser[pol] <= -5)
+				// 	{
+				// 		isCP5=true;
+				// 	}
+				// 	//if (bestPhi_pulser[pol] > 60 && bestPhi_pulser[pol] < 70 && bestTheta_pulser[pol] > 10 && bestTheta_pulser[pol] < 25){
+				// 	if (bestPhi_pulser[pol] >= 60 && bestPhi_pulser[pol] <= 70 
+				// 		&& bestTheta_pulser[pol] >= -20 && bestTheta_pulser[pol] <= -5)
+				// 	{
+				// 		isCP6=true;
+				// 	}
+				// }
 			}
 			for(int pol=0; pol<2; pol++){
 				theta_300[pol]=bestTheta[pol];
@@ -474,7 +486,13 @@ int main(int argc, char **argv)
 				if(badFreqListLocal_baseline.size()>0) isCutonCW_baseline[pol]=true;
 			}
 
-			double threshCW = 1.0;
+			double threshCW=10;
+			if(station==2){
+				threshCW = 1.5;
+			}
+			else if(station==3){
+				threshCW = 2.;
+			}
 			vector<double> badFreqList_fwd;
 			vector<double> badSigmaList_fwd;
 			for(int pol=0; pol<badFreqs_fwd->size(); pol++){
@@ -489,6 +507,8 @@ int main(int argc, char **argv)
 						abs(500. - badFreqList_fwd[iCW]) > 2.
 						&&
 						abs(125. - badFreqList_fwd[iCW]) > 2.
+						&&
+						badFreqList_fwd[iCW] < 850.
 					){
 						isCutonCW_fwd[pol] = true;
 					}
@@ -508,8 +528,11 @@ int main(int argc, char **argv)
 						abs(500. - badFreqList_back[iCW]) > 2.
 						&&
 						abs(125. - badFreqList_back[iCW]) > 2.
+						&&
+						badFreqList_back[iCW] < 850.
 					){
 						isCutonCW_back[pol] = true;
+						// cout<<"The bad frequency mode is "<<badFreqList_back[iCW]<<endl;
 					}
 				}
 			}
@@ -531,7 +554,11 @@ int main(int argc, char **argv)
 					num_faces_for_H_loop=numFaces_A2_drop;
 				}
 				else if(station==3){
-					if(runNum>getA3BadRunBoundary()){ //it's 2014+, drop string four
+					if(
+						(!isSimulation && runNum>getA3BadRunBoundary())
+						||
+						(isSimulation && config>2)
+					){ //it's 2014+, drop string four
 						rms_faces_V.resize(numFaces_A3_drop);
 						num_faces_for_V_loop=numFaces_A3_drop;
 						rms_faces_H.resize(numFaces_A3_drop);
@@ -607,7 +634,12 @@ int main(int argc, char **argv)
 					// load in the data for the event
 					char run_file_name[400];
 					if(isSimulation)
-						sprintf(run_file_name,"%s/RawSim/A%d/c%d/E%2.1f/AraOut.A%d_c%d_E%2.1f.txt.run%d.root",SimDirPath,station,config,year_or_energy,station,config,year_or_energy,runNum);
+						if(year_or_energy<25)
+							sprintf(run_file_name,"%s/RawSim/A%d/c%d/E%2.1f/AraOut.A%d_c%d_E%2.1f.txt.run%d.root",SimDirPath,station,config,year_or_energy,station,config,year_or_energy,runNum);
+						else{
+							// should just be Kotera
+							sprintf(run_file_name,"%s/RawSim/A%d/c%d/E%d/AraOut.A%d_c%d_E%d.txt.run%d.root",SimDirPath,station,config,int(year_or_energy),station,config,int(year_or_energy),runNum);
+						}
 					else
 						sprintf(run_file_name,"%s/RawData/A%d/by_config/c%d/event%d.root",DataDirPath,station,config,runNum);
 					TFile *mapFile = TFile::Open(run_file_name);
@@ -635,13 +667,16 @@ int main(int argc, char **argv)
 					}
 
 					// check to see if this event is experiencing a digitizer glitch
-					vector<TGraph*> spareElecChanGraphs;
-					spareElecChanGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(6));
-					spareElecChanGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(14));
-					spareElecChanGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(22));
-					spareElecChanGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(30));
-					hasBadSpareChanIssue = hasSpareChannelIssue(spareElecChanGraphs);
-					deleteGraphVector(spareElecChanGraphs);
+					// can only do this with data
+					if(!isSimulation){
+						vector<TGraph*> spareElecChanGraphs;
+						spareElecChanGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(6));
+						spareElecChanGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(14));
+						spareElecChanGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(22));
+						spareElecChanGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(30));
+						hasBadSpareChanIssue = hasSpareChannelIssue(spareElecChanGraphs);
+						deleteGraphVector(spareElecChanGraphs);
+					}
 
 					// printf(GREEN"	Event %d has bad channel %d \n"RESET,event,hasBadSpareChanIssue);
 
@@ -649,7 +684,9 @@ int main(int argc, char **argv)
 					if it's not in need of re-filtering, check the "top" reco again
 					*/
 
+					// printf("CW Status for Run %4d Event %5d, Pol %d: CW fwd %d, CW back %d, CW Baseline %d \n", runNum, event, pol, isCutonCW_fwd[pol], isCutonCW_back[pol], isCutonCW_baseline[pol]);
 					if((!isCutonCW_fwd[pol] && !isCutonCW_back[pol] && !isCutonCW_baseline[pol]) && !hasBadSpareChanIssue){
+					// if((!isCutonCW_fwd[pol] && !isCutonCW_back[pol] && !isCutonCW_baseline[pol]) && !hasBadSpareChanIssue && 2==3){
 						vector <int> chan_list_V;
 						vector <int> chan_list_H;
 						
@@ -657,17 +694,29 @@ int main(int argc, char **argv)
 						chan_list_V.push_back(0);
 						chan_list_V.push_back(1);
 						chan_list_V.push_back(2);
-						if(!(dropBadChans && (station==3 && runNum>getA3BadRunBoundary()))){ //if dropping bad chans and station 3, don't keep fourth string
-							chan_list_V.push_back(3);
-						}
 
 						chan_list_H.clear();
 						chan_list_H.push_back(8);
 						chan_list_H.push_back(9);
 						chan_list_H.push_back(10);
-						if(!(dropBadChans && (station==3 && runNum>getA3BadRunBoundary()))){ //if dropping bad chans and station 3, don't keep fourth string
+
+						// this looks weird here because we're aiming for what channels to *include*
+
+						if(
+							!(
+								dropBadChans
+								&& station==3
+								&& (
+									(!isSimulation && runNum>getA3BadRunBoundary())
+									||
+									(isSimulation && config>2)
+								)
+							)
+						){
+							chan_list_V.push_back(3);
 							chan_list_H.push_back(11);
 						}
+
 
 						vector<double> chan_SNRs;
 						for(int i=0; i<16; i++){
@@ -710,7 +759,7 @@ int main(int argc, char **argv)
 
 					// and now to do *filtering*
 					if((isCutonCW_fwd[pol] || isCutonCW_back[pol] || isCutonCW_baseline[pol]) && !hasBadSpareChanIssue){
-					// if((isCutonCW_fwd[pol] || isCutonCW_back[pol] || isCutonCW_baseline[pol])){
+					// if((isCutonCW_fwd[pol] || isCutonCW_back[pol] || isCutonCW_baseline[pol]) && !hasBadSpareChanIssue && 2==3){
 						isCW=1;
 						Refilt[pol]=1;
 
@@ -793,7 +842,7 @@ int main(int argc, char **argv)
 						theCorrelators[0]->pickFreqsAndBands(mergedFreqList,uniqueNotchFreqs,uniqueNotchBands);
 						for (int i = 0; i < uniqueNotchFreqs.size(); ++i)
 						{
-							// printf("Unique freq to be notched is %.2f with width %.2f \n", uniqueNotchFreqs[i],uniqueNotchBands[i]);
+							printf("Unique freq to be notched is %.2f with width %.2f \n", uniqueNotchFreqs[i],uniqueNotchBands[i]);
 						}
 
 						// for(int iFreq=0; iFreq<uniqueNotchFreqs.size(); iFreq++)
@@ -859,7 +908,7 @@ int main(int argc, char **argv)
 								sprintf(run_summary_name,"/fs/scratch/PAS0654/ara/sim/RunSummary/run_summary_station_2_run_20.root");
 							}
 							else if(station==3){
-								sprintf(run_summary_name,"/fs/scratch/PAS0654/ara/sim/RunSummary/run_summary_station_3_run_0.root");
+								sprintf(run_summary_name,"/fs/scratch/PAS0654/ara/sim/RunSummary/run_summary_station_3_run_30.root");
 							}
 						}
 
@@ -927,12 +976,18 @@ int main(int argc, char **argv)
 								// hpol channel 15
 								chan_exclusion_list.push_back(15);
 							}
-							else if(station==3 && runNum>getA3BadRunBoundary()){
-								// vpol sring 4
-								chan_exclusion_list.push_back(3);
-								chan_exclusion_list.push_back(7);
-								chan_exclusion_list.push_back(11);
-								chan_exclusion_list.push_back(15);
+							else if(station==3){
+								if( 
+									(!isSimulation && runNum>getA3BadRunBoundary())
+									||
+									(isSimulation && config>2)
+
+								){								// vpol sring 4
+									chan_exclusion_list.push_back(3);
+									chan_exclusion_list.push_back(7);
+									chan_exclusion_list.push_back(11);
+									chan_exclusion_list.push_back(15);
+								}
 							}
 						}
 
@@ -1043,7 +1098,11 @@ int main(int argc, char **argv)
 								num_faces_for_H_loop=numFaces_A2_drop;
 							}
 							else if(station==3){
-								if(runNum>getA3BadRunBoundary()){ //it's 2014+, drop string four
+								if(
+									(!isSimulation && runNum>getA3BadRunBoundary())
+									||
+									(isSimulation && config>2)
+								){ //it's 2014+, drop string four
 									rms_faces_V_new.resize(numFaces_A3_drop);
 									num_faces_for_V_loop=numFaces_A3_drop;
 									rms_faces_H_new.resize(numFaces_A3_drop);
@@ -1102,9 +1161,13 @@ int main(int argc, char **argv)
 								chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 15), chan_list_H.end());
 							}
 							else if(station==3){
-								//FIXME! How to decide in simulation when to drop channels....
-								if((!isSimulation && runNum>getA3BadRunBoundary()) || (isSimulation && 2==3)){
+								//for station 3, remove for data after getA3BadRunBoundary, or for sim after config 2
+								if( 
+									(!isSimulation && runNum>getA3BadRunBoundary())
+									||
+									(isSimulation && config>2)
 
+								){
 									chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 3), chan_list_V.end());
 									chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 7), chan_list_V.end());
 
@@ -1152,20 +1215,31 @@ int main(int argc, char **argv)
 						phi_300[pol]=PeakPhi_Recompute_300m;
 						theta_41[pol]=PeakTheta_Recompute_30m;
 						phi_41[pol]=PeakPhi_Recompute_30m;
-
+						
 						chan_list_V.clear();
 						chan_list_V.push_back(0);
 						chan_list_V.push_back(1);
 						chan_list_V.push_back(2);
-						if(!(dropBadChans && station==3 && runNum>getA3BadRunBoundary())){ //if dropping bad chans and station 3, don't keep fourth string
-							chan_list_V.push_back(3);
-						}
 
 						chan_list_H.clear();
 						chan_list_H.push_back(8);
 						chan_list_H.push_back(9);
 						chan_list_H.push_back(10);
-						if(!(dropBadChans && station==3 && runNum>getA3BadRunBoundary())){ //if dropping bad chans and station 3, don't keep fourth string
+
+						// this looks weird here because we're aiming for what channels to *include*
+
+						if(
+							!(
+								dropBadChans
+								&& station==3
+								&& (
+									(!isSimulation && runNum>getA3BadRunBoundary())
+									||
+									(isSimulation && config>2)
+								)
+							)
+						){
+							chan_list_V.push_back(3);
 							chan_list_H.push_back(11);
 						}
 
@@ -1224,7 +1298,6 @@ int main(int argc, char **argv)
 						// to make ROOT's silly ownership thingy work out and not cause segfault
 						summaryFile->Close();
 						delete summaryFile;
-
 					} //if any frequencies are flagged for filtering
 					if(!isSimulation) delete realAtriEvPtr;
 					mapFile->Close();
@@ -1233,6 +1306,7 @@ int main(int argc, char **argv)
 				trees[pol]->Fill();
 			}//loop over polarization
 			trees[2]->Fill();
+			trees[3]->Fill();
 		}//loop over events
 		inputFile->Close();
 		NewCWFile->Close();
