@@ -59,8 +59,8 @@ int main(int argc, char **argv)
 	char *PedDirPath(getenv("PED_DIR"));
 	if (PedDirPath == NULL) std::cout << "Warning! $DATA_DIR is not set!" << endl;
 	
-	if(argc<7) {
-		std::cout << "Usage\n" << argv[0] << " <1-simulation_flag> <2-station> <3-radius_bin> <4-filter_file_dir> <5-output directory> <6-input file>\n";
+	if(argc<8) {
+		std::cout << "Usage\n" << argv[0] << " <1-simulation_flag> <2-station> <3-year/config> <4-radius_bin> <5-filter_file_dir> <6-output directory> <7-input file>\n";
 		return -1;
 	}
 
@@ -69,16 +69,18 @@ int main(int argc, char **argv)
 	0: exec
 	1: simulation (yes/no)
 	2: station num (2/3)
-	3: radius bin
-	4: filter file dir
-	5: output directory
-	6: input file
+	3: year/config
+	4: radius bin
+	5: filter file dir
+	6: output directory
+	7: input file
 	*/
 
 	isSimulation=atoi(argv[1]);
 	int station_num=atoi(argv[2]);
 	calpulserRunMode=0;
-	int radiusBin = atoi(argv[3]);
+	int yearConfig=atoi(argv[3]);
+	int radiusBin = atoi(argv[4]);
 	
 	int numRadiiScanned = 35;
 	int startingRadiusBin = radiusBin;
@@ -94,7 +96,7 @@ int main(int argc, char **argv)
 		titlesForGraphs.push_back(ss.str());
 	}
 		
-	TFile *fp = TFile::Open(argv[6]);
+	TFile *fp = TFile::Open(argv[7]);
 	if(!fp) {
 		std::cout << "Can't open file\n";
 		return -1;
@@ -183,7 +185,7 @@ int main(int argc, char **argv)
 		eventTree->SetBranchAddress("UsefulAtriStationEvent", &realAtriEvPtr);
 		eventTree->SetBranchAddress("weight", &weight);
 		printf("Simulation; load useful event tree straight away \n");
-		runNum = getrunNum(argv[6]);
+		runNum = getrunNum(argv[7]);
 	}
 	else{
 		eventTree->SetBranchAddress("event",&rawAtriEvPtr);
@@ -200,14 +202,17 @@ int main(int argc, char **argv)
 	printf("Reco Run Number %d \n", runNum);
 
 	// load pedestals, if they exist yet
+	// this will perform fine for simulation; it'll evaluate to garbage (or whatever), but it's not needed, so cool
 	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
 	char ped_file_name[400];
 	sprintf(ped_file_name,"%s/run_specific_peds/A%d/all_peds/event%d_specificPeds.dat",PedDirPath,station_num,runNum);
 	calibrator->setAtriPedFile(ped_file_name,station_num); //because someone had a brain (!!), this will error handle itself if the pedestal doesn't exist
 
 	// get the run summary information, if it exists yet
+	// and remember, because it's the users job to pass the location of the filter files
+	// this should work for simulated events just fine
 	char filter_file_name[400];
-	sprintf(filter_file_name,"%s/processed_station_%d_run_%d_filter.root",argv[4],station_num,runNum);
+	sprintf(filter_file_name,"%s/processed_station_%d_run_%d_filter.root",argv[5],station_num,runNum);
 	bool hasFilterFile = false;
 	TFile *filterFile = TFile::Open(filter_file_name);
 	TTree *filterTree;
@@ -224,7 +229,7 @@ int main(int argc, char **argv)
 	}
 
 	// prepare for output
-	string processedFilename = getProcessedFilename_recoRadius(station_num, argv[5], runNum, radii[radiusBin]);
+	string processedFilename = getProcessedFilename_recoRadius(station_num, argv[6], runNum, radii[radiusBin]);
 	TFile *OutputFile = TFile::Open(processedFilename.c_str(), "RECREATE");
 	TTree* OutputSettingsTree = new TTree("OutputSettingsTree", "OutputSettingsTree");
 	OutputSettingsTree->Branch("detectorCenter", &detectorCenter, "detectorCenter[3]/D");
@@ -414,12 +419,15 @@ int main(int argc, char **argv)
 				chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 15), chan_list_H.end());
 			}
 			else if(station_num==3){
-				// for station 3 years 2014 and 2015, we need to drop string 4 (channels 3, 7, 11, 15) altogether above some run
-				if(runNum>getA3BadRunBoundary()){
+				// for station 3 years 2014, 2015, 2016, we need to drop string 4 (channels 3, 7, 11, 15) altogether above some run
+				if( 
+					(!isSimulation && runNum>getA3BadRunBoundary())
+					||
+					(isSimulation && yearConfig>2)
 
+				){			// drop string four
 					chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 3), chan_list_V.end());
 					chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 7), chan_list_V.end());
-
 					chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 11), chan_list_H.end());
 					chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 15), chan_list_H.end());
 				}

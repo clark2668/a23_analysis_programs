@@ -30,6 +30,7 @@
 #include "tools_RecoFns.h"
 #include "tools_CW.h"
 #include "tools_Cuts.h"
+#include "tools_CommandLine.h"
 
 RawAtriStationEvent *rawAtriEvPtr;
 UsefulAtriStationEvent *realAtriEvPtr;
@@ -38,7 +39,7 @@ int main(int argc, char **argv)
 {
 
 	if(argc<8) {
-		std::cout << "Usage\n" << argv[0] << " <simulation_flag> <station> <year> <drop_bad_chans> <run summary directory> <output directory> <input file> <pedestal file> \n";
+		std::cout << "Usage\n" << argv[0] << " <1-simulation_flag> <2-station> <3-year/config> <4-drop_bad_chans> <5-run summary directory> <6-output directory> <7-input file> <8-pedestal file> \n";
 		return -1;
 	}
 
@@ -50,7 +51,7 @@ int main(int argc, char **argv)
 	0: exec
 	1: simulation (yes/no)
 	2: station num (2/3)
-	3: year
+	3: year/ config
 	4: drop bad chans
 	5: run summary directory
 	6: output directory
@@ -60,7 +61,7 @@ int main(int argc, char **argv)
 
 	int isSimulation=atoi(argv[1]);
 	int station_num=atoi(argv[2]);
-	int year=atoi(argv[3]);
+	int yearConfig=atoi(argv[3]);
 	int drop_bad_chans=atoi(argv[4]);
 
 	//open the file
@@ -106,6 +107,7 @@ int main(int argc, char **argv)
 	if(starEvery==0) starEvery++;
 	printf("Num events is %d \n", numEntries);
 	cout<<"This file has a starEvery of "<<starEvery<<endl;
+	numEntries=50;
 
 	//first, let's get the baselines loaded in
 	string runSummaryFilename;
@@ -117,7 +119,7 @@ int main(int argc, char **argv)
 			runSummaryFilename = "/fs/scratch/PAS0654/ara/sim/RunSummary/run_summary_station_2_run_20.root";
 		}
 		else if(station_num==3){
-			runSummaryFilename = "/fs/scratch/PAS0654/ara/sim/RunSummary/run_summary_station_3_run_0.root";
+			runSummaryFilename = "/fs/scratch/PAS0654/ara/sim/RunSummary/run_summary_station_3_run_30.root";
 		}
 	}
 	TFile *SummaryFile = TFile::Open(runSummaryFilename.c_str());
@@ -148,12 +150,19 @@ int main(int argc, char **argv)
 			//drop the last hpol channel
 			chan_exclusion_list.push_back(15);
 		}
-		if(station_num==3 && runNum>getA3BadRunBoundary()){
-			// drop string four
-			chan_exclusion_list.push_back(3);
-			chan_exclusion_list.push_back(7);
-			chan_exclusion_list.push_back(11);
-			chan_exclusion_list.push_back(15);
+		else if(station_num==3){
+			if( 
+				(!isSimulation && runNum>getA3BadRunBoundary())
+				||
+				(isSimulation && yearConfig>2)
+
+			){			// drop string four
+				printf("Yes, we need to drop channels!\n");
+				chan_exclusion_list.push_back(3);
+				chan_exclusion_list.push_back(7);
+				chan_exclusion_list.push_back(11);
+				chan_exclusion_list.push_back(15);
+			}
 		}
 	}
 
@@ -180,7 +189,7 @@ int main(int argc, char **argv)
 	This way we dont' have to constantly re-do the FFT's
 	*/
 
-	cout<<"About to make FFTs..."<<endl;
+	printf(BLUE"About to make FFTs\n"RESET);
 
 	char del_me_file_name[400];
 	sprintf(del_me_file_name,"%s/delme_run%d.root",output_location.c_str(),runNum);
@@ -238,10 +247,12 @@ int main(int argc, char **argv)
 		if(!isSimulation) delete realAtriEvPtr;
 	}
 	tempFile->Write();
-	cout<<"Done making FFTs."<<endl;
+	printf(GREEN"Done making FFTs.\n"RESET);
 
 	temp_phs.clear();
 	temp_phs.resize(16);
+
+	printf(BLUE"About to loop over events\n"RESET);
 
 	//now, to loop over events!
 	for(Long64_t event=0;event<numEntries;event++){
@@ -277,16 +288,16 @@ int main(int argc, char **argv)
 		if(!hasError){
 
 			//before we do the phase variance, we should check for baseline violations	
-			vector<double> baseline_CW_cut_V = CWCut_TB(grWaveformsRaw, average, 0, 6., 5.5, station_num, 3, chan_exclusion_list, runNum, event);
-			vector<double> baseline_CW_cut_H = CWCut_TB(grWaveformsRaw, average, 1, 6., 5.5, station_num, 3, chan_exclusion_list, runNum, event);
-			/*			
-			for(int i=0; i<baseline_CW_cut_V.size(); i++){
-				printf("V: Event %d Baseline CW Cut %.2f \n", event, baseline_CW_cut_V[i]);
-			}
-			for(int i=0; i<baseline_CW_cut_H.size(); i++){
-				printf("H: Event %d Baseline CW Cut %.2f \n", event, baseline_CW_cut_H[i]);
-			}
-			*/
+			vector<double> baseline_CW_cut_V = CWCut_TB(grWaveformsRaw, average, 0, 6., 5.5, station_num, 3, chan_exclusion_list, runNum, event,false);
+			vector<double> baseline_CW_cut_H = CWCut_TB(grWaveformsRaw, average, 1, 6., 5.5, station_num, 3, chan_exclusion_list, runNum, event,false);
+			
+			// for(int i=0; i<baseline_CW_cut_V.size(); i++){
+			// 	printf(CYAN"	V: Event %d Baseline CW Cut %.2f \n"RESET, event, baseline_CW_cut_V[i]);
+			// }
+			// for(int i=0; i<baseline_CW_cut_H.size(); i++){
+			// 	printf(CYAN"	H: Event %d Baseline CW Cut %.2f \n"RESET, event, baseline_CW_cut_H[i]);
+			// }
+			
 
 			badFreqs_baseline.push_back(baseline_CW_cut_V);
 			badFreqs_baseline.push_back(baseline_CW_cut_H);
@@ -294,7 +305,6 @@ int main(int argc, char **argv)
 			const int numPols = 2; //how many polarization do we want to think about
 			const int numEventsForPhaseVariance = 15; //how many events do we need for the phase variance technique?
 			const int numPairs = 28; // N(N-1)/2 unique pairs
-
 
 			int numPairs_pol[2];
 
@@ -304,8 +314,12 @@ int main(int argc, char **argv)
 					numPairs_pol[1]=21; // drop channel 15, only 21 pairs left
 				}
 				else if(station_num==3){
-					if(runNum>getA3BadRunBoundary()){
-						// drop string four (two channels per polarization)
+					if( 
+						(!isSimulation && runNum>getA3BadRunBoundary())
+						||
+						(isSimulation && yearConfig>2)
+
+					){  // drop string four (two channels per polarization)
 						// only 15 pairs left
 						numPairs_pol[0]=15;
 						numPairs_pol[1]=15;
@@ -324,7 +338,7 @@ int main(int argc, char **argv)
 
 			/*
 				So, when we want to drop channels, we need to change the number of pairs we will scan over with getPhaseVariance
-				E.g., reduce to 21 pairs when 
+				E.g., reduce to 21 pairs 
 				But the only iterator we have is the global pair iterator, which runs from 0->28
 				So, we make the size of the container 21 (or whatever)
 				And just skip the global iterator pair when we find a pair we don't want
@@ -371,7 +385,7 @@ int main(int argc, char **argv)
 			}
 			//if we have enough events to conduct the CW check
 			if(found_events_forward==14){
-				// printf("	We have sufficient number of events to do phase variance calculation in forward direction\n");
+				// printf("	We have sufficient number of events to do phase variance calculation in forward direction by event %d \n",event);
 				int chan1, chan2;
 				for(int use_event=0; use_event<15; use_event++){ //loop over the events that we stored
 					for(int pol=0; pol<numPols; pol++){ //loop over polarizations
@@ -380,6 +394,7 @@ int main(int argc, char **argv)
 							// cout<<"Working on global pair index "<<pairIndex<<endl;
 							getChansfromPair(geomTool,station_num,pol,pairIndex,chan1,chan2); //get chan numbers for this pair and pol
 							//now, make sure the fetch didn't fail, and that neither pair is in the "channel exclusion" list
+							// printf("pairIndex %2d: Chan %2d, %2d \n", pairIndex, chan1,chan2);
 							if(
 								(std::find(chan_exclusion_list.begin(), chan_exclusion_list.end(), chan1) != chan_exclusion_list.end())
 								||
@@ -404,7 +419,7 @@ int main(int argc, char **argv)
 				vector<TGraph*> vGrSigmaVarianceAverage_fwd;
 				vGrSigmaVarianceAverage_fwd.resize(numPols);
 				for(int pol=0; pol<numPols; pol++){
-					vGrSigmaVarianceAverage_fwd[pol] = getPhaseVariance(vvdGrPhaseDiff_fwd[pol]);
+					vGrSigmaVarianceAverage_fwd[pol] = getPhaseVariance(vvdGrPhaseDiff_fwd[pol], runNum, event, pol, false);
 					vector<double> badFreqs_temp;
 					vector<double> badSigmas_temp;
 					double threshold = 1.0;
@@ -447,8 +462,7 @@ int main(int argc, char **argv)
 			int found_events_backwards=14;
 			for(int event_next=event-1; event_next>=0;event_next--){
 				// printf("			Trying to move backwards to event %d \n",event_next);
-				if(found_events_backwards==0)
-					break;
+				if(found_events_backwards==0) break;
 				tempTree->GetEntry(event_next);
 				if(!hasError){
 					found_events_backwards--;
@@ -461,7 +475,7 @@ int main(int argc, char **argv)
 			}
 			//if we have enough events to conduct the CW check
 			if(found_events_backwards==0){
-				// printf("	We have sufficient number of events to do phase variance calculation in backward direction\n");
+				// printf("	We have sufficient number of events to do phase variance calculation in backward direction by event %d \n",event);
 				int chan1, chan2;
 				for(int use_event=0; use_event<15; use_event++){ //loop over the events that we stored
 					for(int pol=0; pol<numPols; pol++){ //loop over polarizations
@@ -469,6 +483,7 @@ int main(int argc, char **argv)
 						for(int pairIndex = 0; pairIndex < numPairs; pairIndex++){ //loop over pairs for that event and polarization
 							// cout<<"Working on global pair index "<<pairIndex<<endl;
 							getChansfromPair(geomTool,station_num,pol,pairIndex,chan1,chan2); //get chan numbers for this pair and pol
+							// printf("pairIndex %2d: Chan %2d, %2d \n", pairIndex, chan1,chan2);
 							//now, make sure the fetch didn't fail, and that neither pair is in the "channel exclusion" list
 							if(
 								(std::find(chan_exclusion_list.begin(), chan_exclusion_list.end(), chan1) != chan_exclusion_list.end())
@@ -493,7 +508,7 @@ int main(int argc, char **argv)
 				vector<TGraph*> vGrSigmaVarianceAverage_back;
 				vGrSigmaVarianceAverage_back.resize(numPols);
 				for(int pol=0; pol<numPols; pol++){
-					vGrSigmaVarianceAverage_back[pol] = getPhaseVariance(vvdGrPhaseDiff_back[pol]);
+					vGrSigmaVarianceAverage_back[pol] = getPhaseVariance(vvdGrPhaseDiff_back[pol], runNum, event, pol, false);
 					vector<double> badFreqs_temp;
 					vector<double> badSigmas_temp;
 					double threshold = 1.0;

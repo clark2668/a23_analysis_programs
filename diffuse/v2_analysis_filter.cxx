@@ -48,7 +48,7 @@ int main(int argc, char **argv)
 {
 
 	if(argc<7) {
-		std::cout << "Usage\n" << argv[0] << " <simulation_flag> <station> <year> <run summary directory> <output directory> <input file> <pedestal file> \n";
+		std::cout << "Usage\n" << argv[0] << " <simulation_flag> <station> <year/config> <run summary directory> <output directory> <input file> <pedestal file> \n";
 		return -1;
 	}
 
@@ -57,7 +57,7 @@ int main(int argc, char **argv)
 	0: exec
 	1: simulation (yes/no)
 	2: station num (2/3)
-	3: year
+	3: year/config
 	4: run summary directory
 	5: output directory
 	6: input file
@@ -67,7 +67,12 @@ int main(int argc, char **argv)
 	isSimulation=atoi(argv[1]);
 	int station_num=atoi(argv[2]);
 	calpulserRunMode=0; //analyze all events
-	int year=atoi(argv[3]);
+	int yearConfig=atoi(argv[3]);
+
+	if(isSimulation && yearConfig>5){
+		std:cout<<"Warning! You have called for simulation with a config larger than 5, which cannot be true. Are you sure you didnt' accidentally use year instead of config?"<<endl;
+		return -1;
+	}
 		
 	stringstream ss;
 	string xLabel, yLabel;
@@ -200,7 +205,7 @@ int main(int argc, char **argv)
 			runSummaryFilename = "/fs/scratch/PAS0654/ara/sim/RunSummary/run_summary_station_2_run_20.root";
 		}
 		else if(station_num==3){
-			runSummaryFilename = "/fs/scratch/PAS0654/ara/sim/RunSummary/run_summary_station_3_run_0.root";
+			runSummaryFilename = "/fs/scratch/PAS0654/ara/sim/RunSummary/run_summary_station_3_run_30.root";
 		}
 	}
 	TFile *SummaryFile = TFile::Open(runSummaryFilename.c_str());
@@ -286,17 +291,27 @@ int main(int argc, char **argv)
 		numFaces_new_H = numFaces_A3_drop;
 	}
 
+
+	// list of what channels to exclude in finding the SNR of the event
 	vector<int> chan_exclusion_list;
 	if(station_num==2){
 		// hpol channel 15
 		chan_exclusion_list.push_back(15);
+		printf("Station 2: Dropping ch 15\n");
 	}
-	else if(station_num==3 && runNum>getA3BadRunBoundary()){
-		// vpol sring 4
-		chan_exclusion_list.push_back(3);
-		chan_exclusion_list.push_back(7);
-		chan_exclusion_list.push_back(11);
-		chan_exclusion_list.push_back(15);
+	else if(station_num==3){
+		if( 
+			(!isSimulation && runNum>getA3BadRunBoundary())
+			||
+			(isSimulation && yearConfig>2)
+
+		){
+			printf("Station 3: Dropping ch 3, 7, 11, 15\n");
+			chan_exclusion_list.push_back(3);
+			chan_exclusion_list.push_back(7);
+			chan_exclusion_list.push_back(11);
+			chan_exclusion_list.push_back(15);
+		}
 	}
 
 	double rms_pol_thresh_face_alternate_V[thresholdSteps][numFaces_new_V];
@@ -307,7 +322,6 @@ int main(int argc, char **argv)
 	sprintf(rms_title_H,"rms_pol_thresh_face_alternate_H[15][%d]/D",numFaces_new_H); 
 	OutputTree->Branch("rms_pol_thresh_face_alternate_V", &rms_pol_thresh_face_alternate_V,rms_title_V);
 	OutputTree->Branch("rms_pol_thresh_face_alternate_H", &rms_pol_thresh_face_alternate_H,rms_title_H);
-
 	
 	// polarization parameters
 	OutputTree->Branch("polarizationRatio", &polarizationRatio, "polarizationRatio/D");   
