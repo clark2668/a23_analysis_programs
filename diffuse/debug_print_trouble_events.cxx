@@ -294,9 +294,9 @@ int main(int argc, char **argv)
 										// if(corr_val[pol]>=0.15) condition=true;
 										// if(snr_val[pol]>=7 && corr_val[pol]>=0.12) condition=true;
 										// if(corr_val[pol]<0.003 || snr_val[pol]>=7.) condition=true;
-										if(corr_val[pol]>0.01) condition=true;
 										// if(corr_val[pol]>0.01) condition=true;
-										// if(snr_val[pol]>=7.) condition=true;
+										// if(corr_val[pol]>0.01) condition=true;
+										if(snr_val[pol]>=7.) condition=true;
 										// if(snr_val[pol]>=8.) condition=true;
 
 										if(Refilt[pol]){
@@ -1090,7 +1090,7 @@ int PlotThisEvent(int station, int config, int runNum, int event, int problempol
 				chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 3), chan_list_V.end());
 				chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 7), chan_list_V.end());
 
-				chan_list_H.erase(remove(chan_Flist_H.begin(), chan_list_H.end(), 11), chan_list_H.end());
+				chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 11), chan_list_H.end());
 				chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 15), chan_list_H.end());
 			}
 		}
