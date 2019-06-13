@@ -29,8 +29,28 @@
 #include "tools_Cuts.h"
 #include "tools_Stats.h"
 #include "tools_CommandLine.h"
+#include "tools_outputObjects.h"
+
+#include "gsl/gsl_roots.h"
+#include "gsl/gsl_errno.h"
+#include "gsl/gsl_math.h"
 
 using namespace std;
+
+struct f_parms{double b; double alpha;}; //parm structure for likelihood function
+
+float likelihood0(float b, float a) {
+	float term1 = TMath::Gamma(1+b, a+b);
+	float term2 = TMath::Gamma(1+b, b);
+	return (term1 - term2)/(1.0 - term2);
+}
+
+double likelihood0W(double arg, void* parms) {
+	struct f_parms* p = (struct f_parms*)parms;
+	double b = (p->b);
+	double alpha = (p->alpha);
+	return likelihood0(b, arg) - alpha;
+}
 
 int main(int argc, char **argv)
 {
@@ -63,6 +83,34 @@ int main(int argc, char **argv)
 		printf("No good! You asked for station %d, but this code only works for stations 2 and 3 \n",station);
 		return -1;
 	}
+
+
+	/*
+		Let's just do a little test of our GSL
+	*/
+	// gsl_root_fsolver *gslSolver = gsl_root_fsolver_alloc(gsl_root_fsolver_bisection);
+	// gsl_function gslFunc;
+	// struct f_parms parms;
+	// gslFunc.function = &likelihood0W;
+	// gslFunc.params = &parms;
+	// printf("GSL Solver Initiated\n");
+
+	// double back_test=4;
+	// parms.b = back_test;
+	// parms.alpha = 0.9; // note, this is actually 1-alpha the way Sam coded it up
+	// gsl_root_fsolver_set(gslSolver, &gslFunc, 0, 100000);
+	// int solverStatus = GSL_CONTINUE;
+	// double gslRoot=0;
+	// for(int k=0; k<100 && solverStatus==GSL_CONTINUE; k++){
+	// 	solverStatus = gsl_root_fsolver_iterate(gslSolver);
+	// 	gslRoot = gsl_root_fsolver_root (gslSolver);
+	// 	double xLo = gsl_root_fsolver_x_lower(gslSolver);
+	// 	double xHi = gsl_root_fsolver_x_upper(gslSolver);
+	// 	solverStatus = gsl_root_test_interval(xLo, xHi, 0.001, 0.001);
+	// }
+	// float sUp = gslRoot;
+
+	// return 0;
 
 	vector<int> BadRunList=BuildBadRunList(station);
 
@@ -102,8 +150,8 @@ int main(int argc, char **argv)
 		// need to be able to make the final 2D distribution
 		double max=0.05;
 		TH2D *h2SNRvsCorr[2]; // SNR on Y axis, Corr on X axis, like in the TB
-		h2SNRvsCorr[0]=new TH2D("","V Data",100,0,max,30,0,30);
-		h2SNRvsCorr[1]=new TH2D("","H Data",100,0,max,30,0,30);
+		h2SNRvsCorr[0]=new TH2D("","V Data",100,0,max,300,0,30);
+		h2SNRvsCorr[1]=new TH2D("","H Data",100,0,max,300,0,30);
 
 		// first, we go through the events once to construct the rotated cut
 		for(int file_num=6; file_num<argc; file_num++){
@@ -119,9 +167,9 @@ int main(int argc, char **argv)
 				cout<<"Can't open val for cuts file!"<<endl;
 				return -1;
 			}
-			printf("File %d: run %d \n", file_num, runNum);
+			printf("Fitting loop data File %d: run %d \n", file_num, runNum);
 
-			TTree *trees[3];
+			TTree *trees[4];
 			trees[0] = (TTree*) inputFile->Get("VTree");
 			trees[1] = (TTree*) inputFile->Get("HTree");
 			trees[2] = (TTree*) inputFile->Get("AllTree");
@@ -170,6 +218,26 @@ int main(int argc, char **argv)
 			trees[2]->SetBranchAddress("isFirstFiveEvent",&isFirstFiveEvent);
 			trees[2]->SetBranchAddress("hasBadSpareChanIssue",&hasBadSpareChanIssue);
 
+
+			// in case we want to adjust the WFRMS parameter again...
+			// trees[4] = (TTree*) inputFile->Get("OutputTree"); // get the filter tree again
+			// trees[4]->SetBranchAddress("rms_pol_thresh_face_V", &rms_pol_thresh_face_V);
+			// trees[4]->SetBranchAddress("rms_pol_thresh_face_H", &rms_pol_thresh_face_H);
+			// int numFaces_new_V;
+			// int numFaces_new_H;
+			// if(station==2){
+			// 	numFaces_new_V = numFaces;
+			// 	numFaces_new_H = numFaces_A2_drop;
+			// }
+			// else if(station==3){
+			// 	numFaces_new_V = numFaces_A3_drop;
+			// 	numFaces_new_H = numFaces_A3_drop;
+			// }
+			// double rms_pol_thresh_face_alternate_V[thresholdSteps][numFaces_new_V];
+			// double rms_pol_thresh_face_alternate_H[thresholdSteps][numFaces_new_H];
+			// trees[4]->SetBranchAddress("rms_pol_thresh_face_alternate_V", &rms_pol_thresh_face_alternate_V);
+			// trees[4]->SetBranchAddress("rms_pol_thresh_face_alternate_H", &rms_pol_thresh_face_alternate_H);
+
 			stringstream ss;
 			for(int i=0; i<8; i++){
 				ss.str("");
@@ -203,8 +271,63 @@ int main(int argc, char **argv)
 				if(isBadLivetime(station,unixTime) && !isSim){
 					continue;
 				}
+
+				/*
+					Now, we recheck the WFRMS filter if we like
+				*/
+				// vector <double> rms_faces_V;
+				// vector <double> rms_faces_H;
+
+				// int num_faces_for_V_loop;
+				// int num_faces_for_H_loop;
+				// if(station==2){
+				// 	rms_faces_V.resize(numFaces);
+				// 	num_faces_for_V_loop=numFaces;
+				// 	rms_faces_H.resize(numFaces_A2_drop);
+				// 	num_faces_for_H_loop=numFaces_A2_drop;
+				// }
+				// else if(station==3){
+				// 	if(
+				// 		(!isSimulation && runNum>getA3BadRunBoundary())
+				// 		||
+				// 		(isSimulation && config>2)
+				// 	){ //it's 2014+, drop string four
+				// 		rms_faces_V.resize(numFaces_A3_drop);
+				// 		num_faces_for_V_loop=numFaces_A3_drop;
+				// 		rms_faces_H.resize(numFaces_A3_drop);
+				// 		num_faces_for_H_loop=numFaces_A3_drop;
+				// 	}
+				// 	else{ //it's 2013-, keep string four
+				// 		rms_faces_V.resize(numFaces);
+				// 		num_faces_for_V_loop=numFaces;
+				// 		rms_faces_H.resize(numFaces);
+				// 		num_faces_for_H_loop=numFaces;
+				// 	}
+				// }
+				// //now we loop over the faces
+				// for(int i=0; i<num_faces_for_V_loop; i++){
+				// 	rms_faces_V[i] = rms_pol_thresh_face_alternate_V[thresholdBin_pol[0]][i];
+				// }
+				// for(int i=0; i<num_faces_for_H_loop; i++){
+				// 	rms_faces_H[i] = rms_pol_thresh_face_alternate_H[thresholdBin_pol[1]][i];
+				// }
+				// //now to sort them smallest to largest; lowest RMS is best
+				// sort(rms_faces_V.begin(), rms_faces_V.end());
+				// sort(rms_faces_H.begin(), rms_faces_H.end());
+
+				// double bestFaceRMS[2];
+				// bestFaceRMS[0]=rms_faces_V[0];
+				// bestFaceRMS[1]=rms_faces_H[0];
+
+				// if(log(bestFaceRMS[0])/log(10) >= wavefrontRMScut[0]){
+				// 	failWavefrontRMS[0]=true;
+				// }
+				// if(log(bestFaceRMS[1])/log(10) >= wavefrontRMScut[1]){
+				// 	failWavefrontRMS[1]=true;
+				// }
 					
 				for(int pol=0; pol<2; pol++){
+
 					if(!WFRMS[pol] && !isNewBox && !isSurf[0] && !isSurf[1] && !isSurfEvent_top[pol]){
 						bool failsCWPowerCut=false;
 						if(Refilt[pol] && !WFRMS[pol]){
@@ -273,9 +396,10 @@ int main(int argc, char **argv)
 			hEventsVsSNR->SetBinContent(bin+1,numEventsPassed_diff[bin]);
 		}
 		int max_bin = hEventsVsSNR->GetMaximumBin();
-		int fit_start_bin = max_bin+15;
+		int fit_start_bin = max_bin+12;
 		double start_of_fit = hEventsVsSNR->GetBinCenter(fit_start_bin);
 		int last_filled_bin = hEventsVsSNR->FindLastBinAbove(0.,1);
+		last_filled_bin+=5; // go up two more bins just to make sure the fit is over
 		double end_of_fit = hEventsVsSNR->GetBinCenter(last_filled_bin);
 		// printf("Start of fit is %.2f and end of fit is %.2f \n", start_of_fit, end_of_fit);
 
@@ -288,6 +412,7 @@ int main(int argc, char **argv)
 		double fitParams[2];
 		fitParams[0] = fit->GetParameter(0);
 		fitParams[1] = fit->GetParameter(1);
+		printf("Fit Parameters are %.2f and %.2f \n", fitParams[0], fitParams[1]);
 
 		double binWidthIntercept = hEventsVsSNR->GetBinWidth(1);
 		double leftBoundary = start_of_fit - binWidthIntercept/2.;
@@ -329,8 +454,10 @@ int main(int argc, char **argv)
 			logL += ReturnLogL_highN( thisObserved,thisExpected );
 		}
 		printf("The logL is %.3f \n", logL);
-
-		double numExpectedTotal_Integral = (1./(fitParams[0]*binWidthIntercept)) * ( exp(fitParams[0]*end_of_fit + fitParams[1]) - exp(fitParams[0]*start_of_fit + fitParams[1]));
+		
+		// double numExpectedTotal_Integral = (1./(fitParams[0])) * ( exp(fitParams[0]*end_of_fit + fitParams[1]) - exp(fitParams[0]*start_of_fit + fitParams[1]));
+		// double numExpectedTotal_Integral = (1./(fitParams[0]*binWidthIntercept)) * ( exp(fitParams[0]*end_of_fit + fitParams[1]) - exp(fitParams[0]*start_of_fit + fitParams[1]));
+		double numExpectedTotal_Integral = (1./(fitParams[0]*binWidthIntercept)) * ( exp(fitParams[0]*rightBoundary + fitParams[1]) - exp(fitParams[0]*leftBoundary + fitParams[1]));
 		printf("Best fit sum bins: %.2f. Best fit do integral: %.2f. Num observed: %.2f. \n",numExpectedTotal_sum, numExpectedTotal_Integral, numObservedTotal);
 
 		TRandom3 *test_random = new TRandom3();
@@ -348,19 +475,31 @@ int main(int argc, char **argv)
 		int num_Toy = 10000;
 		int Toy_logL_bin = 100;
 		double min_Toy_logL = 0.;
-		double max_Toy_logL = 1000.;
+		double max_Toy_logL = 400.;
 		TH1D *hToy_logL = new TH1D("hToy_logL", "", Toy_logL_bin, min_Toy_logL, max_Toy_logL );
 		char test_title[400];
 		for(int num=0; num<num_Toy; num++){
 			// fill this toy pseudo experiment with a poisson fluctuations of the events observed
 			sprintf(test_title, "hToy %d ", num);
 			TH1D *hToy = new TH1D(test_title,"",numBinsThisFit,leftBoundary,rightBoundary);
+			// int Evts_Poisson = test_random->Poisson(numExpectedTotal_sum);
 			int Evts_Poisson = test_random->Poisson(numExpectedTotal_Integral);
 			hToy->FillRandom("fCopyFit",Evts_Poisson);
 			double logL_log_Toy=0.; // get logL for this toy
 			for(int bin=0; bin<numBinsThisFit; bin++){
 				logL_log_Toy+=ReturnLogL_highN(hToy->GetBinContent(bin+1), numExpected[bin]);
 			}
+			// TCanvas *cToyHist = new TCanvas ("cToyHist","", 800, 600);
+			// cToyHist->cd();
+			// 	cToyHist->cd()->SetLogy();
+			// 	sprintf( test_title, "Toy hist, evts : %d, -2Ln(L): %.2f", Evts_Poisson, logL_log_Toy );
+			// 	hToy->SetTitle(test_title);
+			// 	hToy->Draw();
+			// 	fit->Draw("same");
+			// char this_save_title[400];
+			// sprintf(this_save_title,"toy%d.png",num);
+			// cToyHist->SaveAs(this_save_title);
+			// delete cToyHist;
 			delete hToy;
 			hToy_logL->Fill(logL_log_Toy);
 			if ( logL_log_Toy <= logL )
@@ -389,32 +528,55 @@ int main(int argc, char **argv)
 			Which is where we integrate the exponential above our cut value
 			And then use that to get s_up
 		*/
-		double amplitude = exp(fitParams[1])*10.*4; // make it 40 times bigger, for switch to 90% sample and for four years (let's hope this is representative...)
-		printf("Amplitude is %.2f \n", amplitude);
-		double index = fitParams[0];
-		for(double cut=8.; cut<14; cut+=0.1){
-			double back_estimate = amplitude/index*(-exp(index*cut));
-			double achieved_alpha;
-			double s_up = GetS_up_TMath(back_estimate,achieved_alpha, 0.9); // compute 90% CL UL for this many background
-			printf("Background estimate for cut %.2f is %.3f with sup %.2f \n",cut,back_estimate,s_up);
+
+		double S_up_array[numSNRbins];
+		double S_array[numSNRbins];
+		for(int bin=0; bin<numSNRbins; bin++){
+			S_up_array[bin]=0.;
+			S_array[bin]=0.;
 		}
+		int startBin = 80;
+		for(int bin=startBin; bin<numSNRbins; bin++){
+			double cut = intercept[bin];
+			double back_estimate = (1./(fitParams[0]*binWidthIntercept)) * (-exp(fitParams[0]*cut + fitParams[1]));
+			back_estimate*=10; // make it 10 times bigger, for switch to 100% sample
+			double achieved_alpha;
+			// double s_up = GetS_up_TMath(back_estimate,achieved_alpha, 0.9); // compute S_up for this background
+			double s_up = GetS_up(back_estimate,achieved_alpha, 0.9); // compute S_up for this background
+			S_up_array[bin] = s_up;
+			printf("For cut %.2f background estimate is %.3f with sup %.2f \n",cut,back_estimate,S_up_array[bin]);
+		}
+		TGraph *gS_up = new TGraph(numSNRbins,intercept,S_up_array);
+		TCanvas *cS_up = new TCanvas("","",850,850);
+		gS_up->Draw("ALP");
+		char save_title[400];
+		sprintf(save_title,"%s/optimize/S_up_A%d_c%d_RCutSlope%.4f.png",plotPath,station,config,slope);
+		cS_up->SaveAs(save_title);
+
+		// for(double cut=8.; cut<14; cut+=0.1){
+		// 	double back_estimate = (1./(fitParams[0]*binWidthIntercept)) * (-exp(fitParams[0]*cut + fitParams[1]));
+		// 	back_estimate*=10; // make it 10 times bigger, for switch to 100% sample
+		// 	double achieved_alpha;
+		// 	double s_up = GetS_up_TMath(back_estimate,achieved_alpha, 0.9); // compute 90% CL UL for this many background
+		// 	printf("For cut %.2f background estimate is %.3f with sup %.2f \n",cut,back_estimate,s_up);
+		// }
 
 		double select_slope=-620.;
-		double select_inter=11.2;
-
+		double select_inter=11.0;
 
 		/*
 			Now we must loop over data and simulation
 		*/
 
-
 		TChain simVTree("VTree");
 		TChain simHTree("HTree");
 		TChain simAllTree("AllTree");
-		TString fileKey("/fs/scratch/PAS0654/ara/sim/ValsForCuts/A2/c1/E224/cutvals_drop_snrbins_0_0_wfrmsvals_1.0_1.0_run_*.root");
-		simVTree.Add(fileKey);
-		simHTree.Add(fileKey);
-		simAllTree.Add(fileKey);
+		char the_sims[500];
+		sprintf(the_sims,"/fs/scratch/PAS0654/ara/sim/ValsForCuts/A%d/c%d/E%d/cutvals_drop_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config,int(year_or_energy));
+		// TString fileKey("/fs/scratch/PAS0654/ara/sim/ValsForCuts/A2/c1/E224/cutvals_drop_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root");
+		simVTree.Add(the_sims);
+		simHTree.Add(the_sims);
+		simAllTree.Add(the_sims);
 		int numSimEvents = simVTree.GetEntries();
 		printf("Num of sim entries is %d \n", numSimEvents);
 
@@ -485,28 +647,58 @@ int main(int argc, char **argv)
 				simVTree.GetEvent(event);
 				simHTree.GetEvent(event);
 				simAllTree.GetEvent(event);
-				for(int pol=0; pol<2; pol++)
+				for(int pol=0; pol<2; pol++){
 					h2SNRvsCorr_sim[pol]->Fill(corr_val[pol], snr_val[pol],weight);
+					bool failsCWPowerCut=false;
+					if(Refilt[pol] && !WFRMS[pol]){
+						vector<double> frac;
+						for(int i=0; i<8; i++){
+							if(pol==0) frac.push_back(frac_of_power_notched_V[i]);
+							else if(pol==1) frac.push_back(frac_of_power_notched_H[i]);
+						}
+						sort(frac.begin(), frac.end(), std::greater<double>());
+						if(frac[2]>0.06){
+							failsCWPowerCut=true;
+						}
+					} //refiltered?
 
-				// for(int pol=0; pol<2; pol++){
-				// 	bool failsCWPowerCut=false;
-				// 	if(Refilt[pol] && !WFRMS[pol]){
-				// 		vector<double> frac;
-				// 		for(int i=0; i<8; i++){
-				// 			if(pol==0) frac.push_back(frac_of_power_notched_V[i]);
-				// 			else if(pol==1) frac.push_back(frac_of_power_notched_H[i]);
-				// 		}
-				// 		sort(frac.begin(), frac.end(), std::greater<double>());
-				// 		if(frac[2]>0.06){
-				// 			failsCWPowerCut=true;
-				// 		}
-				// 	} //refiltered?
-				// 	if(!WFRMS[pol] && !failsCWPowerCut && !isNewBox && !isSurf[0] && !isSurf[1] && !isSurfEvent_top[pol]){
-				// 	}
-				// }
+					double this_SNR=snr_val[pol];
+					double this_corr=corr_val[pol];
+
+					if(!WFRMS[pol] && !failsCWPowerCut){
+						if(!isNewBox){
+							if(!isSurf[0] && !isSurf[1] && !isSurfEvent_top[pol]){
+								// loop over every bin (intercept value), and figure out if this event would have passed or not
+								for(int bin=startBin; bin<numSNRbins; bin++){
+									double failsRcut=false;
+									double thisIntercept = intercept[bin];
+									double this_y_val = this_corr*select_slope + thisIntercept;
+									if(this_SNR>=this_y_val){
+										S_array[bin]+=weight;
+									}
+								}
+							}
+						}
+					}
+
+				} //loop over polarizations
 			}
-
 		}
+		double SoverSup[numSNRbins];
+		for(int bin=0; bin<numSNRbins; bin++){
+			double this_S = S_array[bin];
+			double this_Sup = S_up_array[bin];
+			double this_SoverSup;
+			if(!this_Sup>0)
+				this_SoverSup=0.;
+			else
+				this_SoverSup = this_S/this_Sup;
+
+			SoverSup[bin] = this_SoverSup;
+			printf("For bin %d, intercept %.2f, S is %.2f and S_up is %.2f for S/S_up of %.2f  \n", bin,intercept[bin],this_S, this_Sup, this_SoverSup);
+		}
+
+		TGraph *gSoverSup = new TGraph(numSNRbins,intercept,SoverSup);
 
 		TCanvas *cRcut = new TCanvas("","",4*850,2*850);
 		cRcut->Divide(4,2);
@@ -549,10 +741,15 @@ int main(int argc, char **argv)
 			gPad->SetLogz();
 			cut_line->Draw("same");
 			cut_line->SetLineColor(kRed);
-		char save_title[400];
-		sprintf(save_title,"%s/optimize/DiffDistro_RCutSlope%.4f.png",plotPath,abs(slope));
+		cRcut->cd(6);
+			gSoverSup->Draw("ALP");
+			gSoverSup->GetXaxis()->SetRangeUser(8.,13.);
+			gSoverSup->GetYaxis()->SetRangeUser(0.,5e3);
+			gSoverSup->GetYaxis()->SetTitle("S/S_up");
+			gSoverSup->GetYaxis()->SetTitleOffset(1.8);
+			gSoverSup->GetXaxis()->SetTitle("SNR Cut (y-intercept value)");
+		sprintf(save_title,"%s/optimize/DiffDistro_A%d_c%d_RCutSlope%.4f.png",plotPath,station,config,slope);
 		cRcut->SaveAs(save_title);
-
 
 		printf(BLUE"Now to loop back through the data and compute cut tables\n"RESET);
 
@@ -581,7 +778,7 @@ int main(int argc, char **argv)
 		double fails_surface_insequence_data[2]={0.,0.};
 		double fails_rcut_insequence_data[2]={0.,0.};
 
-		// first, we go through the events once to construct the rotated cut
+		// now, we go back through the data a second time to get "as last cut" tables
 		for(int file_num=6; file_num<argc; file_num++){
 
 			string chRun = "run";
@@ -595,7 +792,7 @@ int main(int argc, char **argv)
 				cout<<"Can't open val for cuts file!"<<endl;
 				return -1;
 			}
-			printf("File %d: run %d \n", file_num, runNum);
+			printf("As last cut loop data file %d: run %d \n", file_num, runNum);
 
 			TTree *trees[3];
 			trees[0] = (TTree*) inputFile->Get("VTree");
@@ -666,7 +863,6 @@ int main(int argc, char **argv)
 			}
 
 			//now to loop over events
-			// numEntries=10000;
 			for(int event=0; event<numEntries; event++){
 
 				trees[0]->GetEvent(event);
@@ -744,7 +940,7 @@ int main(int argc, char **argv)
 
 					// "as last cut"
 						// fails as last cut with surface?
-						// survives WFRMS and box, but doesn't survive surface
+						// survives WFRMS and box and Rcut, but doesn't survive surface
 						if(!WFRMS[pol] && !failsCWPowerCut && !isNewBox && !failsRcut){
 							if(isSurf[0] || isSurf[1] || isSurfEvent_top[pol]){
 								fails_surface_last_data[pol]+=weight;
@@ -805,8 +1001,10 @@ int main(int argc, char **argv)
 		printf("Surf               :           %7.1f, %7.1f, %7.1f | %7.1f, %7.1f, %7.1f \n",fails_surface_first_data[0],fails_surface_insequence_data[0],fails_surface_last_data[0],fails_surface_first_data[1],fails_surface_insequence_data[1],fails_surface_last_data[1]);
 		printf("Rcut               :           %7.1f, %7.1f, %7.1f | %7.1f, %7.1f, %7.1f \n",fails_rcut_first_data[0],fails_rcut_insequence_data[0],fails_rcut_last_data[0],fails_rcut_first_data[1],fails_rcut_insequence_data[1],fails_rcut_last_data[1]);
 
+
+		printf(RED"Now to try and go over the simulation again\n"RESET);
 		/*
-			And now we go through the simulation again
+			And now we go through the simulation again to get our as last cut table and to compute efficiencies
 		*/
 		double num_total_sim=0.;
 
@@ -824,6 +1022,33 @@ int main(int argc, char **argv)
 		double fails_box_insequence_sim[2]={0.,0.};
 		double fails_surface_insequence_sim[2]={0.,0.};
 		double fails_rcut_insequence_sim[2]={0.,0.};
+
+		TH1D *all_events[2];
+		TH1D *pass_soft_short_cal_wfrms[2];
+		TH1D *pass_soft_short_cal_wfrms_box[2];
+		TH1D *pass_soft_short_cal_wfrms_box_surf[2];
+		TH1D *pass_soft_short_cal_wfrms_box_surf_rcut[2];
+
+		TH1D *eff[2];
+		TH1D *eff_soft_short_cal[2];
+		TH1D *eff_soft_short_cal_wfrms[2];
+		TH1D *eff_soft_short_cal_wfrms_box[2];
+		TH1D *eff_soft_short_cal_wfrms_box_surf[2];
+		TH1D *eff_soft_short_cal_wfrms_box_surf_rcut[2];
+
+		for(int i=0; i<2; i++){
+			all_events[i] = new TH1D("","",30,0,30);
+			pass_soft_short_cal_wfrms[i] = new TH1D("","",30,0,30);
+			pass_soft_short_cal_wfrms_box[i] = new TH1D("","",30,0,30);
+			pass_soft_short_cal_wfrms_box_surf[i] = new TH1D("","",30,0,30);
+			pass_soft_short_cal_wfrms_box_surf_rcut[i] = new TH1D("","",30,0,30);
+
+			eff_soft_short_cal_wfrms[i] = new TH1D("","",30,0,30);
+			eff_soft_short_cal_wfrms_box[i] = new TH1D("","",30,0,30);
+			eff_soft_short_cal_wfrms_box_surf[i] = new TH1D("","",30,0,30);
+			eff_soft_short_cal_wfrms_box_surf_rcut[i] = new TH1D("","",30,0,30);
+		}
+
 
 		{
 			double corr_val[2];
@@ -912,6 +1137,20 @@ int main(int argc, char **argv)
 						failsRcut=true;
 					}
 
+					if (this_SNR>30.) this_SNR=30.;
+					all_events[pol]->Fill(this_SNR,weight);
+					if(!WFRMS[pol] && !failsCWPowerCut){
+						pass_soft_short_cal_wfrms[pol]->Fill(this_SNR,weight);
+						if(!isNewBox){
+							pass_soft_short_cal_wfrms_box[pol]->Fill(this_SNR,weight);
+							if(!isSurf[0] && !isSurf[1] && !isSurfEvent_top[pol]){
+								pass_soft_short_cal_wfrms_box_surf[pol]->Fill(this_SNR,weight);
+								if(!failsRcut)
+									pass_soft_short_cal_wfrms_box_surf_rcut[pol]->Fill(this_SNR,weight);
+							}
+						}
+					}
+
 					// "as first cut"
 						// fail WFRMS first?
 						if(WFRMS[pol] || failsCWPowerCut){
@@ -987,6 +1226,75 @@ int main(int argc, char **argv)
 		printf("Sim Box                :           %7.1f, %7.1f, %7.1f | %7.1f, %7.1f, %7.1f \n",fails_box_first_sim[0],fails_box_insequence_sim[0],fails_box_last_sim[0],fails_box_first_sim[1],fails_box_insequence_sim[1],fails_box_last_sim[1]);
 		printf("Sim Surf               :           %7.1f, %7.1f, %7.1f | %7.1f, %7.1f, %7.1f \n",fails_surface_first_sim[0],fails_surface_insequence_sim[0],fails_surface_last_sim[0],fails_surface_first_sim[1],fails_surface_insequence_sim[1],fails_surface_last_sim[1]);
 		printf("Sim Rcut               :           %7.1f, %7.1f, %7.1f | %7.1f, %7.1f, %7.1f \n",fails_rcut_first_sim[0],fails_rcut_insequence_sim[0],fails_rcut_last_sim[0],fails_rcut_first_sim[1],fails_rcut_insequence_sim[1],fails_rcut_last_sim[1]);
+
+		int colors [28] = { kBlue, kRed, kGreen, kMagenta, kCyan};
+		for(int pol=0; pol<2; pol++){
+			for(int bin=0; bin<=all_events[pol]->GetNbinsX(); bin++){
+				double thrown = all_events[pol]->GetBinContent(bin);
+				double pass_soft_short_cal_wfrms_this = pass_soft_short_cal_wfrms[pol]->GetBinContent(bin);
+				double pass_soft_short_cal_wfrms_box_this = pass_soft_short_cal_wfrms_box[pol]->GetBinContent(bin);
+				double pass_soft_short_cal_wfrms_box_surf_this = pass_soft_short_cal_wfrms_box_surf[pol]->GetBinContent(bin);
+				double pass_soft_short_cal_wfrms_box_surf_rcut_this = pass_soft_short_cal_wfrms_box_surf_rcut[pol]->GetBinContent(bin);
+				if(thrown>0.){
+					eff_soft_short_cal_wfrms[pol]->SetBinContent(bin,pass_soft_short_cal_wfrms_this/thrown);
+					eff_soft_short_cal_wfrms_box[pol]->SetBinContent(bin,pass_soft_short_cal_wfrms_box_this/thrown);
+					eff_soft_short_cal_wfrms_box_surf[pol]->SetBinContent(bin,pass_soft_short_cal_wfrms_box_surf_this/thrown);
+					eff_soft_short_cal_wfrms_box_surf_rcut[pol]->SetBinContent(bin,pass_soft_short_cal_wfrms_box_surf_rcut_this/thrown);
+				}
+				else{
+					eff_soft_short_cal_wfrms[pol]->SetBinContent(bin,0.);
+					eff_soft_short_cal_wfrms_box[pol]->SetBinContent(bin,0.);
+					eff_soft_short_cal_wfrms_box_surf[pol]->SetBinContent(bin,0.);
+					eff_soft_short_cal_wfrms_box_surf_rcut[pol]->SetBinContent(bin,0.);
+				}
+			}
+		}
+
+		TCanvas *c3 = new TCanvas("mycanv","mycanv",2*850,850);
+		c3->Divide(2,1);
+		for(int pol=0; pol<2; pol++){
+			if(pol==0){
+				eff_soft_short_cal_wfrms[pol]->SetTitle("Efficiency VPol");
+			}
+			if(pol==1){
+				eff_soft_short_cal_wfrms[pol]->SetTitle("Efficiency HPol");
+			}
+	
+			c3->cd(pol+1);
+				eff_soft_short_cal_wfrms[pol]->Draw("");
+				eff_soft_short_cal_wfrms_box[pol]->Draw("same");
+				eff_soft_short_cal_wfrms_box_surf[pol]->Draw("same");
+				eff_soft_short_cal_wfrms_box_surf_rcut[pol]->Draw("same");
+
+
+				eff_soft_short_cal_wfrms[pol]->SetLineColor(colors[0]);
+				eff_soft_short_cal_wfrms_box[pol]->SetLineColor(colors[1]);
+				eff_soft_short_cal_wfrms_box_surf[pol]->SetLineColor(colors[2]);
+				eff_soft_short_cal_wfrms_box_surf_rcut[pol]->SetLineColor(colors[3]);
+
+				eff_soft_short_cal_wfrms[pol]->SetLineWidth(2.);
+				eff_soft_short_cal_wfrms_box[pol]->SetLineWidth(2.);
+				eff_soft_short_cal_wfrms_box_surf[pol]->SetLineWidth(2.);
+				eff_soft_short_cal_wfrms_box_surf_rcut[pol]->SetLineWidth(2.);
+				
+				// if(pol+1==1){
+				// 	TLegend *leg = new TLegend(0.48,0.6,0.9,0.9);
+				// 	leg->AddEntry(eff_soft_short_cal_wfrms[pol],"Cut WFMRS","l");
+				// 	leg->AddEntry(eff_soft_short_cal_wfrms_box[pol],"+Cut Cal Pulser Reco","l");
+				// 	leg->AddEntry(eff_soft_short_cal_wfrms_box_surf[pol],"+Cut Surface","l");
+				// 	leg->AddEntry(eff_soft_short_cal_wfrms_box_surf_rcut[pol],"+Cut Peak/Corr","l");
+				// 	leg->Draw();
+				// }
+
+			eff_soft_short_cal_wfrms[pol]->GetXaxis()->SetTitle("3rd Highest Vpeak/RMS");
+			eff_soft_short_cal_wfrms[pol]->GetYaxis()->SetTitle("Efficiency (weighted)");
+
+		}
+		char efficiency_title[400];
+		sprintf(efficiency_title,
+				 "%s/%d.%d.%d_A%d_c%d_E%2.1f_Efficiency.png",plotPath,year_now, month_now, day_now,station,config,224.);
+		c3->SaveAs(efficiency_title);
+		delete c3;
 
 	}
 }
