@@ -31,26 +31,8 @@
 #include "tools_CommandLine.h"
 #include "tools_outputObjects.h"
 
-#include "gsl/gsl_roots.h"
-#include "gsl/gsl_errno.h"
-#include "gsl/gsl_math.h"
-
 using namespace std;
 
-struct f_parms{double b; double alpha;}; //parm structure for likelihood function
-
-float likelihood0(float b, float a) {
-	float term1 = TMath::Gamma(1+b, a+b);
-	float term2 = TMath::Gamma(1+b, b);
-	return (term1 - term2)/(1.0 - term2);
-}
-
-double likelihood0W(double arg, void* parms) {
-	struct f_parms* p = (struct f_parms*)parms;
-	double b = (p->b);
-	double alpha = (p->alpha);
-	return likelihood0(b, arg) - alpha;
-}
 
 int main(int argc, char **argv)
 {
@@ -84,43 +66,10 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-
-	/*
-		Let's just do a little test of our GSL
-	*/
-	// gsl_root_fsolver *gslSolver = gsl_root_fsolver_alloc(gsl_root_fsolver_bisection);
-	// gsl_function gslFunc;
-	// struct f_parms parms;
-	// gslFunc.function = &likelihood0W;
-	// gslFunc.params = &parms;
-	// printf("GSL Solver Initiated\n");
-
-	// double back_test=4;
-	// parms.b = back_test;
-	// parms.alpha = 0.9; // note, this is actually 1-alpha the way Sam coded it up
-	// gsl_root_fsolver_set(gslSolver, &gslFunc, 0, 100000);
-	// int solverStatus = GSL_CONTINUE;
-	// double gslRoot=0;
-	// for(int k=0; k<100 && solverStatus==GSL_CONTINUE; k++){
-	// 	solverStatus = gsl_root_fsolver_iterate(gslSolver);
-	// 	gslRoot = gsl_root_fsolver_root (gslSolver);
-	// 	double xLo = gsl_root_fsolver_x_lower(gslSolver);
-	// 	double xHi = gsl_root_fsolver_x_upper(gslSolver);
-	// 	solverStatus = gsl_root_test_interval(xLo, xHi, 0.001, 0.001);
-	// }
-	// float sUp = gslRoot;
-
-	// return 0;
-
 	vector<int> BadRunList=BuildBadRunList(station);
 
 	bool version2=true;
 	if(version2){
-
-		/*
-			Now, we need to load the simulation
-			Load with TChain
-		*/
 
 		/*
 			Now, we also need a way to deal with the rotate cross correlation cut
@@ -376,7 +325,8 @@ int main(int argc, char **argv)
 			gPad->SetLogz();
 		}
 		char title[300];
-		sprintf(title, "%s/optimize/%d.%d.%d_A%d_c%d_%dEvents_SNRvsCorr.png",plotPath,year_now, month_now, day_now,station,config,numTotal);
+		sprintf(title, "%s/optimize/A%d_config%d_%dEvents_SNRvsCorr.png",plotPath,station,config,numTotal);
+		// sprintf(title, "%s/optimize/%d.%d.%d_A%d_config%d_%dEvents_SNRvsCorr.png",plotPath,year_now, month_now, day_now,station,config,numTotal);
 		cSNRvsCorr->SaveAs(title);
 		delete cSNRvsCorr;
 
@@ -396,7 +346,7 @@ int main(int argc, char **argv)
 			hEventsVsSNR->SetBinContent(bin+1,numEventsPassed_diff[bin]);
 		}
 		int max_bin = hEventsVsSNR->GetMaximumBin();
-		int fit_start_bin = max_bin+12;
+		int fit_start_bin = max_bin+14;
 		double start_of_fit = hEventsVsSNR->GetBinCenter(fit_start_bin);
 		int last_filled_bin = hEventsVsSNR->FindLastBinAbove(0.,1);
 		last_filled_bin+=5; // go up two more bins just to make sure the fit is over
@@ -408,7 +358,11 @@ int main(int argc, char **argv)
 		sprintf(equation,"exp([0]*x+[1])");
 		// sprintf(equation,"gaus");
 		TF1 *fit = new TF1("ExpFit",equation,start_of_fit,end_of_fit);
-		hEventsVsSNR->Fit("ExpFit","LL,R");
+		int status = hEventsVsSNR->Fit("ExpFit","LL,R");
+		if(status!=0){
+			printf("Something went wrong with the fit! Quitting...\n");
+			return 0;
+		}
 		double fitParams[2];
 		fitParams[0] = fit->GetParameter(0);
 		fitParams[1] = fit->GetParameter(1);
@@ -513,15 +467,6 @@ int main(int argc, char **argv)
 		double DataLogL_y[2] = { 0, 5 };
 		TGraph *gDataLogL = new TGraph (2, DataLogL_x, DataLogL_y);
 
-		vector <double> x_vals_for_line;
-		vector <double> y_vals_for_line;
-		for(double x=0; x<0.020; x+=0.00001){
-			double y_val = (slope * x ) + 11.9;
-			x_vals_for_line.push_back(x);
-			y_vals_for_line.push_back(y_val);
-		}
-		TGraph *cut_line = new TGraph(x_vals_for_line.size(), &x_vals_for_line[0], &y_vals_for_line[0]);
-
 		printf(BLUE"About to do background estimation\n"RESET);
 		/*
 			Now, we must find our background estimate
@@ -539,19 +484,13 @@ int main(int argc, char **argv)
 		for(int bin=startBin; bin<numSNRbins; bin++){
 			double cut = intercept[bin];
 			double back_estimate = (1./(fitParams[0]*binWidthIntercept)) * (-exp(fitParams[0]*cut + fitParams[1]));
-			back_estimate*=10; // make it 10 times bigger, for switch to 100% sample
+			back_estimate*=10.; // make it 10 times bigger, for switch to 100% sample
 			double achieved_alpha;
 			// double s_up = GetS_up_TMath(back_estimate,achieved_alpha, 0.9); // compute S_up for this background
 			double s_up = GetS_up(back_estimate,achieved_alpha, 0.9); // compute S_up for this background
 			S_up_array[bin] = s_up;
 			printf("For cut %.2f background estimate is %.3f with sup %.2f \n",cut,back_estimate,S_up_array[bin]);
 		}
-		TGraph *gS_up = new TGraph(numSNRbins,intercept,S_up_array);
-		TCanvas *cS_up = new TCanvas("","",850,850);
-		gS_up->Draw("ALP");
-		char save_title[400];
-		sprintf(save_title,"%s/optimize/S_up_A%d_c%d_RCutSlope%.4f.png",plotPath,station,config,slope);
-		cS_up->SaveAs(save_title);
 
 		// for(double cut=8.; cut<14; cut+=0.1){
 		// 	double back_estimate = (1./(fitParams[0]*binWidthIntercept)) * (-exp(fitParams[0]*cut + fitParams[1]));
@@ -561,8 +500,7 @@ int main(int argc, char **argv)
 		// 	printf("For cut %.2f background estimate is %.3f with sup %.2f \n",cut,back_estimate,s_up);
 		// }
 
-		double select_slope=-620.;
-		double select_inter=11.0;
+		double select_slope=slope;
 
 		/*
 			Now we must loop over data and simulation
@@ -573,7 +511,6 @@ int main(int argc, char **argv)
 		TChain simAllTree("AllTree");
 		char the_sims[500];
 		sprintf(the_sims,"/fs/scratch/PAS0654/ara/sim/ValsForCuts/A%d/c%d/E%d/cutvals_drop_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config,int(year_or_energy));
-		// TString fileKey("/fs/scratch/PAS0654/ara/sim/ValsForCuts/A2/c1/E224/cutvals_drop_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root");
 		simVTree.Add(the_sims);
 		simHTree.Add(the_sims);
 		simAllTree.Add(the_sims);
@@ -648,7 +585,13 @@ int main(int argc, char **argv)
 				simHTree.GetEvent(event);
 				simAllTree.GetEvent(event);
 				for(int pol=0; pol<2; pol++){
+
 					h2SNRvsCorr_sim[pol]->Fill(corr_val[pol], snr_val[pol],weight);
+					if(pol==1){
+						// only vpol for right now
+						continue;
+					}
+
 					bool failsCWPowerCut=false;
 					if(Refilt[pol] && !WFRMS[pol]){
 						vector<double> frac;
@@ -680,7 +623,6 @@ int main(int argc, char **argv)
 							}
 						}
 					}
-
 				} //loop over polarizations
 			}
 		}
@@ -697,8 +639,36 @@ int main(int argc, char **argv)
 			SoverSup[bin] = this_SoverSup;
 			printf("For bin %d, intercept %.2f, S is %.2f and S_up is %.2f for S/S_up of %.2f  \n", bin,intercept[bin],this_S, this_Sup, this_SoverSup);
 		}
-
+		double max_SoverSup=0.;
+		double optimal_intercept=0.;
+		for(int bin=0; bin<numSNRbins; bin++){
+			double this_intercept = intercept[bin];
+			if(this_intercept<8. || this_intercept>13.){
+				continue;
+			}
+			else{
+				double this_SoverSup=SoverSup[bin];
+				if(this_SoverSup>max_SoverSup){
+					printf("At bin %d, for intercept %.2f, new S/Sup of %.2f is greater than current %.2f \n",bin, intercept[bin], this_SoverSup,max_SoverSup);
+					optimal_intercept = this_intercept;
+					max_SoverSup=this_SoverSup;
+				}
+			}
+		}
 		TGraph *gSoverSup = new TGraph(numSNRbins,intercept,SoverSup);
+
+		printf("Found optimal intercept at %.2f \n", optimal_intercept);
+		double select_inter=optimal_intercept;
+
+		vector <double> x_vals_for_line;
+		vector <double> y_vals_for_line;
+		for(double x=0; x<0.020; x+=0.00001){
+			double y_val = (slope * x ) + optimal_intercept;
+			x_vals_for_line.push_back(x);
+			y_vals_for_line.push_back(y_val);
+		}
+		TGraph *cut_line = new TGraph(x_vals_for_line.size(), &x_vals_for_line[0], &y_vals_for_line[0]);
+
 
 		TCanvas *cRcut = new TCanvas("","",4*850,2*850);
 		cRcut->Divide(4,2);
@@ -748,7 +718,8 @@ int main(int argc, char **argv)
 			gSoverSup->GetYaxis()->SetTitle("S/S_up");
 			gSoverSup->GetYaxis()->SetTitleOffset(1.8);
 			gSoverSup->GetXaxis()->SetTitle("SNR Cut (y-intercept value)");
-		sprintf(save_title,"%s/optimize/DiffDistro_A%d_c%d_RCutSlope%.4f.png",plotPath,station,config,slope);
+		char save_title[400];
+		sprintf(save_title,"%s/optimize/A%d_config%d_DiffDistro_RCutSlope%.4f.png",plotPath,station,config,slope);
 		cRcut->SaveAs(save_title);
 
 		printf(BLUE"Now to loop back through the data and compute cut tables\n"RESET);
@@ -1001,7 +972,6 @@ int main(int argc, char **argv)
 		printf("Surf               :           %7.1f, %7.1f, %7.1f | %7.1f, %7.1f, %7.1f \n",fails_surface_first_data[0],fails_surface_insequence_data[0],fails_surface_last_data[0],fails_surface_first_data[1],fails_surface_insequence_data[1],fails_surface_last_data[1]);
 		printf("Rcut               :           %7.1f, %7.1f, %7.1f | %7.1f, %7.1f, %7.1f \n",fails_rcut_first_data[0],fails_rcut_insequence_data[0],fails_rcut_last_data[0],fails_rcut_first_data[1],fails_rcut_insequence_data[1],fails_rcut_last_data[1]);
 
-
 		printf(RED"Now to try and go over the simulation again\n"RESET);
 		/*
 			And now we go through the simulation again to get our as last cut table and to compute efficiencies
@@ -1227,6 +1197,9 @@ int main(int argc, char **argv)
 		printf("Sim Surf               :           %7.1f, %7.1f, %7.1f | %7.1f, %7.1f, %7.1f \n",fails_surface_first_sim[0],fails_surface_insequence_sim[0],fails_surface_last_sim[0],fails_surface_first_sim[1],fails_surface_insequence_sim[1],fails_surface_last_sim[1]);
 		printf("Sim Rcut               :           %7.1f, %7.1f, %7.1f | %7.1f, %7.1f, %7.1f \n",fails_rcut_first_sim[0],fails_rcut_insequence_sim[0],fails_rcut_last_sim[0],fails_rcut_first_sim[1],fails_rcut_insequence_sim[1],fails_rcut_last_sim[1]);
 
+		printf("V Fit Parameters are %.2f and %.2f \n", fitParams[0], fitParams[1]);
+		printf("Found optimal V intercept at %.2f \n", optimal_intercept);
+
 		int colors [28] = { kBlue, kRed, kGreen, kMagenta, kCyan};
 		for(int pol=0; pol<2; pol++){
 			for(int bin=0; bin<=all_events[pol]->GetNbinsX(); bin++){
@@ -1292,7 +1265,8 @@ int main(int argc, char **argv)
 		}
 		char efficiency_title[400];
 		sprintf(efficiency_title,
-				 "%s/%d.%d.%d_A%d_c%d_E%2.1f_Efficiency.png",plotPath,year_now, month_now, day_now,station,config,224.);
+				 "%s/optimize/A%d_config%d_E%2.1f_Efficiency.png",plotPath,station,config,224.);
+				 // "%s/optimize/%d.%d.%d_A%d_config%d_E%2.1f_Efficiency.png",plotPath,year_now, month_now, day_now,station,config,224.);
 		c3->SaveAs(efficiency_title);
 		delete c3;
 
