@@ -61,19 +61,19 @@ int main(int argc, char **argv)
 	// double wavefrontRMScut[]={-1.5, -1.5}; //event wavefrontRMS < this value
 
 	int thresholdBin_pol[]={selected_bin, selected_bin}; //bin 3 = 2.3, bin 5 = 2.5 //what is the faceRMS inclusion threshold?
-	double wavefrontRMScut[]={selected_cut, selected_cut}; //event wavefrontRMS < this value
+	double wavefrontRMScut[]={selected_cut, selected_cut-0.1}; //event wavefrontRMS < this value
 
 	TH2D *wfrms_plots[2];
-	wfrms_plots[0] = new TH2D("Vpol","Vpol_org",200,-5,5,40,0,40);
-	wfrms_plots[1] = new TH2D("Hpol","Hpol_org",200,-5,5,40,0,40);
+	wfrms_plots[0] = new TH2D("Vpol","Vpol_org",200,-5,5,30,0,30);
+	wfrms_plots[1] = new TH2D("Hpol","Hpol_org",200,-5,5,30,0,30);
 
 	TH2D *wfrms_plots_cal[2];
-	wfrms_plots_cal[0] = new TH2D("Vpol_cal","Vpol_cal",200,-5,5,40,0,40);
-	wfrms_plots_cal[1] = new TH2D("Hpol_cal","Hpol_cal",200,-5,5,40,0,40);
+	wfrms_plots_cal[0] = new TH2D("Vpol_cal","Vpol_cal",200,-5,5,30,0,30);
+	wfrms_plots_cal[1] = new TH2D("Hpol_cal","Hpol_cal",200,-5,5,30,0,30);
 
 	TH2D *wfrms_plots_rf[2];
-	wfrms_plots_rf[0] = new TH2D("Vpol_rf","Vpol_rf",200,-5,5,40,0,40);
-	wfrms_plots_rf[1] = new TH2D("Hpol_rf","Hpol_rf",200,-5,5,40,0,40);
+	wfrms_plots_rf[0] = new TH2D("Vpol_rf","Vpol_rf",200,-5,5,30,0,30);
+	wfrms_plots_rf[1] = new TH2D("Hpol_rf","Hpol_rf",200,-5,5,30,0,30);
 
 	TH2D *dummy[2];
 	dummy[0] = new TH2D("","",100,-5,5,2,0,100.);
@@ -83,14 +83,15 @@ int main(int argc, char **argv)
 	TH1D *passed_events[2];
 	TH1D *eff[2];
 	for(int i=0; i<2; i++){
-		all_events[i] = new TH1D("","",50,0,50);
-		passed_events[i] = new TH1D("","",50,0,50);
-		eff[i] = new TH1D("","",50,0,50);
+		all_events[i] = new TH1D("","",30,0,30);
+		passed_events[i] = new TH1D("","",30,0,30);
+		eff[i] = new TH1D("","",30,0,30);
 	}
 
 	double num_total=0.;
 	double num_thermal[] = {0., 0.};
 	double num_passing[] = {0.,0.};
+	double num_passing_either=0.;
 
 	vector<int> BadRunList=BuildBadRunList(station);
 
@@ -103,7 +104,7 @@ int main(int argc, char **argv)
 		int runNum = atoi(strRunNum.c_str());
 		printf("Run Number %d \n", runNum);
 
-		if(isBadRun(station,runNum,BadRunList)){
+		if(isBadRun(station,runNum,BadRunList) && !isSim){
 			printf("     Skipping run %d \n",runNum);
 			continue;
 		}
@@ -169,7 +170,7 @@ int main(int argc, char **argv)
 		for(int event=0; event<numEntries; event++){
 			inputTree_filter->GetEvent(event);
 
-			if(isBadLivetime(station,unixTime)){
+			if(isBadLivetime(station,unixTime) && !isSim){
 				continue;
 			}
 
@@ -186,8 +187,8 @@ int main(int argc, char **argv)
 			double SNRs[2];
 			SNRs[0] = thirdVPeakOverRMS[0];
 			SNRs[1] = thirdVPeakOverRMS[1];
-			// if(SNRs[0]>29.) SNRs[0]=29.;
-			// if(SNRs[1]>29.) SNRs[1]=29.;
+			if(SNRs[0]>29.) SNRs[0]=29.;
+			if(SNRs[1]>29.) SNRs[1]=29.;
 
 			vector <double> rms_faces_V;
 			vector <double> rms_faces_H;
@@ -281,6 +282,8 @@ int main(int argc, char **argv)
 				// }
 			}
 
+			bool thisPasses[2] = {false};
+
 			for(int pol=0; pol<2; pol++){
 				if(!isShort && !isSoftTrigger){
 					wfrms_plots[pol]->Fill(TMath::Log10(bestFaceRMS[pol]), SNRs[pol], weight);
@@ -291,6 +294,7 @@ int main(int argc, char **argv)
 						wfrms_plots_rf[pol]->Fill(TMath::Log10(bestFaceRMS[pol]), SNRs[pol], weight);
 						if(TMath::Log10(bestFaceRMS[pol]) < wavefrontRMScut[pol]){
 							num_passing[pol]+=(weight);
+							thisPasses[pol]=true;
 							if(isSim)
 								passed_events[pol]->Fill(SNRs[pol],weight);
 						}
@@ -300,6 +304,9 @@ int main(int argc, char **argv)
 					}
 				}
 			}//loop over polarization
+			if(thisPasses[0] || thisPasses[1]){
+				num_passing_either+=weight;
+			}
 		}//loop over events
 		
 		inputFile->Close();
@@ -327,6 +334,8 @@ int main(int argc, char **argv)
 		printf("-----------------------\n");
 		printf("	Num thermal passing pol %d: %.3f/%.3f events, %.3f rate \n", pol, num_passing[pol],num_thermal[pol], 100.*num_passing[pol]/num_thermal[pol]);
 	}
+	printf("-----------------------\n");
+	printf("Num passing either: %.3f/%.3f events, %.3f rate \n",num_passing_either, num_thermal[0], 100.*num_passing_either/num_thermal[0]);
 
 	TH1D *projections[2];
 	TH1D *projections_cal[2];
@@ -421,11 +430,16 @@ int main(int argc, char **argv)
 			projections_rf[pol]->GetYaxis()->SetTitle("Counts");
 			projections_rf[pol]->GetXaxis()->SetTitle("log10(Wavefront RMS)");
 			projections_rf[pol]->GetYaxis()->SetRangeUser(0.1,1e7);
+			// if(pol==0){
+			// 	projections_cal[pol]->Draw("same");
+			// 	projections_cal[pol]->SetLineColor(kRed);
+			// 	projections_cal[pol]->SetLineWidth(3);
+			// }
 			gPad->SetLogy();
 		c2->cd(pol+5);
 			dummy[pol]->Draw();
-			projections_rf[pol]->GetYaxis()->SetTitle("Passing Rate");
-			projections_rf[pol]->GetXaxis()->SetTitle("log10(Wavefront RMS)");
+			passing_rate[pol]->GetYaxis()->SetTitle("Passing Rate");
+			passing_rate[pol]->GetXaxis()->SetTitle("log10(Wavefront RMS)");
 			passing_rate[pol]->Draw("LP");
 			// dummy[pol]->GetYaxis()->SetRangeUser(1.e-2,1.);
 			// gPad->SetLogy();
