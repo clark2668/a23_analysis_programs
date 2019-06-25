@@ -86,10 +86,12 @@ int main(int argc, char **argv)
 	RawAtriStationEvent *rawPtr =0;
 	eventTree->SetBranchAddress("event",&rawPtr);
 	eventTree->GetEvent(event);
-	// while(!rawPtr->isCalpulserEvent()){
-	// 	event++;
-	// 	eventTree->GetEvent(event);
-	// }
+	while(!rawPtr->isCalpulserEvent()){
+		cout<<"Event "<<event<<" isn't a cal pulser. Next..."<<endl;
+		event++;
+		eventTree->GetEvent(event);
+
+	}
 
 
 	int stationID = rawPtr->stationId;
@@ -111,6 +113,19 @@ int main(int argc, char **argv)
 	AraQualCuts *qualCut = AraQualCuts::Instance();
 	bool quality = qualCut->isGoodEvent(realAtriEvPtr);
 	printf("Quality is %d \n", quality);
+
+	vector<TGraph*> spareElecChanGraphs;
+	spareElecChanGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(6));
+	spareElecChanGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(14));
+	spareElecChanGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(22));
+	spareElecChanGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(30));
+	bool hasBadSpareChanIssue = hasSpareChannelIssue(spareElecChanGraphs);
+	cout<<"hasBadSpareChanIssue flag is "<<hasBadSpareChanIssue<<endl;
+	if(hasBadSpareChanIssue==1){
+		cout<<"Has bad spare chan issue! Like, yes, actually. And yes, I am updating..."<<endl;
+	}
+	deleteGraphVector(spareElecChanGraphs);
+
 
 	// int length = rawPtr->blockVec.size();
 	// vector <int> single_chan_blocks;
@@ -245,7 +260,7 @@ int main(int argc, char **argv)
 		// delete map_41m_V_select;
 	}
 
-	bool do_reco_snrweighted_newnormalization_select=true;
+	bool do_reco_snrweighted_newnormalization_select=false;
 	if(do_reco_snrweighted_newnormalization_select){
 		//set up the ray tracer
 		Settings *settings = new Settings();
