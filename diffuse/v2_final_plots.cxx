@@ -123,7 +123,7 @@ int main(int argc, char **argv)
 
 	vector<int> BadRunList=BuildBadRunList(station);
 
-	bool version2=true;
+	bool version2=false;
 	if(version2){
 		double num_total=0.;
 		
@@ -347,7 +347,7 @@ int main(int argc, char **argv)
 		printf("Surf               :           %7.1f, %7.1f, %7.1f | %7.1f, %7.1f, %7.1f \n",fails_surface_first[0],fails_surface_insequence[0],fails_surface_last[0],fails_surface_first[1],fails_surface_insequence[1],fails_surface_last[1]);
 	}
 
-	bool version1=false;
+	bool version1=true;
 	if(version1){
 		// older version
 		int num_total=0;
@@ -373,6 +373,7 @@ int main(int argc, char **argv)
 			string strRunNum = file.substr(foundRun+4,4);
 			int runNum = atoi(strRunNum.c_str());
 
+			// if(isBadRun(station,runNum,BadRunList) || runNum==3437){
 			if(isBadRun(station,runNum,BadRunList)){
 				continue;
 			}

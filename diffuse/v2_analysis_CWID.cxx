@@ -107,7 +107,6 @@ int main(int argc, char **argv)
 	if(starEvery==0) starEvery++;
 	printf("Num events is %d \n", numEntries);
 	cout<<"This file has a starEvery of "<<starEvery<<endl;
-	numEntries=50;
 
 	//first, let's get the baselines loaded in
 	string runSummaryFilename;
@@ -210,6 +209,19 @@ int main(int argc, char **argv)
 		if (isSimulation == false){
 			realAtriEvPtr = new UsefulAtriStationEvent(rawAtriEvPtr, AraCalType::kLatestCalib);
 			hasError = !(qualCut->isGoodEvent(realAtriEvPtr));
+			if(realAtriEvPtr->eventNumber<5){
+				hasError=true;
+			}
+			vector<TGraph*> spareElecChanGraphs;
+			spareElecChanGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(6));
+			spareElecChanGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(14));
+			spareElecChanGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(22));
+			spareElecChanGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(30));
+			bool hasBadSpareChanIssue = hasSpareChannelIssue(spareElecChanGraphs);
+			deleteGraphVector(spareElecChanGraphs);
+			if(hasBadSpareChanIssue){
+				hasError=true;
+			}
 		}
 		else if(isSimulation){
 			hasError=false;
@@ -284,6 +296,17 @@ int main(int argc, char **argv)
 
 		vector<TGraph*> grWaveformsRaw = makeGraphsFromRF(realAtriEvPtr, 16, xLabel, yLabel, titlesForGraphs);
 		tempTree->GetEntry(event);
+
+		// TCanvas *cDump = new TCanvas("","",4*850,4*850);
+		// cDump->Divide(4,4);
+		// for(int i=0; i<16; i++){
+		// 	cDump->cd(i+1);
+		// 	grWaveformsRaw[i]->Draw("ALP");
+		// }
+		// char dump_title[400];
+		// sprintf(dump_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/trouble_events/run%d_event%d.png",runNum, event);
+		// cDump->SaveAs(dump_title);
+		// delete cDump;
 	
 		if(!hasError){
 
@@ -297,7 +320,6 @@ int main(int argc, char **argv)
 			// for(int i=0; i<baseline_CW_cut_H.size(); i++){
 			// 	printf(CYAN"	H: Event %d Baseline CW Cut %.2f \n"RESET, event, baseline_CW_cut_H[i]);
 			// }
-			
 
 			badFreqs_baseline.push_back(baseline_CW_cut_V);
 			badFreqs_baseline.push_back(baseline_CW_cut_H);
@@ -415,6 +437,17 @@ int main(int argc, char **argv)
 						}
 					}
 				}
+
+				// TCanvas *cDump2 = new TCanvas("","",4*850, 4*850);
+				// cDump2->Divide(4,4);
+				// for(int i=0; i<15; i++){
+				// 	cDump2->cd(i+1);
+				// 	vvdGrPhaseDiff_fwd[0][0][i]->Draw("ALP");
+				// }
+				// sprintf(dump_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/trouble_events/run%d_event%d_phase_differences.png",runNum, event);
+				// cDump2->SaveAs(dump_title);
+				// delete cDump2;
+
 				//printf("	Got phase difference; on to phase variance\n");
 				vector<TGraph*> vGrSigmaVarianceAverage_fwd;
 				vGrSigmaVarianceAverage_fwd.resize(numPols);
@@ -444,6 +477,7 @@ int main(int argc, char **argv)
 					delete phases_forward[use_event][chan];
 				}
 			}
+			// continue;
 
 			//reverse case
 			//assume the initial event is the "15th" entry, and try to go backwards

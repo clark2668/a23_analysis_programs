@@ -204,6 +204,8 @@ int main(int argc, char **argv)
 		int isBadEvent;
 		int isSurfEvent_top[2];
 		int unixTime;
+		int isFirstFiveEvent;
+		int hasBadSpareChanIssue;
 
 		trees[2]->SetBranchAddress("cal",&isCal);
 		trees[2]->SetBranchAddress("soft",&isSoft);
@@ -216,6 +218,8 @@ int main(int argc, char **argv)
 		trees[2]->SetBranchAddress("surf_top_V",&isSurfEvent_top[0]);
 		trees[2]->SetBranchAddress("surf_top_H",&isSurfEvent_top[1]);
 		trees[2]->SetBranchAddress("unixTime",&unixTime);
+		trees[2]->SetBranchAddress("isFirstFiveEvent",&isFirstFiveEvent);
+		trees[2]->SetBranchAddress("hasBadSpareChanIssue",&hasBadSpareChanIssue);
 
 		stringstream ss;
 		for(int i=0; i<8; i++){
@@ -241,10 +245,7 @@ int main(int argc, char **argv)
 
 			num_total++;
 
-			// if(isBadEvent || event<2){
-			// 	continue;
-			// }
-			if(isBadEvent){
+			if(isBadEvent|| isFirstFiveEvent || hasBadSpareChanIssue){
 				continue;
 			}
 			if(isBadLivetime(station,unixTime)){
@@ -296,7 +297,7 @@ int main(int argc, char **argv)
 										// if(corr_val[pol]<0.003 || snr_val[pol]>=7.) condition=true;
 										// if(corr_val[pol]>0.01) condition=true;
 										// if(corr_val[pol]>0.01) condition=true;
-										if(snr_val[pol]>=7.) condition=true;
+										// if(snr_val[pol]>=7.) condition=true;
 										// if(snr_val[pol]>=8.) condition=true;
 
 										if(Refilt[pol]){

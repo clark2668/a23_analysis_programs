@@ -50,15 +50,15 @@ int main(int argc, char **argv)
 	if (plotPath == NULL) std::cout << "Warning! $PLOT_PATH is not set!" << endl;
 
 	if(argc<6){
-		cout<< "Usage\n" << argv[0] << " <isSim> <station> <config> <year_or_energy> <ValForCuts filename>"<<endl;;
+		cout<< "Usage\n" << argv[0] << " <1-station> <2-config> <3-year_or_energy> <4-slope> <5-pol_select> <6-ValForCuts filename>"<<endl;;
 		return -1;
 	}
 
-	int isSim = atoi(argv[1]);
-	int station = atoi(argv[2]);
-	int config = atoi(argv[3]);
-	double year_or_energy = double(atof(argv[4]));
-	double slope=double(atof(argv[5]));
+	int station = atoi(argv[1]);
+	int config = atoi(argv[2]);
+	double year_or_energy = double(atof(argv[3]));
+	double slope=double(atof(argv[4]));
+	int pol_select=atoi(argv[5]);
 
 
 	if(station!=2 && station!=3){
@@ -217,7 +217,7 @@ int main(int argc, char **argv)
 				if( (isSoft || isBadEvent || hasBadSpareChanIssue || isFirstFiveEvent || isShort || isCal))
 					continue;
 
-				if(isBadLivetime(station,unixTime) && !isSim){
+				if(isBadLivetime(station,unixTime)){
 					continue;
 				}
 
@@ -292,7 +292,7 @@ int main(int argc, char **argv)
 						} //refiltered?
 						if(!failsCWPowerCut){
 							h2SNRvsCorr[pol]->Fill(corr_val[pol],snr_val[pol],weight);
-							if(pol==1)
+							if(pol!=pol_select)
 								continue;
 							
 							// only V, for the moment, populate the differential distribution
@@ -345,13 +345,22 @@ int main(int argc, char **argv)
 			// printf("Bin %d I'm in SNR bin %.2f in the histo and I'm going to fill with %.2f \n", bin, hEventsVsSNR->GetBinCenter(bin+1),numEventsPassed_diff[bin]);
 			hEventsVsSNR->SetBinContent(bin+1,numEventsPassed_diff[bin]);
 		}
-		int max_bin = hEventsVsSNR->GetMaximumBin();
-		int fit_start_bin = max_bin+14;
-		double start_of_fit = hEventsVsSNR->GetBinCenter(fit_start_bin);
-		int last_filled_bin = hEventsVsSNR->FindLastBinAbove(0.,1);
-		last_filled_bin+=5; // go up two more bins just to make sure the fit is over
-		double end_of_fit = hEventsVsSNR->GetBinCenter(last_filled_bin);
+		// int max_bin = hEventsVsSNR->GetMaximumBin();
+		// int fit_start_bin = max_bin+14;
+		// double start_of_fit = hEventsVsSNR->GetBinCenter(fit_start_bin);
+		// int last_filled_bin = hEventsVsSNR->FindLastBinAbove(0.,1);
+		// last_filled_bin+=5; // go up two more bins just to make sure the fit is over
+		// double end_of_fit = hEventsVsSNR->GetBinCenter(last_filled_bin);
 		// printf("Start of fit is %.2f and end of fit is %.2f \n", start_of_fit, end_of_fit);
+		int max_bin = hEventsVsSNR->GetMaximumBin();
+		int last_filled_bin = hEventsVsSNR->FindLastBinAbove(0.,1);
+		int fit_start_bin=int((last_filled_bin - max_bin)/2) + max_bin; //start half-way between the peak bin and the last filled bin
+		double start_of_fit = hEventsVsSNR->GetBinCenter(fit_start_bin);
+		double end_of_fit = hEventsVsSNR->GetBinCenter(last_filled_bin+2.); //go two bins more just to make sure fit is over
+
+		printf("Last filled bin is bin %d and value %.2f \n", last_filled_bin, hEventsVsSNR->GetBinCenter(last_filled_bin));
+		printf("Max bin is bin %d and value %.2f \n", max_bin, hEventsVsSNR->GetBinCenter(max_bin));
+		printf("Proposed start of fit is bin %d and value %.2f \n", fit_start_bin, hEventsVsSNR->GetBinCenter(fit_start_bin));
 
 		// now we exponential fit
 		char equation[150];
@@ -380,6 +389,7 @@ int main(int argc, char **argv)
 			double originalContent = hEventsVsSNR->GetBinContent(bin+fit_start_bin);
 			hNumObserved->SetBinContent(bin+1,originalContent);
 		}
+		printf("Do integral the automatic way is %.4f \n",hNumObserved->Integral());
 
 		/*
 			Now we must prepare our *expectation* for the number of events
@@ -402,20 +412,18 @@ int main(int argc, char **argv)
 		for(int bin=0; bin<numBinsThisFit; bin++){
 			double thisObserved = hNumObserved->GetBinContent(bin+1);
 			double thisExpected = numExpected[bin];
-			printf("At bin %d Observed %.2f and Expected %.2f \n", bin, thisObserved, thisExpected );
+			printf("At bin %d with intercept %.2f Observed %.2f and Expected %.2f \n", bin, hNumObserved->GetBinCenter(bin+1), thisObserved, thisExpected );
 			numObservedTotal+=thisObserved;
 			numExpectedTotal_sum+=thisExpected;
 			logL += ReturnLogL_highN( thisObserved,thisExpected );
 		}
 		printf("The logL is %.3f \n", logL);
 		
-		// double numExpectedTotal_Integral = (1./(fitParams[0])) * ( exp(fitParams[0]*end_of_fit + fitParams[1]) - exp(fitParams[0]*start_of_fit + fitParams[1]));
-		// double numExpectedTotal_Integral = (1./(fitParams[0]*binWidthIntercept)) * ( exp(fitParams[0]*end_of_fit + fitParams[1]) - exp(fitParams[0]*start_of_fit + fitParams[1]));
+		// double numExpectedTotal_Integral = (1./(fitParams[0])) * ( exp(fitParams[0]*rightBoundary + fitParams[1]) - exp(fitParams[0]*leftBoundary + fitParams[1]));
 		double numExpectedTotal_Integral = (1./(fitParams[0]*binWidthIntercept)) * ( exp(fitParams[0]*rightBoundary + fitParams[1]) - exp(fitParams[0]*leftBoundary + fitParams[1]));
 		printf("Best fit sum bins: %.2f. Best fit do integral: %.2f. Num observed: %.2f. \n",numExpectedTotal_sum, numExpectedTotal_Integral, numObservedTotal);
 
 		TRandom3 *test_random = new TRandom3();
-		cout<<"Poisson number of random events is "<<test_random->Poisson(numExpectedTotal_Integral)<<endl;
 
 		/*
 			Now for toy simulations
@@ -427,9 +435,9 @@ int main(int argc, char **argv)
 		double Total_Toy_logL = 0.; // total logL values from Toy
 
 		int num_Toy = 10000;
-		int Toy_logL_bin = 100;
+		int Toy_logL_bin = 150;
 		double min_Toy_logL = 0.;
-		double max_Toy_logL = 400.;
+		double max_Toy_logL = 150.;
 		TH1D *hToy_logL = new TH1D("hToy_logL", "", Toy_logL_bin, min_Toy_logL, max_Toy_logL );
 		char test_title[400];
 		for(int num=0; num<num_Toy; num++){
@@ -587,8 +595,7 @@ int main(int argc, char **argv)
 				for(int pol=0; pol<2; pol++){
 
 					h2SNRvsCorr_sim[pol]->Fill(corr_val[pol], snr_val[pol],weight);
-					if(pol==1){
-						// only vpol for right now
+					if(pol!=pol_select){
 						continue;
 					}
 
@@ -643,13 +650,13 @@ int main(int argc, char **argv)
 		double optimal_intercept=0.;
 		for(int bin=0; bin<numSNRbins; bin++){
 			double this_intercept = intercept[bin];
-			if(this_intercept<8. || this_intercept>13.){
+			if(this_intercept<8. || this_intercept>15.){
 				continue;
 			}
 			else{
 				double this_SoverSup=SoverSup[bin];
 				if(this_SoverSup>max_SoverSup){
-					printf("At bin %d, for intercept %.2f, new S/Sup of %.2f is greater than current %.2f \n",bin, intercept[bin], this_SoverSup,max_SoverSup);
+					// printf("At bin %d, for intercept %.2f, new S/Sup of %.2f is greater than current %.2f \n",bin, intercept[bin], this_SoverSup,max_SoverSup);
 					optimal_intercept = this_intercept;
 					max_SoverSup=this_SoverSup;
 				}
@@ -659,68 +666,6 @@ int main(int argc, char **argv)
 
 		printf("Found optimal intercept at %.2f \n", optimal_intercept);
 		double select_inter=optimal_intercept;
-
-		vector <double> x_vals_for_line;
-		vector <double> y_vals_for_line;
-		for(double x=0; x<0.020; x+=0.00001){
-			double y_val = (slope * x ) + optimal_intercept;
-			x_vals_for_line.push_back(x);
-			y_vals_for_line.push_back(y_val);
-		}
-		TGraph *cut_line = new TGraph(x_vals_for_line.size(), &x_vals_for_line[0], &y_vals_for_line[0]);
-
-
-		TCanvas *cRcut = new TCanvas("","",4*850,2*850);
-		cRcut->Divide(4,2);
-		cRcut->cd(1);
-			h2SNRvsCorr[0]->Draw("colz");
-			h2SNRvsCorr[0]->GetXaxis()->SetTitle("Correlation Value");
-			h2SNRvsCorr[0]->GetYaxis()->SetTitle("SNR");
-			gPad->SetLogz();
-			cut_line->Draw("same");
-			cut_line->SetLineColor(kRed);
-		cRcut->cd(2);
-			hEventsVsSNR->Draw("");
-			hEventsVsSNR->GetXaxis()->SetTitle("SNR Cut (y-intercept value)");
-			hEventsVsSNR->GetYaxis()->SetTitle("Number of Events Cut");
-			gPad->SetLogy();
-			// hEventsVsSNR->GetXaxis()->SetRangeUser(8.6,10.);
-			// hEventsVsSNR->GetYaxis()->SetRangeUser(8e1,1e4);
-		cRcut->cd(3);
-			hNumObserved->Draw("HIST");
-			hNumObserved->GetXaxis()->SetTitle("SNR Cut (y-intercept value)");
-			hNumObserved->GetYaxis()->SetTitle("Number of Events Cut");
-			// hNumObserved->GetXaxis()->SetRangeUser(8.6,10.);
-			// hNumObserved->GetYaxis()->SetRangeUser(8e1,1e4);
-			fit->Draw("same");
-			gPad->SetLogy();
-			// hNumObserved->GetYaxis()->SetRangeUser(0.2,2e3);
-		cRcut->cd(4);
-			sprintf( test_title, "data logL: %.2f, P-value: %f", logL, P_value );
-			hToy_logL->SetTitle(test_title);
-			hToy_logL->Draw();
-			hToy_logL->GetYaxis()->SetTitle("Number of Pseudo Experiments");
-			hToy_logL->GetXaxis()->SetTitle("-2log(L)");
-			gDataLogL->SetLineColor(kRed);
-			gDataLogL->Draw("l");
-			gPad->SetLogy();
-		cRcut->cd(5);
-			h2SNRvsCorr_sim[0]->Draw("colz");
-			h2SNRvsCorr_sim[0]->GetXaxis()->SetTitle("Correlation Value");
-			h2SNRvsCorr_sim[0]->GetYaxis()->SetTitle("SNR");
-			gPad->SetLogz();
-			cut_line->Draw("same");
-			cut_line->SetLineColor(kRed);
-		cRcut->cd(6);
-			gSoverSup->Draw("ALP");
-			gSoverSup->GetXaxis()->SetRangeUser(8.,13.);
-			gSoverSup->GetYaxis()->SetRangeUser(0.,5e3);
-			gSoverSup->GetYaxis()->SetTitle("S/S_up");
-			gSoverSup->GetYaxis()->SetTitleOffset(1.8);
-			gSoverSup->GetXaxis()->SetTitle("SNR Cut (y-intercept value)");
-		char save_title[400];
-		sprintf(save_title,"%s/optimize/A%d_config%d_DiffDistro_RCutSlope%.4f.png",plotPath,station,config,slope);
-		cRcut->SaveAs(save_title);
 
 		printf(BLUE"Now to loop back through the data and compute cut tables\n"RESET);
 
@@ -843,7 +788,7 @@ int main(int argc, char **argv)
 				num_total_data+=weight;
 
 
-				if(isBadLivetime(station,unixTime) && !isSim){
+				if(isBadLivetime(station,unixTime)){
 					continue;
 				}
 				remove_bad_runs_and_livetime_data+=weight;
@@ -858,7 +803,6 @@ int main(int argc, char **argv)
 					|| isFirstFiveEvent
 					|| hasBadSpareChanIssue
 					|| isShort)
-					&& !isSim
 					){
 					continue;
 				}
@@ -1197,8 +1141,8 @@ int main(int argc, char **argv)
 		printf("Sim Surf               :           %7.1f, %7.1f, %7.1f | %7.1f, %7.1f, %7.1f \n",fails_surface_first_sim[0],fails_surface_insequence_sim[0],fails_surface_last_sim[0],fails_surface_first_sim[1],fails_surface_insequence_sim[1],fails_surface_last_sim[1]);
 		printf("Sim Rcut               :           %7.1f, %7.1f, %7.1f | %7.1f, %7.1f, %7.1f \n",fails_rcut_first_sim[0],fails_rcut_insequence_sim[0],fails_rcut_last_sim[0],fails_rcut_first_sim[1],fails_rcut_insequence_sim[1],fails_rcut_last_sim[1]);
 
-		printf("V Fit Parameters are %.2f and %.2f \n", fitParams[0], fitParams[1]);
-		printf("Found optimal V intercept at %.2f \n", optimal_intercept);
+		printf("Pol %d Fit Parameters are %.2f and %.2f \n", pol_select, fitParams[0], fitParams[1]);
+		printf("Found optimal pol %d intercept at %.2f \n", pol_select, optimal_intercept);
 
 		int colors [28] = { kBlue, kRed, kGreen, kMagenta, kCyan};
 		for(int pol=0; pol<2; pol++){
@@ -1265,10 +1209,97 @@ int main(int argc, char **argv)
 		}
 		char efficiency_title[400];
 		sprintf(efficiency_title,
-				 "%s/optimize/A%d_config%d_E%2.1f_Efficiency.png",plotPath,station,config,224.);
+			"%s/optimize/A%d_config%d_E%2.1f_Pol%d_Efficiency.png",plotPath,station,config,224.,pol_select);
 				 // "%s/optimize/%d.%d.%d_A%d_config%d_E%2.1f_Efficiency.png",plotPath,year_now, month_now, day_now,station,config,224.);
 		c3->SaveAs(efficiency_title);
 		delete c3;
 
+		/*
+			And now a big multi-panel plot at the end to put all of this information together in one place
+		*/
+
+		vector <double> x_vals_for_line;
+		vector <double> y_vals_for_line;
+		for(double x=0; x<0.020; x+=0.00001){
+			double y_val = (slope * x ) + optimal_intercept;
+			x_vals_for_line.push_back(x);
+			y_vals_for_line.push_back(y_val);
+		}
+		TGraph *cut_line = new TGraph(x_vals_for_line.size(), &x_vals_for_line[0], &y_vals_for_line[0]);
+		
+		double optimal_intercept_line_x[2] = { optimal_intercept, optimal_intercept };
+		double optimal_intercept_line_y[2] = { 0, 3e3 };
+		TGraph *optimal_intercept_line = new TGraph (2, optimal_intercept_line_x, optimal_intercept_line_y);
+
+		TCanvas *cRcut = new TCanvas("","",4*850,2*850);
+		cRcut->Divide(4,2);
+		cRcut->cd(1);
+			h2SNRvsCorr[pol_select]->Draw("colz");
+			h2SNRvsCorr[pol_select]->GetXaxis()->SetTitle("Correlation Value");
+			h2SNRvsCorr[pol_select]->GetYaxis()->SetTitle("SNR");
+			gPad->SetLogz();
+			cut_line->Draw("same");
+			cut_line->SetLineColor(kRed);
+		cRcut->cd(2);
+			hEventsVsSNR->Draw("");
+			hEventsVsSNR->GetXaxis()->SetTitle("SNR Cut (y-intercept value)");
+			hEventsVsSNR->GetYaxis()->SetTitle("Number of Events Cut");
+			hEventsVsSNR->SetTitle("Differential Distribution");
+			gPad->SetLogy();
+			// hEventsVsSNR->GetXaxis()->SetRangeUser(8.6,10.);
+			// hEventsVsSNR->GetYaxis()->SetRangeUser(8e1,1e4);
+		cRcut->cd(3);
+			hNumObserved->Draw("HIST");
+			hNumObserved->GetXaxis()->SetTitle("SNR Cut (y-intercept value)");
+			hNumObserved->GetYaxis()->SetTitle("Number of Events Cut");
+			char fit_title_words[400];
+			sprintf(fit_title_words,"Fit exp(%.2fx + %.2f)",fitParams[0], fitParams[1]);
+			hNumObserved->SetTitle(fit_title_words);
+			// hNumObserved->GetXaxis()->SetRangeUser(8.6,10.);
+			// hNumObserved->GetYaxis()->SetRangeUser(8e1,1e4);
+			fit->Draw("same");
+			gPad->SetLogy();
+		cRcut->cd(4);
+			sprintf( test_title, "data logL: %.2f, P-value: %f", logL, P_value );
+			hToy_logL->SetTitle(test_title);
+			hToy_logL->Draw();
+			hToy_logL->GetYaxis()->SetTitle("Number of Pseudo Experiments");
+			hToy_logL->GetXaxis()->SetTitle("-2log(L)");
+			gDataLogL->SetLineColor(kRed);
+			gDataLogL->Draw("l");
+			gPad->SetLogy();
+		cRcut->cd(5);
+			h2SNRvsCorr_sim[pol_select]->Draw("colz");
+			h2SNRvsCorr_sim[pol_select]->GetXaxis()->SetTitle("Correlation Value");
+			h2SNRvsCorr_sim[pol_select]->GetYaxis()->SetTitle("SNR");
+			gPad->SetLogz();
+			cut_line->Draw("same");
+			cut_line->SetLineColor(kRed);
+		cRcut->cd(6);
+			gSoverSup->Draw("ALP");
+			gSoverSup->GetXaxis()->SetRangeUser(8.,17.);
+			gSoverSup->GetYaxis()->SetRangeUser(0.,3e3);
+			gSoverSup->GetYaxis()->SetTitle("S/S_up");
+			gSoverSup->GetYaxis()->SetTitleOffset(1.8);
+			gSoverSup->GetXaxis()->SetTitle("SNR Cut (y-intercept value)");
+			optimal_intercept_line->Draw("same");
+			optimal_intercept_line->SetLineColor(kRed);
+			char sup_plot_words[400];
+			sprintf(sup_plot_words,"Peak S/S_up %.2f ",optimal_intercept);
+			gSoverSup->SetTitle(sup_plot_words);
+		cRcut->cd(7);
+			eff_soft_short_cal_wfrms[pol_select]->Draw("");
+			eff_soft_short_cal_wfrms_box[pol_select]->Draw("same");
+			eff_soft_short_cal_wfrms_box_surf[pol_select]->Draw("same");
+			eff_soft_short_cal_wfrms_box_surf_rcut[pol_select]->Draw("same");
+				TLegend *leg = new TLegend(0.5,0.4,0.9,0.2);
+				leg->AddEntry(eff_soft_short_cal_wfrms[pol_select],"Cut WFMRS","l");
+				leg->AddEntry(eff_soft_short_cal_wfrms_box[pol_select],"+Cut Cal Pulser Reco","l");
+				leg->AddEntry(eff_soft_short_cal_wfrms_box_surf[pol_select],"+Cut Surface","l");
+				leg->AddEntry(eff_soft_short_cal_wfrms_box_surf_rcut[pol_select],"+Cut Peak/Corr","l");
+				leg->Draw();
+		char save_title[400];
+		sprintf(save_title,"%s/optimize/A%d_config%d_Pol%d_Optimization_RCutSlope%.4f.png",plotPath,station,config,pol_select,slope);
+		cRcut->SaveAs(save_title);
 	}
 }

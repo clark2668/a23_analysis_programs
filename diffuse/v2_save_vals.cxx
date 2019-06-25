@@ -274,7 +274,7 @@ int main(int argc, char **argv)
 		char summary_file_name[400];
 		if(isSimulation){
 			if(year_or_energy<25)
-				sprintf(summary_file_name,"%s/CWID/A%d/c%d/E%2.1f/CWID_station_%d_run_%d.root",SimDirPath,station,config,year_or_energy,station,runNum);
+				sprintf(summary_file_name,"%s/CWID/A%d/c%d/E%2.2f/CWID_station_%d_run_%d.root",SimDirPath,station,config,year_or_energy,station,runNum);
 			else
 				sprintf(summary_file_name,"%s/CWID/A%d/c%d/E%d/CWID_station_%d_run_%d.root",SimDirPath,station,config,int(year_or_energy),station,runNum);
 		}
@@ -343,7 +343,7 @@ int main(int argc, char **argv)
 
 			unixTime_out=unixTime_in; //copy over the unixtime
 			eventNumber_out=eventNumber_in;
-			if(eventNumber_out<5){
+			if(eventNumber_out<5 && !isSimulation){ //eep, never check this for simulation, will be huge efficiency hit!
 				isFirstFiveEvent=true;
 			}
 
@@ -491,7 +491,7 @@ int main(int argc, char **argv)
 				threshCW = 1.5;
 			}
 			else if(station==3){
-				threshCW = 2.;
+				threshCW = 1.0;
 			}
 			vector<double> badFreqList_fwd;
 			vector<double> badSigmaList_fwd;

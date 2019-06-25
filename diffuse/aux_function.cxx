@@ -1,144 +1,7 @@
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-////	v2_final_plots.cxx 
-////	A23 diffuse, make plots of the final cut parameter space
-////
-////	Nov 2018
-////////////////////////////////////////////////////////////////////////////////
-
-//C++
-#include <algorithm>
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <math.h>
-#include <sys/stat.h>
-
-//ROOT Includes
-#include "TTree.h"
-#include "TFile.h"
-#include "TH2D.h"
-#include "TCanvas.h"
-#include "TStyle.h"
-#include "TF1.h"
-#include "TLegend.h"
-#include "TRandom3.h"
-#include "TChain.h"
-
-// analysis custom
-#include "tools_Cuts.h"
-#include "tools_Stats.h"
-#include "tools_CommandLine.h"
-#include "tools_outputObjects.h"
-
-using namespace std;
-
-int Optimize(int station, int config, int pol_select, double slope, double &background_out, double &signal_out, double &s_over_sup_out, double &pval_out, bool doPrint);
-
-int main(int argc, char **argv)
-{
-	
-	time_t time_now = time(0); //get the time now                                                                                                                                                                  
-	tm *time = localtime(&time_now);
-	int year_now = time -> tm_year + 1900;
-	int month_now = time -> tm_mon + 1;
-	int day_now = time -> tm_mday;
-
-	stringstream ss;
-	gStyle->SetOptStat(11);
-
-	char *plotPath(getenv("PLOT_PATH"));
-	if (plotPath == NULL) std::cout << "Warning! $PLOT_PATH is not set!" << endl;
-
-	if(argc<5){
-		cout<< "Usage\n" << argv[0] << " <1-station> <2-config> <3-pol> <4-slope>"<<endl;;
-		return -1;
-	}
-
-	int station = atoi(argv[1]);
-	int config = atoi(argv[2]);
-	int pol_select=atoi(argv[3]);
-	double slope=double(atof(argv[4]));
-
-	if(station!=2 && station!=3){
-		printf("No good! You asked for station %d, but this code only works for stations 2 and 3 \n",station);
-		return -1;
-	}
-
-	double back_estimate[5];
-	double unscaled_signal[5];
-	double optminal_s_over_sup[5];
-	double p_value[5];
-	int successful_optimization[5];
-
-	for(int this_config=0; this_config<5; this_config++){
-		back_estimate[this_config]=0.;
-		unscaled_signal[this_config]=0.;
-		optminal_s_over_sup[this_config]=0.;
-		p_value[this_config]=0.;
-	}
-
-	double total_livetime=1142.46; //total livetime of the experiment in days
-	double live_frac[5]={
-		0.15674,
-		0.12477,
-		0.08275,
-		0.38428,
-		0.25146
-	};
-
-	double total_livetime_frac=0.;
-	for(int this_config=config; this_config<config+1; this_config++){
-		printf("I'm going to try and optimize config %d \n", this_config);
-		// the optimizer will return "1" if it was successful
-		successful_optimization[this_config] = Optimize(station,
-														this_config,
-														pol_select,
-														slope,
-														back_estimate[this_config],
-														unscaled_signal[this_config],
-														optminal_s_over_sup[this_config],
-														p_value[this_config],
-														true);
-		if(successful_optimization[this_config]){
-			printf("Successful optimization: Config %d, Pol %d, Slope %.2f has back estimate %.6f, unscaled signal %.6f\n",this_config, pol_select, slope, back_estimate[this_config], unscaled_signal[this_config]);
-		}
-	}
-
-	// double scaleFac=1e-4;
-	// double poissonCdf = 
-
-	// for(int this_config=1; this_config<2){
-
-	// }
-}
-
-/*
-	To call the mega optimizer, you need to have "Vals_for_Cuts_Files" ready for both data and simulation
-	It will try to loop through and do the exponetial fitting of the differential distribution
-	Then, it will compute S over S_up, and select the optimal S/S_up
-*/
-
-int Optimize(int station, int config, int pol_select, double slope, double &background_out, double &signal_out, double &s_over_sup_out, double &pval_out, bool doPrint){
-
-	if(config<1 || config>5){
-		printf(RED"You asked for config %d, which is silly. Returning a fail.\n"RESET);
-		return -1;
-	}
-	if(pol_select!=0 && pol_select!=1){
-		printf(RED"You asked for pol %d, which is silly. Returning a fail.\n"RESET,pol_select);
-		return -1;
-	}
-	if(slope>0){
-		printf(RED"You have asked for a slope of %.2f, which is positive and silly. Returning a fail.\n"RESET,slope);
-		return -1;
-	}
-
-	char *plotPath(getenv("PLOT_PATH"));
-	if (plotPath == NULL) std::cout << "Warning! $PLOT_PATH is not set!" << endl;
-	vector<int> BadRunList=BuildBadRunList(station);
+void Optimize(int station, int config, int pol_select, double slope, double &background_out, double &signal_out, double &s_over_sup_out, bool doPrint){
 
 	double select_slope=slope;
+
 
 	// let's see if we can do it with arrays....
 	int numSNRbins=200;
@@ -174,7 +37,7 @@ int Optimize(int station, int config, int pol_select, double slope, double &back
 	dataHTree.Add(the_data);
 	dataAllTree.Add(the_data);
 	int numDataEvents = dataVTree.GetEntries();
-	printf(BLUE"Num of data entries is %d \n"RESET, numDataEvents);
+	printf("Num of data entries is %d \n", numDataEvents);
 
 	double max=0.05;
 	TH2D *h2SNRvsCorr_data[2]; // SNR on Y axis, Corr on X axis, like in the TB
@@ -244,27 +107,11 @@ int Optimize(int station, int config, int pol_select, double slope, double &back
 			dataHTree.SetBranchAddress(ss.str().c_str(),&frac_of_power_notched_H[i-8]);
 		}
 
-		dataAllTree.GetEvent(0);
-		int currentRunNum = runNum;
-		bool isThisABadRun = isBadRun(station,runNum,BadRunList);
-
 		for(int event=0; event<numDataEvents; event++){
 			dataVTree.GetEvent(event);
 			dataHTree.GetEvent(event);
 			dataAllTree.GetEvent(event);
-			if(runNum!=currentRunNum){
-				// printf("Incrementing bad run number to %d \n",runNum);
-				// std::cout<<"*";
-				currentRunNum=runNum;
-				isThisABadRun = isBadRun(station,runNum, BadRunList);
-				if(isThisABadRun)
-					printf(RED"*"RESET);
-					// printf("     Yup, run %d is bad \n",runNum);
-				else
-					printf(GREEN"*"RESET);
-
-			}
-			if( isSoft || isBadEvent || hasBadSpareChanIssue || isFirstFiveEvent || isShort || isCal || isThisABadRun){
+			if( isSoft || isBadEvent || hasBadSpareChanIssue || isFirstFiveEvent || isShort || isCal || badRun){
 				continue;
 			}
 			if(isBadLivetime(station,unixTime)){
@@ -288,10 +135,7 @@ int Optimize(int station, int config, int pol_select, double slope, double &back
 						}
 					} //refiltered?
 					if(!failsCWPowerCut){
-						h2SNRvsCorr_data[pol]->Fill(corr_val[pol],snr_val[pol],weight);
-						// if(snr_val[pol]>6.5){
-						// 	printf("Run %d, event %d has SNR %.2f \n", runNum, event, snr_val[pol]);
-						// }
+						h2SNRvsCorr[pol]->Fill(corr_val[pol],snr_val[pol],weight);
 						for(int bin=0; bin<numSNRbins; bin++){ //check all potential intercepts
 							double this_y_val = (slope * corr_val[pol] ) + intercept[bin]; // compute the SNR to pass at this intercept
 							// printf("For bin %d, with intercept %.2f, SNR to pass is %.2f \n", bin, intercept[bin], this_y_val);
@@ -307,13 +151,14 @@ int Optimize(int station, int config, int pol_select, double slope, double &back
 			}// loop over polarizations
 		}// loop over events
 	}
-	std::cout<<endl;
+
 
 	/////////////////////////////////////////////////
 	/////////////////////////////////////////////////
 	/// Now for differential distribution etc.
 	/////////////////////////////////////////////////
 	/////////////////////////////////////////////////
+
 
 	// now to get the differential distribution up and running
 	for(int bin=0; bin<numSNRbins-1; bin++){
@@ -326,26 +171,12 @@ int Optimize(int station, int config, int pol_select, double slope, double &back
 		// printf("Bin %d I'm in SNR bin %.2f in the histo and I'm going to fill with %.2f \n", bin, hEventsVsSNR->GetBinCenter(bin+1),numEventsPassed_diff[bin]);
 		hEventsVsSNR->SetBinContent(bin+1,numEventsPassed_diff[bin]);
 	}
-	// int max_bin = hEventsVsSNR->GetMaximumBin();
-	// int fit_start_bin = max_bin+14;
-	// double start_of_fit = hEventsVsSNR->GetBinCenter(fit_start_bin);
-	// int last_filled_bin = hEventsVsSNR->FindLastBinAbove(0.,1);
-	// last_filled_bin+=5; // go up two more bins just to make sure the fit is over
-	// double end_of_fit = hEventsVsSNR->GetBinCenter(last_filled_bin);
-
-	// try with fit starting half-way between maximum bin and last fille dbin
 	int max_bin = hEventsVsSNR->GetMaximumBin();
-	int last_filled_bin = hEventsVsSNR->FindLastBinAbove(0.,1);
-	int fit_start_bin=int((last_filled_bin - max_bin)/2) + max_bin;
+	int fit_start_bin = max_bin+14;
 	double start_of_fit = hEventsVsSNR->GetBinCenter(fit_start_bin);
-	double end_of_fit = hEventsVsSNR->GetBinCenter(last_filled_bin+2.); //go two bins more just to make sure fit is over
-	
-	printf("Last filled bin is bin %d and value %.2f \n", last_filled_bin, hEventsVsSNR->GetBinCenter(last_filled_bin));
-	printf("Max bin is bin %d and value %.2f \n", max_bin, hEventsVsSNR->GetBinCenter(max_bin));
-	printf("Proposed start of fit is bin %d and value %.2f \n", fit_start_bin, hEventsVsSNR->GetBinCenter(fit_start_bin));
-
-	// return 1;
-
+	int last_filled_bin = hEventsVsSNR->FindLastBinAbove(0.,1);
+	last_filled_bin+=5; // go up two more bins just to make sure the fit is over
+	double end_of_fit = hEventsVsSNR->GetBinCenter(last_filled_bin);
 	// printf("Start of fit is %.2f and end of fit is %.2f \n", start_of_fit, end_of_fit);
 
 	// now we exponential fit
@@ -356,17 +187,12 @@ int Optimize(int station, int config, int pol_select, double slope, double &back
 	int status = hEventsVsSNR->Fit("ExpFit","LL,R");
 	if(status!=0){
 		printf("Something went wrong with the fit! Quitting...\n");
-		return -1;
+		return 0;
 	}
 	double fitParams[2];
 	fitParams[0] = fit->GetParameter(0);
 	fitParams[1] = fit->GetParameter(1);
-	double fitErrors[2];
-	fitErrors[0] = fit->GetParError(0);
-	fitErrors[1] = fit->GetParError(1);
-	printf("Fit Parameters are %.2f and %.2f with error %.3f and %.3f \n", fitParams[0], fitParams[1], fitErrors[0], fitErrors[1]);
-
-	return 1;
+	printf("Fit Parameters are %.2f and %.2f \n", fitParams[0], fitParams[1]);
 
 	double binWidthIntercept = hEventsVsSNR->GetBinWidth(1);
 	double leftBoundary = start_of_fit - binWidthIntercept/2.;
@@ -462,7 +288,6 @@ int Optimize(int station, int config, int pol_select, double slope, double &back
 
 	// vertical line for log likelihood
 	double P_value = less_BestFit_logL / Total_Toy_logL;
-	pval_out = P_value;
 	double DataLogL_x[2] = { logL, logL };
 	double DataLogL_y[2] = { 0, 5 };
 	TGraph *gDataLogL = new TGraph (2, DataLogL_x, DataLogL_y);
@@ -492,8 +317,7 @@ int Optimize(int station, int config, int pol_select, double slope, double &back
 		// double s_up = GetS_up_TMath(back_estimate,achieved_alpha, 0.9); // compute S_up for this background
 		double s_up = GetS_up(back_estimate[bin],achieved_alpha, 0.9); // compute S_up for this background
 		S_up_array[bin] = s_up;
-		if(cut<14)
-			printf("For cut %.2f background estimate is %.3f with sup %.2f \n",cut,back_estimate[bin],S_up_array[bin]);
+		printf("For cut %.2f background estimate is %.3f with sup %.2f \n",cut,back_estimate[bin],S_up_array[bin]);
 	}
 
 	/////////////////////////////////////////////////
@@ -510,12 +334,12 @@ int Optimize(int station, int config, int pol_select, double slope, double &back
 	TChain simHTree("HTree");
 	TChain simAllTree("AllTree");
 	char the_sims[500];
-	sprintf(the_sims,"/fs/scratch/PAS0654/ara/sim/ValsForCuts/A%d/c%d/E%d/cutvals_drop_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config,224);
+	sprintf(the_sims,"/fs/scratch/PAS0654/ara/sim/ValsForCuts/A%d/c%d/E%d/cutvals_drop_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config,int(year_or_energy));
 	simVTree.Add(the_sims);
 	simHTree.Add(the_sims);
 	simAllTree.Add(the_sims);
 	int numSimEvents = simVTree.GetEntries();
-	printf(BLUE"Number of sim entries is %d\n"RESET, numSimEvents);
+	printf("Num of sim entries is %d \n", numSimEvents);
 
 	TH2D *h2SNRvsCorr_sim[2]; // SNR on Y axis, Corr on X axis, like in the TB
 	h2SNRvsCorr_sim[0]=new TH2D("","V Sim",100,0,max,30,0,30);
@@ -626,9 +450,6 @@ int Optimize(int station, int config, int pol_select, double slope, double &back
 		} // loop over events
 	} // scoping
 		
-
-	printf(BLUE"About to compute S over S/S_up\n"RESET);
-
 	double SoverSup[numSNRbins];
 	for(int bin=0; bin<numSNRbins; bin++){
 		double this_S = S_array[bin];
@@ -640,8 +461,7 @@ int Optimize(int station, int config, int pol_select, double slope, double &back
 			this_SoverSup = this_S/this_Sup;
 
 		SoverSup[bin] = this_SoverSup;
-		if(intercept[bin]>=8 && intercept[bin]<16.)
-			printf("For bin %d, intercept %.2f, S is %.2f and S_up is %.2f for S/S_up of %.2f  \n", bin,intercept[bin],this_S, this_Sup, this_SoverSup);
+		printf("For bin %d, intercept %.2f, S is %.2f and S_up is %.2f for S/S_up of %.2f  \n", bin,intercept[bin],this_S, this_Sup, this_SoverSup);
 	}
 	double max_SoverSup=0.;
 	double optimal_intercept=0.;
@@ -663,16 +483,12 @@ int Optimize(int station, int config, int pol_select, double slope, double &back
 			}
 		}
 	}
-	/*
-		Finally, we need to pass out the important parameters we came in caring about
-	*/
 	background_out = optimal_background_estimate;
-	signal_out = max_signal;
+	sinal_out = max_signal;
 	s_over_sup_out = max_SoverSup;
 	TGraph *gSoverSup = new TGraph(numSNRbins,intercept,SoverSup);
 
-	printf(GREEN"Found optimal intercept at %.2f with %.4f background events \n"RESET, optimal_intercept, optimal_background_estimate);
-	printf(GREEN"The maximum unscaled signal is %.3f with a max s_over_sup of %.2f \n"RESET,signal_out,max_SoverSup);
+	printf("Found optimal intercept at %.2f with %.4f background evnets \n", optimal_intercept, optimal_background_estimate);
 	double select_inter=optimal_intercept;
 
 	if(doPrint){
@@ -692,9 +508,9 @@ int Optimize(int station, int config, int pol_select, double slope, double &back
 		TCanvas *cRcut = new TCanvas("","",4*850,2*850);
 		cRcut->Divide(4,2);
 		cRcut->cd(1);
-			h2SNRvsCorr_data[pol_select]->Draw("colz");
-			h2SNRvsCorr_data[pol_select]->GetXaxis()->SetTitle("Correlation Value");
-			h2SNRvsCorr_data[pol_select]->GetYaxis()->SetTitle("SNR");
+			h2SNRvsCorr[pol_select]->Draw("colz");
+			h2SNRvsCorr[pol_select]->GetXaxis()->SetTitle("Correlation Value");
+			h2SNRvsCorr[pol_select]->GetYaxis()->SetTitle("SNR");
 			gPad->SetLogz();
 			cut_line->Draw("same");
 			cut_line->SetLineColor(kRed);
@@ -735,7 +551,7 @@ int Optimize(int station, int config, int pol_select, double slope, double &back
 			cut_line->SetLineColor(kRed);
 		cRcut->cd(6);
 			gSoverSup->Draw("ALP");
-			gSoverSup->GetXaxis()->SetRangeUser(8.,14.);
+			gSoverSup->GetXaxis()->SetRangeUser(8.,13.);
 			gSoverSup->GetYaxis()->SetRangeUser(0.,3e3);
 			gSoverSup->GetYaxis()->SetTitle("S/S_up");
 			gSoverSup->GetYaxis()->SetTitleOffset(1.8);
@@ -760,5 +576,4 @@ int Optimize(int station, int config, int pol_select, double slope, double &back
 		sprintf(save_title,"%s/optimize/A%d_config%d_Pol%d_Optimization_RCutSlope%.4f.png",plotPath,station,config,pol_select,slope);
 		cRcut->SaveAs(save_title);
 	}
-	return 1;
 }
