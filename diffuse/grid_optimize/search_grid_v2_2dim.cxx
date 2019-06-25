@@ -1,9 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-////	v2_final_plots.cxx 
-////	A23 diffuse, make plots of the final cut parameter space
+////    This time exhaustive search grid w/ S/Sup, where Sup is Sup for sum of backgrounds
 ////
-////	Nov 2018
 ////////////////////////////////////////////////////////////////////////////////
 
 //C++
@@ -51,8 +49,8 @@ double func(double *x, double *p){
 // };
 
 double live_frac[5]={
-	0.55,
-	0.45,
+	0.56,
+	0.44,
 	0.08275,
 	0.38428,
 	0.25146
@@ -62,29 +60,6 @@ double getSignal(double Sbin1, double Sbin2){
 	Sbin1*=live_frac[0];
 	Sbin2*=live_frac[1]*2.; //because Brian was dumb and threw half as many neutrinos in config 2 and config 3
 	return Sbin1 + Sbin2;
-}
-
-void splitSup(double Suptotal, double(&fracs)[5]){
-	for(int i=0; i<5; i++){
-		fracs[i]=Suptotal*live_frac[i];
-	}
-}
-
-/*
-	Takes as arguemnts the livetime fraction
-*/
-double getProductProb(double(&SupFracs)[5],  double(&totalIntegrals)[5], TF1 *theFuncs[5]){
-	double ratios[5] = {0.};
-	for(int i=0; i<2; i++){
-		// cout<<"Sup frac is "<<SupFracs[i]<<endl;
-		ratios[i] = theFuncs[i]->Integral(SupFracs[i],50.)/(totalIntegrals[i]);
-	}
-	double totalProb=1.;
-	for(int i=0; i<2; i++){
-		totalProb*=ratios[i];
-	}
-	// cout<<"          Prob 1 "<<ratios[0]<<" x prob 2 "<<ratios[1]<<" = "<<totalProb<<endl;
-	return totalProb;
 }
 
 using namespace std;
@@ -108,6 +83,12 @@ int main(int argc, char **argv)
 		cout<< "Usage\n" << argv[0] << " <1-station> <2-pol> <3-slope>"<<endl;;
 		return -1;
 	}
+
+	// for(double back=10.; back>0.1; back-=0.1){
+	// 	double achieved_alpha;
+	// 	cout<<"back is "<<back<<" and sup is "<<GetS_up(back,achieved_alpha,0.9)<<endl;
+	// }
+	// return 0;
 
 	int station = atoi(argv[1]);
 	int pol_select=atoi(argv[2]);
@@ -179,16 +160,6 @@ int main(int argc, char **argv)
 
 	stringstream ss1;
 
-	TF1 *funcs[5];
-	for(int i=0; i<5; i++){
-		ss1.str("");
-		ss1<<"func"<<i;
-		funcs[i] = new TF1(ss1.str().c_str(),func,0,50,2);
-		funcs[i]->SetParameters(0,0.); //always initiliaze signal to zero
-	}
-
-	double total_integrals[5];
-
 	int best_bins[5] = {0};
 	double best_S_over_Sup = -10000.;
 
@@ -202,9 +173,7 @@ int main(int argc, char **argv)
 	for(int bin1=0; bin1<numBins; bin1++){ // loop over config 1 bins
 		
 		double back1 = backgrounds_all[0][bin1];
-		// if(back1>10.) continue; // no background this large in single bin will ever be viable as part of final answer
-		funcs[0]->SetParameter(1,back1); // set the mean of the background Poisson
-		total_integrals[0] = funcs[0]->Integral(0,50.);
+		if(back1>10.) continue; // no background this large in single bin will ever be viable as part of final answer
 		// printf("For bin1 %d, at intercept %.2f we find %.6f num backgrounds, and total integral of %.6f \n",bin1,intercept[bin1],back1, total_integrals[0]);
 		// printf("For bin1 %d, at intercept %.2f, we find %.10E num backgrounds, and total integral of %.6f with signal %.2f \n", bin1,intercept[bin1],back1,total_integrals[0], signal_all[0][bin1]);
 		
@@ -214,57 +183,24 @@ int main(int argc, char **argv)
 
 
 			double back2 = backgrounds_all[1][bin2];
-			// if(back2>10.) continue; // no background this large in single bin will ever be viable as part of final answer
-
-			funcs[1]->SetParameter(1,back2); // set the mean of the background Poisson
-			total_integrals[1] = funcs[1]->Integral(0,50.);
+			if(back2>10.) continue; // no background this large in single bin will ever be viable as part of final answer
 			// printf("     For bin2 %d, at intercept %.2f, we find %.10E num backgrounds, and total integral of %.6f with signal %.2f \n",bin2,intercept[bin2],back2, total_integrals[1], signal_all[1][bin2]);
 
 			// adaptive step size algorithm for locating the ideal sup
 			// this should be much faster than a brute fore scan
 
-			double possibleSup = 100.;
-			double fractionalSup[5];
-			splitSup(possibleSup,fractionalSup);
-			double goal = 0.1;
-			double tolerance = 0.001;
-			double thisProb = getProductProb(fractionalSup,total_integrals,funcs);
-			double diff =  thisProb - goal;
+			double achieved_alpha;
+			double this_Sup = GetS_up(back1+back2,achieved_alpha,0.9);
+			// printf("For back %.2f and %.2f, Sup is %.2f \n",back1,back2,this_Sup );
 
-			double step = possibleSup/2.;
-			int counter = 0.;
-			int maxNumTries=100;
-
-			while(
-				abs(diff) > tolerance
-				&&
-				counter<maxNumTries
-			){
-				// printf("                    For Try %d, prob is %.8f, which has a diff of %.8f\n",counter,thisProb,diff);
-				if(thisProb>goal){
-					// probability is too high! make sup smaller
-					possibleSup+=step;
-					step*=0.5;
-				}
-				else{
-					// probability is too small! make sup bigger
-					possibleSup-=step;
-					step*=0.5;
-				}
-				splitSup(possibleSup,fractionalSup); // with our adjusted Sup, re-divvy up the Sup
-				thisProb = getProductProb(fractionalSup,total_integrals,funcs);
-				diff = thisProb - goal; // and check again how far off we are
-				counter++; //don't forget to increment counter!
-			}
-
-			Sup->SetBinContent(bin1,bin2,possibleSup);
+			Sup->SetBinContent(bin1,bin2,this_Sup);
 
 			// cout<<"               I think I found the optimum with an Sup of "<<possibleSup<<" in only "<<counter<<" counts"<<endl;
 			double totalSignal = getSignal(signal_all[0][bin1],signal_all[1][bin2]); // this function livetime adjusts the flux and fixes a numerical mistake brian made
 			
 			// S->SetBinContent(bin1,bin2,(signal_all[0][bin1]*live_frac[0])+(signal_all[1][bin2]*live_frac[1]*2.));
 			S->SetBinContent(bin1,bin2,totalSignal);
-			double this_S_over_Sup = totalSignal/possibleSup;
+			double this_S_over_Sup = totalSignal/this_Sup;
 			
 			S_over_Sup->SetBinContent(bin1,bin2,this_S_over_Sup);
 
@@ -352,7 +288,7 @@ int main(int argc, char **argv)
 		Sup->GetYaxis()->SetTitleOffset(1.4);
 		Sup->GetZaxis()->SetTitleOffset(1.4);
 		Sup->GetZaxis()->SetTitle("Sup");
-		gPad->SetLogz();
+		// gPad->SetLogz();
 	c->cd(7);
 		S_over_Sup->Draw("colz");
 		S_over_Sup->SetTitle("S/Sup");
@@ -361,9 +297,10 @@ int main(int argc, char **argv)
 		S_over_Sup->GetYaxis()->SetTitleOffset(1.4);
 		S_over_Sup->GetZaxis()->SetTitleOffset(1.4);
 		S_over_Sup->GetZaxis()->SetTitle("S/Sup");
+		S_over_Sup->GetZaxis()->SetRangeUser(800,1800);
 		gPad->SetLogz();
 	char save_title[400];
-	sprintf(save_title,"/users/PAS0654/osu0673/A23_analysis_new2/AraRoot/analysis/a23_analysis_programs/diffuse/grid_optimize/plots.png");
+	sprintf(save_title,"/users/PAS0654/osu0673/A23_analysis_new2/AraRoot/analysis/a23_analysis_programs/diffuse/grid_optimize/plots_v2.png");
 	c->SaveAs(save_title);	
 
 }
