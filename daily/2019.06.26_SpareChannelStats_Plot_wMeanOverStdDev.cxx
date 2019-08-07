@@ -66,8 +66,6 @@ int main(int argc, char **argv)
 	// TDatime stop_long(2016, 12, 31, 24, 00,00);
 	// int stop_bin_long = stop_long.Convert();
 
-	TH1D *stamp_timing = new TH1D("timeStamp","timeStamp",110,-100,1e8);
-
 	// TH1D *distro[16];
 	TH2D *distro_time[4];
 	// TH2D *distro_time_long[16];
@@ -87,23 +85,23 @@ int main(int argc, char **argv)
 		// distro_time_long[i]->GetXaxis()->SetNdivisions(8,6,0,false);
 	}
 
-	TH2D *distro_2dcut = new TH2D("","",50,0,100,4,-0.5,3.5);
+	TH2D *distro_2dcut = new TH2D("","",50,0,100,5,-0.5,4.5);
 	TGraph *TroubleEventOVerlay = new TGraph();
 	int num_in_overlay=0;
 
-	TH1D *hRMS[4];
-	TH1D *hRMS_cal[4];
-	TH1D *hRMS_stragglers[4];
+	TH1D *hMeanOverStdDev[4];
+	TH1D *hMeanOverStdDev_cal[4];
+	TH1D *hMeanOverStdDev_stragglers[4];
 	for(int i=0; i<4; i++){
 		stringstream ss1;
 		ss1<<"Ch"<<i;
-		hRMS[i] = new TH1D(ss1.str().c_str(),"",100,0,100);
+		hMeanOverStdDev[i] = new TH1D(ss1.str().c_str(),"",100,0,100);
 		ss1.str("");
 		ss1<<"ChCal"<<i;
-		hRMS_cal[i] = new TH1D(ss1.str().c_str(),"",100,0,100);
+		hMeanOverStdDev_cal[i] = new TH1D(ss1.str().c_str(),"",100,0,100);
 		ss1.str("");
 		ss1<<"ChStragglers"<<i;
-		hRMS_stragglers[i] = new TH1D(ss1.str().c_str(),"",401,0,401);
+		hMeanOverStdDev_stragglers[i] = new TH1D(ss1.str().c_str(),"",401,0,401);
 	}
 	int num_total=0;
 
@@ -132,6 +130,7 @@ int main(int argc, char **argv)
 		double spareChannelMaxSamp[4];
 		double spareChannelMinSamp[4];
 		double spareChannelRMS[4];
+		double spareChannelMaxMeanOverStdDev[4];
 		int runNum;
 		int unixTime;
 		int unixTimeUs;
@@ -147,6 +146,7 @@ int main(int argc, char **argv)
 		inTree->SetBranchAddress("spareChannelMaxSamp",&spareChannelMaxSamp);
 		inTree->SetBranchAddress("spareChannelMinSamp",&spareChannelMinSamp);
 		inTree->SetBranchAddress("spareChannelRMS",&spareChannelRMS);
+		inTree->SetBranchAddress("spareChannelMaxMeanOverStdDev",&spareChannelMaxMeanOverStdDev);
 		inTree->SetBranchAddress("run",&runNum);
 		inTree->SetBranchAddress("eventNumber",&eventNumber);
 
@@ -263,13 +263,9 @@ int main(int argc, char **argv)
 			// if(runNum==2472 && event==41) TroubleEvent=true;
 			if(runNum==3663 && event==6){
 				TroubleEvent=true;
-				cout<<"Hi, trouble event here"<<endl;
 			}
 
-
 			// what about A2
-
-
 			num_total++;
 			bool printThisEvent=false;
 			int numBad=0;
@@ -277,8 +273,8 @@ int main(int argc, char **argv)
 
 			for(double level=0.; level<100.; level+=2.){
 				int numBad=0;
-				for(int i=0; i<3; i++){
-					if(spareChannelRMS[i]>level)
+				for(int i=0; i<4; i++){
+					if(spareChannelMaxMeanOverStdDev[i]>level)
 						numBad++;
 				}
 				distro_2dcut->Fill(level,numBad);
@@ -290,37 +286,23 @@ int main(int argc, char **argv)
 			}
 
 			for(int i=0; i<4; i++){
-				double thisRMS = spareChannelRMS[i];
-				hRMS[i]->Fill(thisRMS);
+				double thisRMS = spareChannelMaxMeanOverStdDev[i];
+				hMeanOverStdDev[i]->Fill(thisRMS);
 				distro_time[i]->Fill(unixTime, thisRMS);
 				// if(thisRMS>99.) thisRMS=99.;
 				if(isCal)
-					hRMS_cal[i]->Fill(thisRMS);
+					hMeanOverStdDev_cal[i]->Fill(thisRMS);
 				if(TroubleEvent){
-					hRMS_stragglers[i]->Fill(thisRMS);
+					hMeanOverStdDev_stragglers[i]->Fill(thisRMS);
 					// printf("Trouble event! This RMS is %.2f \n", thisRMS);
 				}
-				//if(thisRMS>50 && runNum!=480 && i==0 ) printThisEvent=true;
-				// if(thisRMS>30 && i==0){
-				// 	printThisEvent=true;
-				// }
-				// if(thisRMS>20 && i!=3)
-				if(thisRMS>15)
+				if(thisRMS>50)
 					numBad++;
-				// if(thisRMS>60 && i!=3)
-				if(thisRMS>60)
-					numReallBad++;
 				// printf("Channel %d RMS is %.2f \n", i, thisRMS);
 			}
-			// if(TroubleEvent)
-				// printf("Run %d Event %d has %d bad spare chans \n",runNum,event,numBad);
-			if(numBad>1 || numReallBad>0)
+			if(numBad>1)
 				numBadEventsTotal++;
-			// if(printThisEvent)
-			// 	printf("Run %d \n", runNum);
 			printThisEvent=false;
-			if((numBad>1 || numReallBad>0) && isCal)
-				printThisEvent=true;
 			if(printThisEvent){
 				PlotThisEvent(station,runNum,event);
 			}
@@ -354,44 +336,44 @@ int main(int argc, char **argv)
 		// hRMS[i]->Scale(1./hRMS[i]->GetMaximum());
 		// hRMS_cal[i]->Scale(1./hRMS_cal[i]->GetMaximum());
 		// hRMS_stragglers[i]->Scale(1./hRMS_stragglers[i]->GetMaximum());
-		hRMS[i]->Draw("");
-		hRMS[i]->SetLineWidth(4);
-		hRMS[i]->SetLineColor(kBlue);
-		hRMS_cal[i]->Draw("same");
-		hRMS_cal[i]->SetLineColor(kGreen);
-		hRMS_cal[i]->SetLineWidth(4);
-		hRMS_stragglers[i]->Draw("same");
-		hRMS_stragglers[i]->SetLineColor(kRed);
-		hRMS_stragglers[i]->SetLineWidth(4);
+		hMeanOverStdDev[i]->Draw("");
+		hMeanOverStdDev[i]->SetLineWidth(4);
+		hMeanOverStdDev[i]->SetLineColor(kBlue);
+		hMeanOverStdDev_cal[i]->Draw("same");
+		hMeanOverStdDev_cal[i]->SetLineColor(kGreen);
+		hMeanOverStdDev_cal[i]->SetLineWidth(4);
+		hMeanOverStdDev_stragglers[i]->Draw("same");
+		hMeanOverStdDev_stragglers[i]->SetLineColor(kRed);
+		hMeanOverStdDev_stragglers[i]->SetLineWidth(4);
 		gPad->SetLogy();
-		hRMS[i]->GetYaxis()->SetRangeUser(0.1,1e8);
+		hMeanOverStdDev[i]->GetYaxis()->SetRangeUser(0.1,1e8);
 		// hRMS[i]->GetYaxis()->SetRangeUser(hRMS[i]->GetMinimum(), hRMS[i]->GetMaximum());
-		hRMS[i]->GetYaxis()->SetTitle("Number of Events");
-		hRMS[i]->GetXaxis()->SetTitle("RMS");
-		hRMS[i]->SetTitle(titlesForGraphs[i].c_str());
-		hRMS[i]->GetXaxis()->SetTitleOffset(1.1);
-		hRMS[i]->GetYaxis()->SetTitleOffset(1.1);
-		hRMS[i]->GetZaxis()->SetTitleOffset(1.1);
-		hRMS[i]->GetXaxis()->SetTitleSize(0.06);
-		hRMS[i]->GetYaxis()->SetTitleSize(0.06);
-		hRMS[i]->GetZaxis()->SetTitleSize(0.06);
-		hRMS[i]->GetXaxis()->SetLabelSize(0.06);
-		hRMS[i]->GetYaxis()->SetLabelSize(0.06);
-		hRMS[i]->GetZaxis()->SetLabelSize(0.06);
+		hMeanOverStdDev[i]->GetYaxis()->SetTitle("Number of Events");
+		hMeanOverStdDev[i]->GetXaxis()->SetTitle("RMS");
+		hMeanOverStdDev[i]->SetTitle(titlesForGraphs[i].c_str());
+		hMeanOverStdDev[i]->GetXaxis()->SetTitleOffset(1.1);
+		hMeanOverStdDev[i]->GetYaxis()->SetTitleOffset(1.1);
+		hMeanOverStdDev[i]->GetZaxis()->SetTitleOffset(1.1);
+		hMeanOverStdDev[i]->GetXaxis()->SetTitleSize(0.06);
+		hMeanOverStdDev[i]->GetYaxis()->SetTitleSize(0.06);
+		hMeanOverStdDev[i]->GetZaxis()->SetTitleSize(0.06);
+		hMeanOverStdDev[i]->GetXaxis()->SetLabelSize(0.06);
+		hMeanOverStdDev[i]->GetYaxis()->SetLabelSize(0.06);
+		hMeanOverStdDev[i]->GetZaxis()->SetLabelSize(0.06);
 		// hRMS[i]->GetXaxis()->SetRangeUser(10,40);
 		if(i+1==1){
 			TLegend *leg = new TLegend(0.48,0.6,0.9,0.9);
-			leg->AddEntry(hRMS[i],"All Events","l");
-			leg->AddEntry(hRMS_cal[i],"Tagged Cal Pulsers","l");
+			leg->AddEntry(hMeanOverStdDev[i],"All Events","l");
+			leg->AddEntry(hMeanOverStdDev_cal[i],"Tagged Cal Pulsers","l");
 			// leg->AddEntry(hRMS_stragglers[i],"Straggling Events","l");
 			leg->Draw();
 		}
-		double total = hRMS[i]->Integral();
-		double above = hRMS[i]->Integral(20,100);
-		printf("Number above 30 is %d/%d = %2.5f\n",int(above),int(total),double(above/total));
+		double total = hMeanOverStdDev[i]->Integral();
+		double above = hMeanOverStdDev[i]->Integral(50,100);
+		printf("Number above 50 is %d/%d = %2.5f\n",int(above),int(total),double(above/total));
 	}
 	char save_plot_title[400];
-	sprintf(save_plot_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/glitch_detect/%d.%d.%d_Distro_SpareChannelRMS_A%d_c%d_%dEvents.png",year_now,month_now,day_now,station,config,num_total);
+	sprintf(save_plot_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/glitch_detect/%d.%d.%d_Distro_SpareChannelMeanOverStdDev_A%d_c%d_%dEvents.png",year_now,month_now,day_now,station,config,num_total);
 	c->SaveAs(save_plot_title);
 	delete c;
 
@@ -418,7 +400,7 @@ int main(int argc, char **argv)
 		distro_time[i]->GetYaxis()->SetLabelSize(0.06);
 		distro_time[i]->GetZaxis()->SetLabelSize(0.06);
 	}
-	sprintf(save_plot_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/glitch_detect/%d.%d.%d_Distro_SpareChannelRMSvsTime_A%d_c%d_%dEvents.png",year_now,month_now,day_now,station,config,num_total);
+	sprintf(save_plot_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/glitch_detect/%d.%d.%d_Distro_SpareChannelMeanOverStdDevvsTime_A%d_c%d_%dEvents.png",year_now,month_now,day_now,station,config,num_total);
 	c2->SaveAs(save_plot_title);
 	delete c2;
 	
@@ -430,7 +412,7 @@ int main(int argc, char **argv)
 		distro_2dcut->GetZaxis()->SetRangeUser(1e-6,1);
 		distro_2dcut->GetZaxis()->SetRangeUser(distro_2dcut->GetMinimum(),distro_2dcut->GetMaximum());
 		distro_2dcut->GetYaxis()->SetTitle("Number of Channels");
-		distro_2dcut->GetXaxis()->SetTitle("RMS Level");
+		distro_2dcut->GetXaxis()->SetTitle("#mu/(#sigma/#sqrt(N))");
 		distro_2dcut->GetZaxis()->SetTitle("Fraction of Events");
 		distro_2dcut->GetXaxis()->SetTitleOffset(1.1);
 		distro_2dcut->GetYaxis()->SetTitleOffset(1.1);
@@ -442,7 +424,7 @@ int main(int argc, char **argv)
 		distro_2dcut->GetXaxis()->SetLabelSize(0.04);
 		distro_2dcut->GetYaxis()->SetLabelSize(0.04);
 		distro_2dcut->GetZaxis()->SetLabelSize(0.04);
-	sprintf(save_plot_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/glitch_detect/%d.%d.%d_Threshold_NumChannel_Scan_A%d_c%d_%dEvents.png",year_now,month_now,day_now,station,config,num_total);
+	sprintf(save_plot_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/glitch_detect/%d.%d.%d_ThresholdMeanOverStdDev_NumChannel_Scan_A%d_c%d_%dEvents.png",year_now,month_now,day_now,station,config,num_total);
 	c3->SaveAs(save_plot_title);
 	delete c3;
 

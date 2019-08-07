@@ -29,6 +29,7 @@
 #include "UsefulAtriStationEvent.h"
 #include "AraQualCuts.h"
 #include "tools_Cuts.h"
+#include "tools_CommandLine.h"
 
 using namespace std;
 
@@ -66,8 +67,6 @@ int main(int argc, char **argv)
 	// TDatime stop_long(2016, 12, 31, 24, 00,00);
 	// int stop_bin_long = stop_long.Convert();
 
-	TH1D *stamp_timing = new TH1D("timeStamp","timeStamp",110,-100,1e8);
-
 	// TH1D *distro[16];
 	TH2D *distro_time[4];
 	// TH2D *distro_time_long[16];
@@ -87,23 +86,23 @@ int main(int argc, char **argv)
 		// distro_time_long[i]->GetXaxis()->SetNdivisions(8,6,0,false);
 	}
 
-	TH2D *distro_2dcut = new TH2D("","",50,0,100,4,-0.5,3.5);
+	TH2D *distro_2dcut = new TH2D("","",50,0,100,5,-0.5,4.5);
 	TGraph *TroubleEventOVerlay = new TGraph();
 	int num_in_overlay=0;
 
-	TH1D *hRMS[4];
-	TH1D *hRMS_cal[4];
-	TH1D *hRMS_stragglers[4];
+	TH1D *hBlockMeans[4];
+	TH1D *hBlockMeans_cal[4];
+	TH1D *hBlockMeans_stragglers[4];
 	for(int i=0; i<4; i++){
 		stringstream ss1;
 		ss1<<"Ch"<<i;
-		hRMS[i] = new TH1D(ss1.str().c_str(),"",100,0,100);
+		hBlockMeans[i] = new TH1D(ss1.str().c_str(),"",100,0,100);
 		ss1.str("");
 		ss1<<"ChCal"<<i;
-		hRMS_cal[i] = new TH1D(ss1.str().c_str(),"",100,0,100);
+		hBlockMeans_cal[i] = new TH1D(ss1.str().c_str(),"",100,0,100);
 		ss1.str("");
 		ss1<<"ChStragglers"<<i;
-		hRMS_stragglers[i] = new TH1D(ss1.str().c_str(),"",401,0,401);
+		hBlockMeans_stragglers[i] = new TH1D(ss1.str().c_str(),"",401,0,401);
 	}
 	int num_total=0;
 
@@ -132,12 +131,14 @@ int main(int argc, char **argv)
 		double spareChannelMaxSamp[4];
 		double spareChannelMinSamp[4];
 		double spareChannelRMS[4];
+		double spareChannelMaxMeanOverStdDev[4];
 		int runNum;
 		int unixTime;
 		int unixTimeUs;
 		int timeStamp;
 		bool hasDigitizerError=false;
 		int eventNumber;
+		vector<vector< double > > *spareChannelBlockMeans = 0;
 		inTree->SetBranchAddress("isCal", &isCal);
 		inTree->SetBranchAddress("isSoft", &isSoft);
 		inTree->SetBranchAddress("isShort", &isShort);
@@ -147,6 +148,8 @@ int main(int argc, char **argv)
 		inTree->SetBranchAddress("spareChannelMaxSamp",&spareChannelMaxSamp);
 		inTree->SetBranchAddress("spareChannelMinSamp",&spareChannelMinSamp);
 		inTree->SetBranchAddress("spareChannelRMS",&spareChannelRMS);
+		inTree->SetBranchAddress("spareChannelMaxMeanOverStdDev",&spareChannelMaxMeanOverStdDev);
+		inTree->SetBranchAddress("spareChannelBlockMeans",&spareChannelBlockMeans);
 		inTree->SetBranchAddress("run",&runNum);
 		inTree->SetBranchAddress("eventNumber",&eventNumber);
 
@@ -155,174 +158,97 @@ int main(int argc, char **argv)
 		if(starEvery==0) starEvery++;
 		inTree->GetEvent(0);
 
+		if(runNum>8100)
+			continue;
+
 		//now to loop over events
 		for(int event=0; event<numEntries; event++){
-			// cout<<"On event"<<endl;
 			inTree->GetEvent(event);
 			// if(isSoft || eventNumber<5 || runNum==480 || runNum==479 || runNum==485 || runNum==486 || runNum==484 || isBadRun(station,runNum,BadRunList)) continue;
 			if(isSoft || eventNumber<5) continue;
 			// if(isSoft || isShort ) continue;
 			// if(hasDigitizerError || isSoft || isShort || hasA3S4Issue) continue;
 			bool TroubleEvent=false;
-			// config 1
-			// if(runNum==1795 && event==5617) TroubleEvent=true;
-			// if(runNum==1795 && event==5617) TroubleEvent=true;
-			// if(runNum==1805 && event==70) TroubleEvent=true;
-			// if(runNum==1806 && event==41) TroubleEvent=true;
-			// if(runNum==1806 && event==41) TroubleEvent=true;
-			// if(runNum==1806 && event==99) TroubleEvent=true;
-			// if(runNum==1810 && event==52) TroubleEvent=true;
-			// if(runNum==1810 && event==144) TroubleEvent=true;
-			// if(runNum==1810 && event==144) TroubleEvent=true;
-			// if(runNum==1862 && event==1) TroubleEvent=true;
-			// if(runNum==1862 && event==1) TroubleEvent=true;
-
-			// // config 2
-			// // if(runNum==1075 && event==2953) TroubleEvent=true;
-			// if(runNum==476 && event==223) TroubleEvent=true;
-			// if(runNum==476 && event==506) TroubleEvent=true;
-			// if(runNum==476 && event==726) TroubleEvent=true;
-			// if(runNum==553 && event==1) TroubleEvent=true;
-			// if(runNum==711 && event==0) TroubleEvent=true;
-
-			// // config 3
-			// if(runNum==3419 && event==13502) TroubleEvent=true;
-			// if(runNum==3419 && event==13502) TroubleEvent=true;
-			// if(runNum==3419 && event==13676) TroubleEvent=true;
-			// if(runNum==3421 && event==81) TroubleEvent=true;
-			// if(runNum==3421 && event==81) TroubleEvent=true;
-			// if(runNum==3422 && event==49) TroubleEvent=true;
-			// if(runNum==3423 && event==19) TroubleEvent=true;
-			// if(runNum==3423 && event==30) TroubleEvent=true;
-			// if(runNum==3424 && event==107) TroubleEvent=true;
-			// if(runNum==3424 && event==107) TroubleEvent=true;
-			// if(runNum==3426 && event==6) TroubleEvent=true;
-			// // if(runNum==3437 && event==10823) TroubleEvent=true;
-			// if(runNum==3681 && event==0) TroubleEvent=true;
-			// if(runNum==3841 && event==5) TroubleEvent=true;
-			// if(runNum==3979 && event==1) TroubleEvent=true;
-			// if(runNum==3979 && event==1) TroubleEvent=true;
-			// if(runNum==3983 && event==6) TroubleEvent=true;
-			// if(runNum==3983 && event==6) TroubleEvent=true;
-			// if(runNum==3990 && event==7) TroubleEvent=true;
-			// if(runNum==3994 && event==4) TroubleEvent=true;
-			// if(runNum==3994 && event==4) TroubleEvent=true;
-			// if(runNum==4099 && event==1) TroubleEvent=true;
-			// if(runNum==4101 && event==0) TroubleEvent=true;
-			// if(runNum==4101 && event==0) TroubleEvent=true;
-			// if(runNum==4102 && event==1) TroubleEvent=true;
-			// if(runNum==4129 && event==1) TroubleEvent=true;
-			// if(runNum==4129 && event==1) TroubleEvent=true;
-			// if(runNum==4140 && event==6) TroubleEvent=true;
-			// if(runNum==4140 && event==6) TroubleEvent=true;
-			// if(runNum==4141 && event==0) TroubleEvent=true;
-			// if(runNum==4150 && event==4) TroubleEvent=true;
-			// if(runNum==4150 && event==4) TroubleEvent=true;
-			// if(runNum==4167 && event==1) TroubleEvent=true;
-			// if(runNum==4175 && event==1) TroubleEvent=true;
-			// if(runNum==4175 && event==1) TroubleEvent=true;
-			// if(runNum==4214 && event==1) TroubleEvent=true;
-			// if(runNum==4271 && event==0) TroubleEvent=true;
-			// if(runNum==4274 && event==1) TroubleEvent=true;
-			// if(runNum==4921 && event==76) TroubleEvent=true;
-			// if(runNum==4921 && event==76) TroubleEvent=true;
-			// if(runNum==4926 && event==78) TroubleEvent=true;
-			// if(runNum==4926 && event==78) TroubleEvent=true;
-			// if(runNum==4929 && event==97) TroubleEvent=true;
-			// if(runNum==4931 && event==104) TroubleEvent=true;
-			// if(runNum==4931 && event==104) TroubleEvent=true;
-			// if(runNum==4932 && event==69) TroubleEvent=true;
-			// if(runNum==4932 && event==69) TroubleEvent=true;
-			// if(runNum==4933 && event==76) TroubleEvent=true;
-			// if(runNum==4933 && event==89) TroubleEvent=true;
-			// if(runNum==4933 && event==89) TroubleEvent=true;
-			// if(runNum==4938 && event==84) TroubleEvent=true;
-			// if(runNum==4938 && event==84) TroubleEvent=true;
-			// if(runNum==4939 && event==0) TroubleEvent=true;
-			// if(runNum==4939 && event==0) TroubleEvent=true;
-			// if(runNum==4947 && event==13) TroubleEvent=true;
-			// if(runNum==4947 && event==13) TroubleEvent=true;
-			// if(runNum==4948 && event==0) TroubleEvent=true;
-			// if(runNum==4948 && event==0) TroubleEvent=true;
-			// if(runNum==4948 && event==10) TroubleEvent=true;
-			// if(runNum==4948 && event==10) TroubleEvent=true;
-			// if(runNum==4951 && event==14) TroubleEvent=true;
-			// if(runNum==4951 && event==14) TroubleEvent=true;
-			// if(runNum==4956 && event==6) TroubleEvent=true;
-			// if(runNum==4957 && event==84) TroubleEvent=true;
-			// if(runNum==4957 && event==84) TroubleEvent=true;
-			// if(runNum==7760 && event==99) TroubleEvent=true;
-
-			// // config 4
-			// if(runNum==6684 && event==1) TroubleEvent=true;
-
-			// // config 5
-			// if(runNum==2001 && event==0) TroubleEvent=true;
-			// if(runNum==2466 && event==2232) TroubleEvent=true;
-			// if(runNum==2466 && event==2232) TroubleEvent=true;
-			// if(runNum==2472 && event==41) TroubleEvent=true;
 			if(runNum==3663 && event==6){
 				TroubleEvent=true;
-				cout<<"Hi, trouble event here"<<endl;
 			}
-
 
 			// what about A2
-
-
 			num_total++;
 			bool printThisEvent=false;
-			int numBad=0;
-			int numReallBad=0;
-
-			for(double level=0.; level<100.; level+=2.){
-				int numBad=0;
-				for(int i=0; i<3; i++){
-					if(spareChannelRMS[i]>level)
-						numBad++;
-				}
-				distro_2dcut->Fill(level,numBad);
-			}
 
 			if(TroubleEvent){
 				// TroubleEventOverlay->SetPoint(numTroubleFound,);
 				num_in_overlay++;
 			}
 
+			vector< vector< double > > forMe;
 			for(int i=0; i<4; i++){
-				double thisRMS = spareChannelRMS[i];
-				hRMS[i]->Fill(thisRMS);
-				distro_time[i]->Fill(unixTime, thisRMS);
-				// if(thisRMS>99.) thisRMS=99.;
-				if(isCal)
-					hRMS_cal[i]->Fill(thisRMS);
-				if(TroubleEvent){
-					hRMS_stragglers[i]->Fill(thisRMS);
-					// printf("Trouble event! This RMS is %.2f \n", thisRMS);
-				}
-				//if(thisRMS>50 && runNum!=480 && i==0 ) printThisEvent=true;
-				// if(thisRMS>30 && i==0){
-				// 	printThisEvent=true;
-				// }
-				// if(thisRMS>20 && i!=3)
-				if(thisRMS>15)
-					numBad++;
-				// if(thisRMS>60 && i!=3)
-				if(thisRMS>60)
-					numReallBad++;
-				// printf("Channel %d RMS is %.2f \n", i, thisRMS);
+				forMe.push_back(spareChannelBlockMeans->at(i));
 			}
-			// if(TroubleEvent)
-				// printf("Run %d Event %d has %d bad spare chans \n",runNum,event,numBad);
-			if(numBad>1 || numReallBad>0)
+
+			for(int i=0; i<4; i++){
+				// vector<double> localBlockMeans = spareChannelBlockMeans->at(i);
+				for(int block=0; block<forMe[i].size(); block++){
+					double thisMean = abs(forMe[i][block]);
+					hBlockMeans[i]->Fill(thisMean);	
+					if(isCal){
+						hBlockMeans_cal[i]->Fill(thisMean);
+					}
+					if(TroubleEvent){
+						hBlockMeans_stragglers[i]->Fill(thisMean);
+					}
+				}
+			}
+
+			int shortest=300;
+			for(int i=0; i<4; i++){
+				if(forMe[i].size()<shortest){
+					shortest=forMe[i].size();
+				}
+			}
+			for(int i=0; i<4; i++){
+				// printf("For chan %d, length is %d \n",i, means[i].size());
+				while(forMe[i].size()>shortest){
+					forMe[i].pop_back();
+				}
+			}
+
+			// cout<<"Got here event "<<event<<endl;
+			int numViolatingBlocks=0;
+			for(int block=0; block<shortest; block++){
+				// cout<<"Checking block "<<block<<endl;
+				int numViolating=0;
+				for(int chan=0; chan<4; chan++){
+					// cout<<"Now checking chan "<<chan<<endl;
+					if(abs(forMe[chan][block])>20){
+						// cout<<"For block "<<block<<" and chan "<<chan<<" bumping the number "<<endl;
+						numViolating++;
+					}
+				}
+				if(numViolating>1){
+					numViolatingBlocks++;
+				}
+				if(numViolatingBlocks>1){
+					// that's enough for the cut, be done
+					break;
+				}
+			}
+
+			bool hasViolation=false;
+			if(numViolatingBlocks>0){
+				hasViolation=true;
+			}
+
+			if(hasViolation){
 				numBadEventsTotal++;
-			// if(printThisEvent)
-			// 	printf("Run %d \n", runNum);
-			printThisEvent=false;
-			if((numBad>1 || numReallBad>0) && isCal)
+				printf(RED"Event %d has a coincident offset block violation!\n"RESET,event);
 				printThisEvent=true;
+			}
+
+			// printThisEvent=false;
 			if(printThisEvent){
-				PlotThisEvent(station,runNum,event);
+				// PlotThisEvent(station,runNum,event);
 			}
 		}
 		fpIn->Close();
@@ -354,97 +280,46 @@ int main(int argc, char **argv)
 		// hRMS[i]->Scale(1./hRMS[i]->GetMaximum());
 		// hRMS_cal[i]->Scale(1./hRMS_cal[i]->GetMaximum());
 		// hRMS_stragglers[i]->Scale(1./hRMS_stragglers[i]->GetMaximum());
-		hRMS[i]->Draw("");
-		hRMS[i]->SetLineWidth(4);
-		hRMS[i]->SetLineColor(kBlue);
-		hRMS_cal[i]->Draw("same");
-		hRMS_cal[i]->SetLineColor(kGreen);
-		hRMS_cal[i]->SetLineWidth(4);
-		hRMS_stragglers[i]->Draw("same");
-		hRMS_stragglers[i]->SetLineColor(kRed);
-		hRMS_stragglers[i]->SetLineWidth(4);
+		hBlockMeans[i]->Draw("");
+		hBlockMeans[i]->SetLineWidth(4);
+		hBlockMeans[i]->SetLineColor(kBlue);
+		hBlockMeans_cal[i]->Draw("same");
+		hBlockMeans_cal[i]->SetLineColor(kGreen);
+		hBlockMeans_cal[i]->SetLineWidth(4);
+		hBlockMeans_stragglers[i]->Draw("same");
+		hBlockMeans_stragglers[i]->SetLineColor(kRed);
+		hBlockMeans_stragglers[i]->SetLineWidth(4);
 		gPad->SetLogy();
-		hRMS[i]->GetYaxis()->SetRangeUser(0.1,1e8);
+		hBlockMeans[i]->GetYaxis()->SetRangeUser(0.1,1e8);
 		// hRMS[i]->GetYaxis()->SetRangeUser(hRMS[i]->GetMinimum(), hRMS[i]->GetMaximum());
-		hRMS[i]->GetYaxis()->SetTitle("Number of Events");
-		hRMS[i]->GetXaxis()->SetTitle("RMS");
-		hRMS[i]->SetTitle(titlesForGraphs[i].c_str());
-		hRMS[i]->GetXaxis()->SetTitleOffset(1.1);
-		hRMS[i]->GetYaxis()->SetTitleOffset(1.1);
-		hRMS[i]->GetZaxis()->SetTitleOffset(1.1);
-		hRMS[i]->GetXaxis()->SetTitleSize(0.06);
-		hRMS[i]->GetYaxis()->SetTitleSize(0.06);
-		hRMS[i]->GetZaxis()->SetTitleSize(0.06);
-		hRMS[i]->GetXaxis()->SetLabelSize(0.06);
-		hRMS[i]->GetYaxis()->SetLabelSize(0.06);
-		hRMS[i]->GetZaxis()->SetLabelSize(0.06);
+		hBlockMeans[i]->GetYaxis()->SetTitle("Number of Events");
+		hBlockMeans[i]->GetXaxis()->SetTitle("RMS");
+		hBlockMeans[i]->SetTitle(titlesForGraphs[i].c_str());
+		hBlockMeans[i]->GetXaxis()->SetTitleOffset(1.1);
+		hBlockMeans[i]->GetYaxis()->SetTitleOffset(1.1);
+		hBlockMeans[i]->GetZaxis()->SetTitleOffset(1.1);
+		hBlockMeans[i]->GetXaxis()->SetTitleSize(0.06);
+		hBlockMeans[i]->GetYaxis()->SetTitleSize(0.06);
+		hBlockMeans[i]->GetZaxis()->SetTitleSize(0.06);
+		hBlockMeans[i]->GetXaxis()->SetLabelSize(0.06);
+		hBlockMeans[i]->GetYaxis()->SetLabelSize(0.06);
+		hBlockMeans[i]->GetZaxis()->SetLabelSize(0.06);
 		// hRMS[i]->GetXaxis()->SetRangeUser(10,40);
 		if(i+1==1){
 			TLegend *leg = new TLegend(0.48,0.6,0.9,0.9);
-			leg->AddEntry(hRMS[i],"All Events","l");
-			leg->AddEntry(hRMS_cal[i],"Tagged Cal Pulsers","l");
+			leg->AddEntry(hBlockMeans[i],"All Events","l");
+			leg->AddEntry(hBlockMeans_cal[i],"Tagged Cal Pulsers","l");
 			// leg->AddEntry(hRMS_stragglers[i],"Straggling Events","l");
 			leg->Draw();
 		}
-		double total = hRMS[i]->Integral();
-		double above = hRMS[i]->Integral(20,100);
-		printf("Number above 30 is %d/%d = %2.5f\n",int(above),int(total),double(above/total));
+		double total = hBlockMeans[i]->Integral();
+		double above = hBlockMeans[i]->Integral(20,100);
+		printf("Number above 20 is %d/%d = %2.5f\n",int(above),int(total),double(above/total));
 	}
 	char save_plot_title[400];
-	sprintf(save_plot_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/glitch_detect/%d.%d.%d_Distro_SpareChannelRMS_A%d_c%d_%dEvents.png",year_now,month_now,day_now,station,config,num_total);
+	sprintf(save_plot_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/glitch_detect/%d.%d.%d_Distro_SpareChannelBlockMeans_A%d_c%d_%dEvents.png",year_now,month_now,day_now,station,config,num_total);
 	c->SaveAs(save_plot_title);
 	delete c;
-
-	TCanvas *c2 = new TCanvas("","",4*850,2*850);
-	c2->Divide(2,2);
-	for(int i=0; i<4; i++){
-		c2->cd(i+1);
-		distro_time[i]->Draw("colz");
-		gPad->SetLogz();
-		distro_time[i]->GetZaxis()->SetRangeUser(1.,1e4);
-		// distro[i]->GetYaxis()->SetRangeUser(0.00001,200.);		
-		distro_time[i]->GetYaxis()->SetTitle("RMS");
-		distro_time[i]->GetXaxis()->SetTitle("Time");
-		distro_time[i]->GetZaxis()->SetTitle("Number of Events");
-		distro_time[i]->SetTitle(titlesForGraphs[i].c_str());
-		distro_time[i]->GetXaxis()->SetTitleOffset(1.1);
-		distro_time[i]->GetYaxis()->SetTitleOffset(1.1);
-		// distro_time[i]->GetZaxis()->SetTitleOffset(1.1);
-		gPad->SetRightMargin(0.15);
-		distro_time[i]->GetXaxis()->SetTitleSize(0.06);
-		distro_time[i]->GetYaxis()->SetTitleSize(0.06);
-		distro_time[i]->GetZaxis()->SetTitleSize(0.06);
-		distro_time[i]->GetXaxis()->SetLabelSize(0.06);
-		distro_time[i]->GetYaxis()->SetLabelSize(0.06);
-		distro_time[i]->GetZaxis()->SetLabelSize(0.06);
-	}
-	sprintf(save_plot_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/glitch_detect/%d.%d.%d_Distro_SpareChannelRMSvsTime_A%d_c%d_%dEvents.png",year_now,month_now,day_now,station,config,num_total);
-	c2->SaveAs(save_plot_title);
-	delete c2;
-	
-	beautify_TH2D();
-	distro_2dcut->Scale(1./distro_2dcut->GetMaximum());
-	TCanvas *c3 = new TCanvas("","",1100,850);
-		distro_2dcut->Draw("colz");
-		gPad->SetLogz();
-		distro_2dcut->GetZaxis()->SetRangeUser(1e-6,1);
-		distro_2dcut->GetZaxis()->SetRangeUser(distro_2dcut->GetMinimum(),distro_2dcut->GetMaximum());
-		distro_2dcut->GetYaxis()->SetTitle("Number of Channels");
-		distro_2dcut->GetXaxis()->SetTitle("RMS Level");
-		distro_2dcut->GetZaxis()->SetTitle("Fraction of Events");
-		distro_2dcut->GetXaxis()->SetTitleOffset(1.1);
-		distro_2dcut->GetYaxis()->SetTitleOffset(1.1);
-		// distro_time[i]->GetZaxis()->SetTitleOffset(1.1);
-		gPad->SetRightMargin(0.15);
-		distro_2dcut->GetXaxis()->SetTitleSize(0.04);
-		distro_2dcut->GetYaxis()->SetTitleSize(0.04);
-		distro_2dcut->GetZaxis()->SetTitleSize(0.04);
-		distro_2dcut->GetXaxis()->SetLabelSize(0.04);
-		distro_2dcut->GetYaxis()->SetLabelSize(0.04);
-		distro_2dcut->GetZaxis()->SetLabelSize(0.04);
-	sprintf(save_plot_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/glitch_detect/%d.%d.%d_Threshold_NumChannel_Scan_A%d_c%d_%dEvents.png",year_now,month_now,day_now,station,config,num_total);
-	c3->SaveAs(save_plot_title);
-	delete c3;
 
 }
 
