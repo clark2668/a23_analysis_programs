@@ -33,6 +33,7 @@ int main(int argc, char **argv)
 	}
 	int station = atoi(argv[1]);
 	string output_location = argv[2];
+	int config=6; //perfunctory; this code doesn't work anyway...
 
 	for(int file_num=3; file_num<argc; file_num++){
 
@@ -207,7 +208,7 @@ int main(int argc, char **argv)
 				if(pol==0){
 					bool isCP5=false;
 					bool isCP6=false;
-					identifyCalPulser(station,bestTheta_pulser[pol], bestPhi_pulser[pol], isCP5, isCP6);
+					identifyCalPulser(station,config,bestTheta_pulser[pol], bestPhi_pulser[pol], isCP5, isCP6);
 					if(!isCP5 && !isCP6){
 						cout<<"Warning! We think this one is not a usual cal pulser!"<<endl;
 

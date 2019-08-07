@@ -86,12 +86,12 @@ int main(int argc, char **argv)
 	RawAtriStationEvent *rawPtr =0;
 	eventTree->SetBranchAddress("event",&rawPtr);
 	eventTree->GetEvent(event);
-	while(!rawPtr->isCalpulserEvent()){
-		cout<<"Event "<<event<<" isn't a cal pulser. Next..."<<endl;
-		event++;
-		eventTree->GetEvent(event);
+	// while(!rawPtr->isCalpulserEvent()){
+	// 	cout<<"Event "<<event<<" isn't a cal pulser. Next..."<<endl;
+	// 	event++;
+	// 	eventTree->GetEvent(event);
 
-	}
+	// }
 
 
 	int stationID = rawPtr->stationId;
@@ -120,6 +120,7 @@ int main(int argc, char **argv)
 	spareElecChanGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(22));
 	spareElecChanGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(30));
 	bool hasBadSpareChanIssue = hasSpareChannelIssue(spareElecChanGraphs);
+	cout<<"I'm about to do the bad spare channel check"<<endl;
 	cout<<"hasBadSpareChanIssue flag is "<<hasBadSpareChanIssue<<endl;
 	if(hasBadSpareChanIssue==1){
 		cout<<"Has bad spare chan issue! Like, yes, actually. And yes, I am updating..."<<endl;
@@ -179,7 +180,7 @@ int main(int argc, char **argv)
 		double  frac_power_below_75 = cumulativePowerBelowfromSpectrum(grWaveformsPowerSpectrum[i],75.,power_below_75);
 		double power_above_850;
 		double  frac_power_above_850 = cumulativePowerAbovefromSpectrum(grWaveformsPowerSpectrum[i],850.,power_above_850);
-		// printf("Chan %d Fraction of power below 75MHz %.2f and above 850 MHz %.2f \n", i, frac_power_below_75, frac_power_above_850);
+		printf("Chan %d Fraction of power below 75MHz %.2f and above 850 MHz %.2f \n", i, frac_power_below_75, frac_power_above_850);
 	}
 
 	gStyle->SetOptStat(0);

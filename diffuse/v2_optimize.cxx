@@ -24,6 +24,8 @@
 #include "TLegend.h"
 #include "TRandom3.h"
 #include "TChain.h"
+#include "TFitResult.h"
+//#include "TTMatrixDSym.h"
 
 // analysis custom
 #include "tools_Cuts.h"
@@ -123,21 +125,53 @@ int main(int argc, char **argv)
 			trees[1] = (TTree*) inputFile->Get("HTree");
 			trees[2] = (TTree*) inputFile->Get("AllTree");
 
-			double corr_val[2];
-			double snr_val[2];
-			int WFRMS[2];
-			double frac_of_power_notched_V[8];
-			double frac_of_power_notched_H[8];
-			int Refilt[2];
+			double corr_val_org[2];
+			double snr_val_org[2];
+			int WFRMS_org[2];
+			int theta_300_org[2];
+			int phi_300_org[2];
+			int theta_41_org[2];
+			int phi_41_org[2];
 
-			trees[0]->SetBranchAddress("corr_val_V",&corr_val[0]);
-			trees[0]->SetBranchAddress("snr_val_V",&snr_val[0]);
-			trees[0]->SetBranchAddress("wfrms_val_V",&WFRMS[0]);
-			trees[0]->SetBranchAddress("Refilt_V",&Refilt[0]);
-			trees[1]->SetBranchAddress("corr_val_H",&corr_val[1]);
-			trees[1]->SetBranchAddress("snr_val_H",&snr_val[1]);
-			trees[1]->SetBranchAddress("wfrms_val_H",&WFRMS[1]);
-			trees[1]->SetBranchAddress("Refilt_H",&Refilt[1]);
+			trees[0]->SetBranchAddress("corr_val_V_org",&corr_val_org[0]);
+			trees[0]->SetBranchAddress("snr_val_V_org",&snr_val_org[0]);
+			trees[0]->SetBranchAddress("wfrms_val_V_org",&WFRMS_org[0]);
+			trees[0]->SetBranchAddress("theta_300_V_org",&theta_300_org[0]);
+			trees[0]->SetBranchAddress("theta_41_V_org",&theta_41_org[0]);
+			trees[0]->SetBranchAddress("phi_300_V_org",&phi_300_org[0]);
+			trees[0]->SetBranchAddress("phi_41_V_org",&phi_41_org[0]);
+
+			trees[1]->SetBranchAddress("corr_val_H_org",&corr_val_org[1]);
+			trees[1]->SetBranchAddress("snr_val_H_org",&snr_val_org[1]);
+			trees[1]->SetBranchAddress("wfrms_val_H_org",&WFRMS_org[1]);
+			trees[1]->SetBranchAddress("theta_300_H_org",&theta_300_org[1]);
+			trees[1]->SetBranchAddress("theta_41_H_org",&theta_41_org[1]);
+			trees[1]->SetBranchAddress("phi_300_H_org",&phi_300_org[1]);
+			trees[1]->SetBranchAddress("phi_41_H_org",&phi_41_org[1]);
+
+			double corr_val_new[2];
+			double snr_val_new[2];
+			int WFRMS_new[2];
+			int theta_300_new[2];
+			int phi_300_new[2];
+			int theta_41_new[2];
+			int phi_41_new[2];
+
+			trees[0]->SetBranchAddress("corr_val_V_new",&corr_val_new[0]);
+			trees[0]->SetBranchAddress("snr_val_V_new",&snr_val_new[0]);
+			trees[0]->SetBranchAddress("wfrms_val_V_new",&WFRMS_new[0]);
+			trees[0]->SetBranchAddress("theta_300_V_new",&theta_300_new[0]);
+			trees[0]->SetBranchAddress("theta_41_V_new",&theta_41_new[0]);
+			trees[0]->SetBranchAddress("phi_300_V_new",&phi_300_new[0]);
+			trees[0]->SetBranchAddress("phi_41_V_new",&phi_41_new[0]);
+
+			trees[1]->SetBranchAddress("corr_val_H_new",&corr_val_new[1]);
+			trees[1]->SetBranchAddress("snr_val_H_new",&snr_val_new[1]);
+			trees[1]->SetBranchAddress("wfrms_val_H_new",&WFRMS_new[1]);
+			trees[1]->SetBranchAddress("theta_300_H_new",&theta_300_new[1]);
+			trees[1]->SetBranchAddress("theta_41_H_new",&theta_41_new[1]);
+			trees[1]->SetBranchAddress("phi_300_H_new",&phi_300_new[1]);
+			trees[1]->SetBranchAddress("phi_41_H_new",&phi_41_new[1]);
 
 			int isCal;
 			int isSoft;
@@ -166,26 +200,6 @@ int main(int argc, char **argv)
 			trees[2]->SetBranchAddress("unixTime",&unixTime);
 			trees[2]->SetBranchAddress("isFirstFiveEvent",&isFirstFiveEvent);
 			trees[2]->SetBranchAddress("hasBadSpareChanIssue",&hasBadSpareChanIssue);
-
-
-			// in case we want to adjust the WFRMS parameter again...
-			// trees[4] = (TTree*) inputFile->Get("OutputTree"); // get the filter tree again
-			// trees[4]->SetBranchAddress("rms_pol_thresh_face_V", &rms_pol_thresh_face_V);
-			// trees[4]->SetBranchAddress("rms_pol_thresh_face_H", &rms_pol_thresh_face_H);
-			// int numFaces_new_V;
-			// int numFaces_new_H;
-			// if(station==2){
-			// 	numFaces_new_V = numFaces;
-			// 	numFaces_new_H = numFaces_A2_drop;
-			// }
-			// else if(station==3){
-			// 	numFaces_new_V = numFaces_A3_drop;
-			// 	numFaces_new_H = numFaces_A3_drop;
-			// }
-			// double rms_pol_thresh_face_alternate_V[thresholdSteps][numFaces_new_V];
-			// double rms_pol_thresh_face_alternate_H[thresholdSteps][numFaces_new_H];
-			// trees[4]->SetBranchAddress("rms_pol_thresh_face_alternate_V", &rms_pol_thresh_face_alternate_V);
-			// trees[4]->SetBranchAddress("rms_pol_thresh_face_alternate_H", &rms_pol_thresh_face_alternate_H);
 
 			stringstream ss;
 			for(int i=0; i<8; i++){
@@ -220,61 +234,10 @@ int main(int argc, char **argv)
 				if(isBadLivetime(station,unixTime)){
 					continue;
 				}
-
-				/*
-					Now, we recheck the WFRMS filter if we like
-				*/
-				// vector <double> rms_faces_V;
-				// vector <double> rms_faces_H;
-
-				// int num_faces_for_V_loop;
-				// int num_faces_for_H_loop;
-				// if(station==2){
-				// 	rms_faces_V.resize(numFaces);
-				// 	num_faces_for_V_loop=numFaces;
-				// 	rms_faces_H.resize(numFaces_A2_drop);
-				// 	num_faces_for_H_loop=numFaces_A2_drop;
-				// }
-				// else if(station==3){
-				// 	if(
-				// 		(!isSimulation && runNum>getA3BadRunBoundary())
-				// 		||
-				// 		(isSimulation && config>2)
-				// 	){ //it's 2014+, drop string four
-				// 		rms_faces_V.resize(numFaces_A3_drop);
-				// 		num_faces_for_V_loop=numFaces_A3_drop;
-				// 		rms_faces_H.resize(numFaces_A3_drop);
-				// 		num_faces_for_H_loop=numFaces_A3_drop;
-				// 	}
-				// 	else{ //it's 2013-, keep string four
-				// 		rms_faces_V.resize(numFaces);
-				// 		num_faces_for_V_loop=numFaces;
-				// 		rms_faces_H.resize(numFaces);
-				// 		num_faces_for_H_loop=numFaces;
-				// 	}
-				// }
-				// //now we loop over the faces
-				// for(int i=0; i<num_faces_for_V_loop; i++){
-				// 	rms_faces_V[i] = rms_pol_thresh_face_alternate_V[thresholdBin_pol[0]][i];
-				// }
-				// for(int i=0; i<num_faces_for_H_loop; i++){
-				// 	rms_faces_H[i] = rms_pol_thresh_face_alternate_H[thresholdBin_pol[1]][i];
-				// }
-				// //now to sort them smallest to largest; lowest RMS is best
-				// sort(rms_faces_V.begin(), rms_faces_V.end());
-				// sort(rms_faces_H.begin(), rms_faces_H.end());
-
-				// double bestFaceRMS[2];
-				// bestFaceRMS[0]=rms_faces_V[0];
-				// bestFaceRMS[1]=rms_faces_H[0];
-
-				// if(log(bestFaceRMS[0])/log(10) >= wavefrontRMScut[0]){
-				// 	failWavefrontRMS[0]=true;
-				// }
-				// if(log(bestFaceRMS[1])/log(10) >= wavefrontRMScut[1]){
-				// 	failWavefrontRMS[1]=true;
-				// }
-					
+				if(runNum==3663 && event==6){
+					continue;
+				}
+		
 				for(int pol=0; pol<2; pol++){
 
 					if(!WFRMS[pol] && !isNewBox && !isSurf[0] && !isSurf[1] && !isSurfEvent_top[pol]){
@@ -292,6 +255,11 @@ int main(int argc, char **argv)
 						} //refiltered?
 						if(!failsCWPowerCut){
 							h2SNRvsCorr[pol]->Fill(corr_val[pol],snr_val[pol],weight);
+
+							if(corr_val[0]>0.0068 && pol==0){
+								printf(RED"Run %d, Event %d \n"RESET,runNum, event);
+							}
+
 							if(pol!=pol_select)
 								continue;
 							
@@ -352,15 +320,26 @@ int main(int argc, char **argv)
 		// last_filled_bin+=5; // go up two more bins just to make sure the fit is over
 		// double end_of_fit = hEventsVsSNR->GetBinCenter(last_filled_bin);
 		// printf("Start of fit is %.2f and end of fit is %.2f \n", start_of_fit, end_of_fit);
-		int max_bin = hEventsVsSNR->GetMaximumBin();
-		int last_filled_bin = hEventsVsSNR->FindLastBinAbove(0.,1);
-		int fit_start_bin=int((last_filled_bin - max_bin)/2) + max_bin; //start half-way between the peak bin and the last filled bin
+
+		// int max_bin = hEventsVsSNR->GetMaximumBin();
+		// int fit_start_bin=int((last_filled_bin - max_bin)/2) + max_bin; //start half-way between the peak bin and the last filled bin
+		// double start_of_fit = hEventsVsSNR->GetBinCenter(fit_start_bin);
+		// double end_of_fit = hEventsVsSNR->GetBinCenter(last_filled_bin+2.); //go two bins more just to make sure fit is over
+
+
+		int max_bin=hEventsVsSNR->GetMaximumBin();
+		int last_filled_bin_above_2 = hEventsVsSNR->FindLastBinAbove(2.,1) + 2;
+		int fit_start_bin=int((last_filled_bin_above_2 - max_bin)/2) + max_bin; //start half-way between the peak bin and last bin with >2 events
 		double start_of_fit = hEventsVsSNR->GetBinCenter(fit_start_bin);
+		int last_filled_bin = hEventsVsSNR->FindLastBinAbove(0.,1);
 		double end_of_fit = hEventsVsSNR->GetBinCenter(last_filled_bin+2.); //go two bins more just to make sure fit is over
 
+
 		printf("Last filled bin is bin %d and value %.2f \n", last_filled_bin, hEventsVsSNR->GetBinCenter(last_filled_bin));
+		printf("Last filled bin above 2 is bin %d and value %.2f \n",last_filled_bin_above_2, hEventsVsSNR->GetBinCenter(last_filled_bin_above_2));
 		printf("Max bin is bin %d and value %.2f \n", max_bin, hEventsVsSNR->GetBinCenter(max_bin));
 		printf("Proposed start of fit is bin %d and value %.2f \n", fit_start_bin, hEventsVsSNR->GetBinCenter(fit_start_bin));
+		printf("Proposed end of fit is bin %d and value %.2f \n", end_of_fit, hEventsVsSNR->GetBinCenter(end_of_fit));
 
 		// now we exponential fit
 		char equation[150];
@@ -368,16 +347,73 @@ int main(int argc, char **argv)
 		// sprintf(equation,"gaus");
 		TF1 *fit = new TF1("ExpFit",equation,start_of_fit,end_of_fit);
 		int status = hEventsVsSNR->Fit("ExpFit","LL,R");
+		TFitResultPtr r = hEventsVsSNR->Fit("ExpFit","LL,R,S");  // TFitResultPtr contains the TFitResult
+		r->Print("V");
+		TMatrixDSym cov = r->GetCovarianceMatrix();
+		TMatrixDSym cor = r->GetCorrelationMatrix(); 
+		printf("Covariance is %.5f \n", cov[0][1]);
 		if(status!=0){
 			printf("Something went wrong with the fit! Quitting...\n");
 			return 0;
 		}
 		double fitParams[2];
+		double fitParamErrors[2];
 		fitParams[0] = fit->GetParameter(0);
 		fitParams[1] = fit->GetParameter(1);
+		fitParamErrors[0] = fit->GetParError(0);
+		fitParamErrors[1] = fit->GetParError(1);
 		printf("Fit Parameters are %.2f and %.2f \n", fitParams[0], fitParams[1]);
 
 		double binWidthIntercept = hEventsVsSNR->GetBinWidth(1);
+
+
+		// now to do some toy experiments to get the distribution of number of backgrounds
+		double test_cut = 10.5;
+		double back_estimate_central = 10.*(1./(fitParams[0]*binWidthIntercept)) * (-exp(fitParams[0]*test_cut + fitParams[1]));
+		double corr_coeff=cor[0][1];
+		cout<<"Expected number of backgrounds is"<<back_estimate_central<<endl;
+
+		TRandom3 *Rand = new TRandom3();
+		TH1D *toyBackgrounds = new TH1D("","",100,0,10*back_estimate_central);
+
+		gStyle->SetOptStat(111111);
+
+		for(int toy=0; toy<5000; toy++){
+
+			double rand_slope = Rand->Gaus();
+			double new_slope = fitParams[0] 
+								+ (fitParamErrors[0]*rand_slope);
+
+			double rand_amp = Rand->Gaus();
+			double new_amp = 
+							(fitParams[1])
+							+ (fitParamErrors[1] * rand_slope * corr_coeff)
+							+ (fitParamErrors[1] * rand_amp * sqrt(1-pow(corr_coeff,2.)));
+
+			double new_back = 10.*(1./(new_slope*binWidthIntercept)) * (-exp(new_slope*test_cut + new_amp));
+			toyBackgrounds->Fill(new_back);
+		}
+
+		double RealBack_x[2] = { back_estimate_central, back_estimate_central };
+		double RealBack_Y[2] = { 0, 200 };
+		TGraph *gRealBackLine = new TGraph (2, RealBack_x, RealBack_Y);
+
+		TCanvas *ctoyBack = new TCanvas("","",850,850);
+		toyBackgrounds->Draw();
+		gRealBackLine->Draw("same");
+		gRealBackLine->SetLineColor(kRed);
+		toyBackgrounds->GetYaxis()->SetTitle("Number of PseudoExperiments");
+		toyBackgrounds->GetXaxis()->SetTitle("Background Estimate");
+		toyBackgrounds->GetYaxis()->SetTitleOffset(1.3);
+		stringstream myTitle;
+		myTitle.str("");
+		myTitle<<"Expected from Central Value is "<<back_estimate_central;
+		toyBackgrounds->SetTitle(myTitle.str().c_str());
+		// gPad->SetLogy();
+		ctoyBack->SaveAs("toy_background_distro.png");
+
+		return 0;
+
 		double leftBoundary = start_of_fit - binWidthIntercept/2.;
 		double rightBoundary = end_of_fit + binWidthIntercept/2.;
 		int numBinsThisFit = (rightBoundary - leftBoundary)/binWidthIntercept + 1; // how many bins do we need in our histogram to actually do the fitting
@@ -493,9 +529,15 @@ int main(int argc, char **argv)
 			double cut = intercept[bin];
 			double back_estimate = (1./(fitParams[0]*binWidthIntercept)) * (-exp(fitParams[0]*cut + fitParams[1]));
 			back_estimate*=10.; // make it 10 times bigger, for switch to 100% sample
-			double achieved_alpha;
-			// double s_up = GetS_up_TMath(back_estimate,achieved_alpha, 0.9); // compute S_up for this background
-			double s_up = GetS_up(back_estimate,achieved_alpha, 0.9); // compute S_up for this background
+			double s_up; //save time computing s_up if we know the answer is 2.3...
+			if(back_estimate<1e-5){
+				s_up=2.3;
+			}
+			else{
+				double achieved_alpha;
+				// double s_up = GetS_up_TMath(back_estimate,achieved_alpha, 0.9); // compute S_up for this background
+				s_up = GetS_up(back_estimate,achieved_alpha, 0.9); // compute S_up for this backgroun
+			}
 			S_up_array[bin] = s_up;
 			printf("For cut %.2f background estimate is %.3f with sup %.2f \n",cut,back_estimate,S_up_array[bin]);
 		}
@@ -650,7 +692,7 @@ int main(int argc, char **argv)
 		double optimal_intercept=0.;
 		for(int bin=0; bin<numSNRbins; bin++){
 			double this_intercept = intercept[bin];
-			if(this_intercept<8. || this_intercept>15.){
+			if(this_intercept<8. || this_intercept>17.){
 				continue;
 			}
 			else{
@@ -1253,7 +1295,7 @@ int main(int argc, char **argv)
 			hNumObserved->GetXaxis()->SetTitle("SNR Cut (y-intercept value)");
 			hNumObserved->GetYaxis()->SetTitle("Number of Events Cut");
 			char fit_title_words[400];
-			sprintf(fit_title_words,"Fit exp(%.2fx + %.2f)",fitParams[0], fitParams[1]);
+			sprintf(fit_title_words,"Fit exp(%.3fx + %.3f) and %.3f, %.3f ",fitParams[0], fitParams[1], fitParamErrors[0], fitParamErrors[1]);
 			hNumObserved->SetTitle(fit_title_words);
 			// hNumObserved->GetXaxis()->SetRangeUser(8.6,10.);
 			// hNumObserved->GetYaxis()->SetRangeUser(8e1,1e4);

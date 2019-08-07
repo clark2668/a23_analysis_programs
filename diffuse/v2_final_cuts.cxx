@@ -5,6 +5,7 @@
 ////	At this point, you must pass it the final slope and intercept that you want for the Rcut
 ////	Because it's going to assume you've already optimized them elsewhere
 ////	This will generate the big mega finale canvas that has all our cut information contained
+////	make plots less hideous
 ////
 ////	Nov 2018
 ////////////////////////////////////////////////////////////////////////////////
@@ -48,7 +49,7 @@ int main(int argc, char **argv)
 	int day_now = time -> tm_mday;
 
 	stringstream ss;
-	gStyle->SetOptStat(11);
+	gStyle->SetOptStat(0);
 
 	char *plotPath(getenv("PLOT_PATH"));
 	if (plotPath == NULL) std::cout << "Warning! $PLOT_PATH is not set!" << endl;
@@ -112,8 +113,10 @@ int main(int argc, char **argv)
 	TChain dataHTree("HTree");
 	TChain dataAllTree("AllTree");
 	char the_data[500];
-	sprintf(the_data,"/fs/scratch/PAS0654/ara/10pct/ValsForCuts/A%d/c%d/cutvals_drop_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config);
-	dataVTree.Add(the_data);
+	// sprintf(the_data,"/fs/scratch/PAS0654/ara/10pct/ValsForCuts/A%d/c%d/cutvals_drop_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config);
+	sprintf(the_data,"/fs/project/PAS0654/ARA_DATA/A23/10pct/ValsForCuts/A%d/c%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_23*.root",station,config);
+	int result = dataVTree.Add(the_data);
+
 	dataHTree.Add(the_data);
 	dataAllTree.Add(the_data);
 	int numDataEvents = dataVTree.GetEntries();
@@ -124,50 +127,70 @@ int main(int argc, char **argv)
 		double corr_val[2];
 		double snr_val[2];
 		int WFRMS[2];
-		double frac_of_power_notched_V[8];
-		double frac_of_power_notched_H[8];
-		int Refilt[2];
+		int theta_300[2];
+		int phi_300[2];
+		int theta_41[2];
+		int phi_41[2];
 
-		dataVTree.SetBranchAddress("corr_val_V",&corr_val[0]);
-		dataVTree.SetBranchAddress("snr_val_V",&snr_val[0]);
-		dataVTree.SetBranchAddress("wfrms_val_V",&WFRMS[0]);
+		int Refilt[2];
 		dataVTree.SetBranchAddress("Refilt_V",&Refilt[0]);
-		dataHTree.SetBranchAddress("corr_val_H",&corr_val[1]);
-		dataHTree.SetBranchAddress("snr_val_H",&snr_val[1]);
-		dataHTree.SetBranchAddress("wfrms_val_H",&WFRMS[1]);
 		dataHTree.SetBranchAddress("Refilt_H",&Refilt[1]);
+
+		dataVTree.SetBranchAddress("corr_val_V_new",&corr_val[0]);
+		dataVTree.SetBranchAddress("snr_val_V_new",&snr_val[0]);
+		dataVTree.SetBranchAddress("wfrms_val_V_new",&WFRMS[0]);
+		dataVTree.SetBranchAddress("theta_300_V_new",&theta_300[0]);
+		dataVTree.SetBranchAddress("theta_41_V_new",&theta_41[0]);
+		dataVTree.SetBranchAddress("phi_300_V_new",&phi_300[0]);
+		dataVTree.SetBranchAddress("phi_41_V_new",&phi_41[0]);
+
+		dataHTree.SetBranchAddress("corr_val_H_new",&corr_val[1]);
+		dataHTree.SetBranchAddress("snr_val_H_new",&snr_val[1]);
+		dataHTree.SetBranchAddress("wfrms_val_H_new",&WFRMS[1]);
+		dataHTree.SetBranchAddress("theta_300_H_new",&theta_300[1]);
+		dataHTree.SetBranchAddress("theta_41_H_new",&theta_41[1]);
+		dataHTree.SetBranchAddress("phi_300_H_new",&phi_300[1]);
+		dataHTree.SetBranchAddress("phi_41_H_new",&phi_41[1]);
 
 		int isCal;
 		int isSoft;
 		int isShort;
 		int isCW;
 		int isNewBox;
-		int isSurf[2];
-		int isBadEvent;
-		double weight;
-		int isSurfEvent_top[2];
-		int unixTime;
-		int isFirstFiveEvent;
-		int hasBadSpareChanIssue;
-		int runNum;
-		int badRun;
 
 		dataAllTree.SetBranchAddress("cal",&isCal);
 		dataAllTree.SetBranchAddress("soft",&isSoft);
 		dataAllTree.SetBranchAddress("short",&isShort);
 		dataAllTree.SetBranchAddress("CW",&isCW);
 		dataAllTree.SetBranchAddress("box",&isNewBox);
-		dataAllTree.SetBranchAddress("surf_V",&isSurf[0]);
-		dataAllTree.SetBranchAddress("surf_H",&isSurf[1]);
-		dataAllTree.SetBranchAddress("bad",&isBadEvent);
-		dataAllTree.SetBranchAddress("weight",&weight);
+
+		int isSurf[2]; // a surface event after filtering?
+		int isSurfEvent_top[2]; // a top event?
+
+		dataAllTree.SetBranchAddress("surf_V_new",&isSurf[0]);
+		dataAllTree.SetBranchAddress("surf_H_new",&isSurf[1]);
+
 		dataAllTree.SetBranchAddress("surf_top_V",&isSurfEvent_top[0]);
 		dataAllTree.SetBranchAddress("surf_top_H",&isSurfEvent_top[1]);
+
+		int isBadEvent;
+		double weight;
+		int unixTime;
+		int isFirstFiveEvent;
+		int hasBadSpareChanIssue;
+		int hasBadSpareChanIssue2;
+		int runNum;
+
+		dataAllTree.SetBranchAddress("bad",&isBadEvent);
+		dataAllTree.SetBranchAddress("weight",&weight);
 		dataAllTree.SetBranchAddress("unixTime",&unixTime);
 		dataAllTree.SetBranchAddress("isFirstFiveEvent",&isFirstFiveEvent);
 		dataAllTree.SetBranchAddress("hasBadSpareChanIssue",&hasBadSpareChanIssue);
+		dataAllTree.SetBranchAddress("hasBadSpareChanIssue2",&hasBadSpareChanIssue2);
 		dataAllTree.SetBranchAddress("runNum",&runNum);
-		dataAllTree.SetBranchAddress("badRun",&badRun);
+
+		double frac_of_power_notched_V[8];
+		double frac_of_power_notched_H[8];
 
 		stringstream ss;
 		for(int i=0; i<8; i++){
@@ -180,6 +203,9 @@ int main(int argc, char **argv)
 			ss<<"PowerNotch_Chan"<<i;
 			dataHTree.SetBranchAddress(ss.str().c_str(),&frac_of_power_notched_H[i-8]);
 		}
+
+		int numEntries = dataVTree.GetEntries();
+		numTotal+=numEntries;
 
 		dataAllTree.GetEvent(0);
 		int currentRunNum = runNum;
@@ -201,7 +227,7 @@ int main(int argc, char **argv)
 					printf(GREEN"*"RESET);
 
 			}
-			if( isSoft || isBadEvent || hasBadSpareChanIssue || isFirstFiveEvent || isShort || isCal || isThisABadRun){
+			if( isSoft || isBadEvent || hasBadSpareChanIssue || hasBadSpareChanIssue2 || isFirstFiveEvent || isShort || isCal || isThisABadRun){
 				continue;
 			}
 			if(isBadLivetime(station,unixTime)){
@@ -272,22 +298,33 @@ int main(int argc, char **argv)
 	hEventsVsSNR[1] = new TH1D("DiffDistroH","DiffDistroH",numSNRbins,0,30);
 
 	int max_bin[2];
-	double fit_start_bin[2];
+	int last_filled_bin_above_2[2];
+	int fit_start_bin[2];
 	double start_of_fit[2];
-	double end_of_fit[2];
 	int last_filled_bin[2];
+	double end_of_fit[2];
 
 	for(int pol=0; pol<2; pol++){
 		for(int bin=0; bin<numSNRbins; bin++){
 			hEventsVsSNR[pol]->SetBinContent(bin+1,numEventsPassed_diff[pol][bin]);
 		}
 		max_bin[pol] = hEventsVsSNR[pol]->GetMaximumBin();
+		// cout<<"Max bin is "<<max_bin[pol]<<endl;
+		last_filled_bin_above_2[pol] = hEventsVsSNR[pol]->FindLastBinAbove(2.,1) + 2;
+		// cout<<"Last filled bin above 2 is "<<last_filled_bin_above_2[pol]<<endl;
+		fit_start_bin[pol] = int((last_filled_bin_above_2[pol] - max_bin[pol])/2) + max_bin[pol]; //start half-way between the peak bin and the last filled bin
+		// cout<<"Fit start bin is "<<fit_start_bin[pol]<<endl;
+		start_of_fit[pol] = hEventsVsSNR[pol]->GetBinCenter(fit_start_bin[pol]);
+		// cout<<"Start of fit is "<<start_of_fit[pol]<<endl;
 		last_filled_bin[pol] = hEventsVsSNR[pol]->FindLastBinAbove(0.,1);
-		fit_start_bin[pol] = int((last_filled_bin[pol] - max_bin[pol])/2) + max_bin[pol]; //start half-way between the peak bin and the last filled bin
-		start_of_fit[pol] = hEventsVsSNR[pol]->GetBinCenter(fit_start_bin[pol]);		
 		end_of_fit[pol] = hEventsVsSNR[pol]->GetBinCenter(last_filled_bin[pol]+2.); //go two bins more just to make sure fit is over
 		// printf("Pol %d Start of fit is %.2f and end of fit is %.2f \n", pol, start_of_fit[pol], end_of_fit[pol]);
+
+		printf("Pol %d: Last filled bin is bin %d and value %.2f \n", pol, last_filled_bin[pol], hEventsVsSNR[pol]->GetBinCenter(last_filled_bin[pol]));
+		printf("Pol %d: Max bin is bin %d and value %.2f \n", pol, max_bin[pol], hEventsVsSNR[pol]->GetBinCenter(max_bin[pol]));
+		printf("Pol %d: Proposed start of fit is bin %d and value %.2f \n", pol, fit_start_bin[pol], hEventsVsSNR[pol]->GetBinCenter(fit_start_bin[pol]));
 	}
+
 
 	// now we exponential fit
 	char equation[150];
@@ -305,7 +342,7 @@ int main(int argc, char **argv)
 		fitParams[pol][1] = fit[pol]->GetParameter(1);
 		fitParamErrors[pol][0] = fit[pol]->GetParError(0);
 		fitParamErrors[pol][1] = fit[pol]->GetParError(1);
-		printf("Pol %d Fit Parameters are %.2f and %.2f \n", fitParams[pol][0], fitParams[pol][1]);
+		printf("Pol %d Fit Parameters are %.2f and %.2f \n", pol, fitParams[pol][0], fitParams[pol][1]);
 	}
 
 	double binWidthIntercept[2];
@@ -326,58 +363,6 @@ int main(int argc, char **argv)
 			hNumObserved[pol]->SetBinContent(bin+1,originalContent);
 		}
 	}
-
-	// need to do background estimate
-	double background_estimate[2];
-	for(int pol=0; pol<2; pol++){
-		double cut = selected_intercepts[pol];
-		double back_estimate = 10.*(1./(fitParams[pol][0]*binWidthIntercept[pol])) * (-exp(fitParams[pol][0]*cut + fitParams[pol][1]));
-		background_estimate[pol] = back_estimate;
-		printf("Background estimate for pol %d is %.5f \n", pol, background_estimate[pol]);
-	}
-
-	// now upper estimate of background
-	double background_estimate_upper_par0[2];
-	for(int pol=0; pol<2; pol++){
-		double cut = selected_intercepts[pol];
-		double fit0err = fitParamErrors[pol][0];
-		double fit1err = fitParamErrors[pol][1];
-		double back_estimate = 10.*(1./((fitParams[pol][0]+fit0err)*binWidthIntercept[pol])) * (-exp((fitParams[pol][0]+fit0err)*cut + (fitParams[pol][1])));
-		background_estimate_upper_par0[pol] = back_estimate;
-		printf("Pol %d Upper Background estimate moving par 0 is %.6f \n", pol, background_estimate_upper_par0[pol]);
-	}
-
-		// now upper estimate of background
-	double background_estimate_upper_par1[2];
-	for(int pol=0; pol<2; pol++){
-		double cut = selected_intercepts[pol];
-		double fit0err = fitParamErrors[pol][0];
-		double fit1err = fitParamErrors[pol][1];
-		double back_estimate = 10.*(1./((fitParams[pol][0])*binWidthIntercept[pol])) * (-exp((fitParams[pol][0])*cut + (fitParams[pol][1] + fit1err)));
-		background_estimate_upper_par1[pol] = back_estimate;
-		printf("Pol %d Upper Background estimate moving par 1 is %.6f \n", pol, background_estimate_upper_par1[pol]);
-	}
-
-	double background_estimate_lower_par0[2];
-	for(int pol=0; pol<2; pol++){
-		double cut = selected_intercepts[pol];
-		double fit0err = fitParamErrors[pol][0];
-		double fit1err = fitParamErrors[pol][1];
-		double back_estimate = 10.*(1./((fitParams[pol][0]-fit0err)*binWidthIntercept[pol])) * (-exp((fitParams[pol][0]-fit0err)*cut + (fitParams[pol][1])));
-		background_estimate_lower_par0[pol] = back_estimate;
-		printf("Pol %d Lower Background estimate for pol is %.6f \n", pol, background_estimate_lower_par0[pol]);
-	}
-
-	double background_estimate_lower_par1[2];
-	for(int pol=0; pol<2; pol++){
-		double cut = selected_intercepts[pol];
-		double fit0err = fitParamErrors[pol][0];
-		double fit1err = fitParamErrors[pol][1];
-		double back_estimate = 10.*(1./((fitParams[pol][0])*binWidthIntercept[pol])) * (-exp((fitParams[pol][0])*cut + (fitParams[pol][1]-fit1err)));
-		background_estimate_lower_par1[pol] = back_estimate;
-		printf("Pol %d Lower Background estimate for pol is %.6f \n", pol, background_estimate_lower_par1[pol]);
-	}
-
 
 	/*
 		We must now also loop through the data one more time to compute the "as last cut"
@@ -409,50 +394,70 @@ int main(int argc, char **argv)
 		double corr_val[2];
 		double snr_val[2];
 		int WFRMS[2];
-		double frac_of_power_notched_V[8];
-		double frac_of_power_notched_H[8];
-		int Refilt[2];
+		int theta_300[2];
+		int phi_300[2];
+		int theta_41[2];
+		int phi_41[2];
 
-		dataVTree.SetBranchAddress("corr_val_V",&corr_val[0]);
-		dataVTree.SetBranchAddress("snr_val_V",&snr_val[0]);
-		dataVTree.SetBranchAddress("wfrms_val_V",&WFRMS[0]);
+		int Refilt[2];
 		dataVTree.SetBranchAddress("Refilt_V",&Refilt[0]);
-		dataHTree.SetBranchAddress("corr_val_H",&corr_val[1]);
-		dataHTree.SetBranchAddress("snr_val_H",&snr_val[1]);
-		dataHTree.SetBranchAddress("wfrms_val_H",&WFRMS[1]);
 		dataHTree.SetBranchAddress("Refilt_H",&Refilt[1]);
+
+		dataVTree.SetBranchAddress("corr_val_V_new",&corr_val[0]);
+		dataVTree.SetBranchAddress("snr_val_V_new",&snr_val[0]);
+		dataVTree.SetBranchAddress("wfrms_val_V_new",&WFRMS[0]);
+		dataVTree.SetBranchAddress("theta_300_V_new",&theta_300[0]);
+		dataVTree.SetBranchAddress("theta_41_V_new",&theta_41[0]);
+		dataVTree.SetBranchAddress("phi_300_V_new",&phi_300[0]);
+		dataVTree.SetBranchAddress("phi_41_V_new",&phi_41[0]);
+
+		dataHTree.SetBranchAddress("corr_val_H_new",&corr_val[1]);
+		dataHTree.SetBranchAddress("snr_val_H_new",&snr_val[1]);
+		dataHTree.SetBranchAddress("wfrms_val_H_new",&WFRMS[1]);
+		dataHTree.SetBranchAddress("theta_300_H_new",&theta_300[1]);
+		dataHTree.SetBranchAddress("theta_41_H_new",&theta_41[1]);
+		dataHTree.SetBranchAddress("phi_300_H_new",&phi_300[1]);
+		dataHTree.SetBranchAddress("phi_41_H_new",&phi_41[1]);
 
 		int isCal;
 		int isSoft;
 		int isShort;
 		int isCW;
 		int isNewBox;
-		int isSurf[2];
-		int isBadEvent;
-		double weight;
-		int isSurfEvent_top[2];
-		int unixTime;
-		int isFirstFiveEvent;
-		int hasBadSpareChanIssue;
-		int runNum;
-		int badRun;
 
 		dataAllTree.SetBranchAddress("cal",&isCal);
 		dataAllTree.SetBranchAddress("soft",&isSoft);
 		dataAllTree.SetBranchAddress("short",&isShort);
 		dataAllTree.SetBranchAddress("CW",&isCW);
 		dataAllTree.SetBranchAddress("box",&isNewBox);
-		dataAllTree.SetBranchAddress("surf_V",&isSurf[0]);
-		dataAllTree.SetBranchAddress("surf_H",&isSurf[1]);
-		dataAllTree.SetBranchAddress("bad",&isBadEvent);
-		dataAllTree.SetBranchAddress("weight",&weight);
+
+		int isSurf[2]; // a surface event after filtering?
+		int isSurfEvent_top[2]; // a top event?
+
+		dataAllTree.SetBranchAddress("surf_V_new",&isSurf[0]);
+		dataAllTree.SetBranchAddress("surf_H_new",&isSurf[1]);
+
 		dataAllTree.SetBranchAddress("surf_top_V",&isSurfEvent_top[0]);
 		dataAllTree.SetBranchAddress("surf_top_H",&isSurfEvent_top[1]);
+
+		int isBadEvent;
+		double weight;
+		int unixTime;
+		int isFirstFiveEvent;
+		int hasBadSpareChanIssue;
+		int hasBadSpareChanIssue2;
+		int runNum;
+
+		dataAllTree.SetBranchAddress("bad",&isBadEvent);
+		dataAllTree.SetBranchAddress("weight",&weight);
 		dataAllTree.SetBranchAddress("unixTime",&unixTime);
 		dataAllTree.SetBranchAddress("isFirstFiveEvent",&isFirstFiveEvent);
 		dataAllTree.SetBranchAddress("hasBadSpareChanIssue",&hasBadSpareChanIssue);
+		dataAllTree.SetBranchAddress("hasBadSpareChanIssue2",&hasBadSpareChanIssue2);
 		dataAllTree.SetBranchAddress("runNum",&runNum);
-		dataAllTree.SetBranchAddress("badRun",&badRun);
+
+		double frac_of_power_notched_V[8];
+		double frac_of_power_notched_H[8];
 
 		stringstream ss;
 		for(int i=0; i<8; i++){
@@ -465,7 +470,7 @@ int main(int argc, char **argv)
 			ss<<"PowerNotch_Chan"<<i;
 			dataHTree.SetBranchAddress(ss.str().c_str(),&frac_of_power_notched_H[i-8]);
 		}
-		
+
 		int numEntries = dataVTree.GetEntries();
 		numTotal+=numEntries;
 
@@ -508,6 +513,7 @@ int main(int argc, char **argv)
 				(isBadEvent
 				|| isFirstFiveEvent
 				|| hasBadSpareChanIssue
+				|| hasBadSpareChanIssue2
 				|| isShort)
 				){
 				continue;
@@ -609,6 +615,8 @@ int main(int argc, char **argv)
 		} // loop over events
 	} // loop over files
 
+	cout<<endl;
+
 	printf("Num total          :           %7.1f\n",num_total_data);
 	printf("Livetime           :           %7.1f\n",remove_bad_runs_and_livetime_data);
 	printf("Soft Trig          :           %7.1f\n",and_remove_soft_data);
@@ -630,7 +638,8 @@ int main(int argc, char **argv)
 	TChain simAllTree("AllTree");
 	TChain simFilterTree("OutputTree"); // need this for energy distribution
 	char the_sims[500];
-	sprintf(the_sims,"/fs/scratch/PAS0654/ara/sim/ValsForCuts/A%d/c%d/E%d/cutvals_drop_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config,224);
+	// sprintf(the_sims,"/fs/scratch/PAS0654/ara/sim/ValsForCuts/A%d/c%d/E%d/cutvals_drop_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config,224);
+	sprintf(the_sims,"/fs/project/PAS0654/ARA_DATA/A23/sim/ValsForCuts/A%d/c%d/E%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config,224);
 	simVTree.Add(the_sims);
 	simHTree.Add(the_sims);
 	simAllTree.Add(the_sims);
@@ -658,6 +667,8 @@ int main(int argc, char **argv)
 	double fails_surface_insequence_sim[2]={0.,0.};
 	double fails_rcut_insequence_sim[2]={0.,0.};
 
+	double num_pass_total_either=0.;
+
 	///////////////////////
 	// for efficiency vs SNR
 	///////////////////////
@@ -676,34 +687,34 @@ int main(int argc, char **argv)
 	TH1D *eff_soft_short_cal_wfrms_box_surf_rcut[2];
 
 	for(int i=0; i<2; i++){
-		all_events[i] = new TH1D("","",30,0,30);
-		pass_soft_short_cal_wfrms[i] = new TH1D("","",30,0,30);
-		pass_soft_short_cal_wfrms_box[i] = new TH1D("","",30,0,30);
-		pass_soft_short_cal_wfrms_box_surf[i] = new TH1D("","",30,0,30);
-		pass_soft_short_cal_wfrms_box_surf_rcut[i] = new TH1D("","",30,0,30);
+		all_events[i] = new TH1D("","",25,0,25);
+		pass_soft_short_cal_wfrms[i] = new TH1D("","",25,0,25);
+		pass_soft_short_cal_wfrms_box[i] = new TH1D("","",25,0,25);
+		pass_soft_short_cal_wfrms_box_surf[i] = new TH1D("","",25,0,25);
+		pass_soft_short_cal_wfrms_box_surf_rcut[i] = new TH1D("","",25,0,25);
 
-		eff_soft_short_cal_wfrms[i] = new TH1D("","",30,0,30);
-		eff_soft_short_cal_wfrms_box[i] = new TH1D("","",30,0,30);
-		eff_soft_short_cal_wfrms_box_surf[i] = new TH1D("","",30,0,30);
-		eff_soft_short_cal_wfrms_box_surf_rcut[i] = new TH1D("","",30,0,30);
+		eff_soft_short_cal_wfrms[i] = new TH1D("","",25,0,25);
+		eff_soft_short_cal_wfrms_box[i] = new TH1D("","",25,0,25);
+		eff_soft_short_cal_wfrms_box_surf[i] = new TH1D("","",25,0,25);
+		eff_soft_short_cal_wfrms_box_surf_rcut[i] = new TH1D("","",25,0,25);
 	}
 
 	///////////////////////
 	// for efficiency vs energy
 	///////////////////////
 
-	TH1D *all_events_vsE = new TH1D("","",10,16,21);
-	TH1D *pass_soft_short_cal_wfrms_vsE =  new TH1D("","",10,16,21);
-	TH1D *pass_soft_short_cal_wfrms_box_vsE =  new TH1D("","",10,16,21);
-	TH1D *pass_soft_short_cal_wfrms_box_surf_vsE =  new TH1D("","",10,16,21);
-	TH1D *pass_soft_short_cal_wfrms_box_surf_rcut_vsE = new TH1D("","",10,16,21);
+	TH1D *all_events_vsE = new TH1D("","",5,16,21);
+	TH1D *pass_soft_short_cal_wfrms_vsE =  new TH1D("","",5,16,21);
+	TH1D *pass_soft_short_cal_wfrms_box_vsE =  new TH1D("","",5,16,21);
+	TH1D *pass_soft_short_cal_wfrms_box_surf_vsE =  new TH1D("","",5,16,21);
+	TH1D *pass_soft_short_cal_wfrms_box_surf_rcut_vsE = new TH1D("","",5,16,21);
 
-	TH1D *eff_vsE = new TH1D("","",10,16,21);
-	TH1D *eff_soft_short_cal_vsE =  new TH1D("","",10,16,21);
-	TH1D *eff_soft_short_cal_wfrms_vsE =  new TH1D("","",10,16,21);
-	TH1D *eff_soft_short_cal_wfrms_box_vsE =  new TH1D("","",10,16,21);
-	TH1D *eff_soft_short_cal_wfrms_box_surf_vsE =  new TH1D("","",10,16,21);
-	TH1D *eff_soft_short_cal_wfrms_box_surf_rcut_vsE =  new TH1D("","",10,16,21);
+	TH1D *eff_vsE = new TH1D("","",5,16,21);
+	TH1D *eff_soft_short_cal_vsE =  new TH1D("","",5,16,21);
+	TH1D *eff_soft_short_cal_wfrms_vsE =  new TH1D("","",5,16,21);
+	TH1D *eff_soft_short_cal_wfrms_box_vsE =  new TH1D("","",5,16,21);
+	TH1D *eff_soft_short_cal_wfrms_box_surf_vsE =  new TH1D("","",5,16,21);
+	TH1D *eff_soft_short_cal_wfrms_box_surf_rcut_vsE =  new TH1D("","",5,16,21);
 
 	{
 		double corr_val[2];
@@ -713,13 +724,15 @@ int main(int argc, char **argv)
 		double frac_of_power_notched_H[8];
 		int Refilt[2];
 
-		simVTree.SetBranchAddress("corr_val_V",&corr_val[0]);
-		simVTree.SetBranchAddress("snr_val_V",&snr_val[0]);
-		simVTree.SetBranchAddress("wfrms_val_V",&WFRMS[0]);
+		// just swap out for "_new" variables in our new files
+
+		simVTree.SetBranchAddress("corr_val_V_new",&corr_val[0]);
+		simVTree.SetBranchAddress("snr_val_V_new",&snr_val[0]);
+		simVTree.SetBranchAddress("wfrms_val_V_new",&WFRMS[0]);
 		simVTree.SetBranchAddress("Refilt_V",&Refilt[0]);
-		simHTree.SetBranchAddress("corr_val_H",&corr_val[1]);
-		simHTree.SetBranchAddress("snr_val_H",&snr_val[1]);
-		simHTree.SetBranchAddress("wfrms_val_H",&WFRMS[1]);
+		simHTree.SetBranchAddress("corr_val_H_new",&corr_val[1]);
+		simHTree.SetBranchAddress("snr_val_H_new",&snr_val[1]);
+		simHTree.SetBranchAddress("wfrms_val_H_new",&WFRMS[1]);
 		simHTree.SetBranchAddress("Refilt_H",&Refilt[1]);
 
 		int isCal;
@@ -734,14 +747,15 @@ int main(int argc, char **argv)
 		int unixTime;
 		int isFirstFiveEvent;
 		int hasBadSpareChanIssue;
+		int hasBadSpareChanIssue2;
 
 		simAllTree.SetBranchAddress("cal",&isCal);
 		simAllTree.SetBranchAddress("soft",&isSoft);
 		simAllTree.SetBranchAddress("short",&isShort);
 		simAllTree.SetBranchAddress("CW",&isCW);
 		simAllTree.SetBranchAddress("box",&isNewBox);
-		simAllTree.SetBranchAddress("surf_V",&isSurf[0]);
-		simAllTree.SetBranchAddress("surf_H",&isSurf[1]);
+		simAllTree.SetBranchAddress("surf_V_new",&isSurf[0]);
+		simAllTree.SetBranchAddress("surf_H_new",&isSurf[1]);
 		simAllTree.SetBranchAddress("bad",&isBadEvent);
 		simAllTree.SetBranchAddress("weight",&weight);
 		simAllTree.SetBranchAddress("surf_top_V",&isSurfEvent_top[0]);
@@ -749,21 +763,10 @@ int main(int argc, char **argv)
 		simAllTree.SetBranchAddress("unixTime",&unixTime);
 		simAllTree.SetBranchAddress("isFirstFiveEvent",&isFirstFiveEvent);
 		simAllTree.SetBranchAddress("hasBadSpareChanIssue",&hasBadSpareChanIssue);
+		simAllTree.SetBranchAddress("hasBadSpareChanIssue2",&hasBadSpareChanIssue2);
 
 		double energy;
 		simFilterTree.SetBranchAddress("energy",&energy);
-
-		stringstream ss;
-		for(int i=0; i<8; i++){
-			ss.str("");
-			ss<<"PowerNotch_Chan"<<i;
-			simVTree.SetBranchAddress(ss.str().c_str(),&frac_of_power_notched_V[i]);
-		}
-		for(int i=8; i<16; i++){
-			ss.str("");
-			ss<<"PowerNotch_Chan"<<i;
-			simHTree.SetBranchAddress(ss.str().c_str(),&frac_of_power_notched_H[i-8]);
-		}
 
 		for(int event=0; event<numSimEvents; event++){
 
@@ -779,7 +782,6 @@ int main(int argc, char **argv)
 
 			// now, do the polarization dependent cuts, which requires pol-specific SNR information
 			for(int pol=0; pol<2; pol++){
-				h2SNRvsCorr_sim[pol]->Fill(corr_val[pol],snr_val[pol],weight);
 				if(Refilt[pol] && !WFRMS[pol]){
 					vector<double> frac;
 					for(int i=0; i<8; i++){
@@ -799,13 +801,14 @@ int main(int argc, char **argv)
 					failsRcut[pol]=true;
 				}
 
-				if (this_SNR>30.) this_SNR=30.;
+				if (this_SNR>24.) this_SNR=24.;
 				all_events[pol]->Fill(this_SNR,weight);
 				if(!WFRMS[pol] && !failsCWPowerCut[pol]){
 					pass_soft_short_cal_wfrms[pol]->Fill(this_SNR,weight);
 					if(!isNewBox){
 						pass_soft_short_cal_wfrms_box[pol]->Fill(this_SNR,weight);
 						if(!isSurf[0] && !isSurf[1] && !isSurfEvent_top[pol]){
+							h2SNRvsCorr_sim[pol]->Fill(corr_val[pol],snr_val[pol],weight); // fill this now, after all cuts
 							pass_soft_short_cal_wfrms_box_surf[pol]->Fill(this_SNR,weight);
 							if(!failsRcut[pol])
 								pass_soft_short_cal_wfrms_box_surf_rcut[pol]->Fill(this_SNR,weight);
@@ -879,6 +882,24 @@ int main(int argc, char **argv)
 					}
 			} // loop over pol
 
+			// alternative way of accounting
+			// bool pass_this_pol[2]=false;
+			// for(int pol=0; pol<2; pol++){
+			// 	if(!WFRMS[pol] && !failsCWPowerCut[pol]){
+			// 		if(!isNewBox){
+			// 			if(!isSurf[0] && !isSurf[1] && !isSurfEvent_top[pol]){
+			// 				if(!failsRcut[pol]){
+			// 					pass_this_pol[pol]=true;
+			// 				}
+			// 			}
+			// 		}
+			// 	}
+			// }
+			// if(pass_this_pol[0] || pass_this_pol[1]){
+			// 	pass_soft_short_cal_wfrms_box_surf_rcut_vsE->Fill(logE,weight);
+			// 	num_pass_total_either+=weight;
+			// }
+
 			// and now to do efficiencies as a function of energy, which requires, well, not pol-specific SNR information
 			double logE = TMath::Log10(energy);
 			all_events_vsE->Fill(logE,weight);
@@ -888,8 +909,10 @@ int main(int argc, char **argv)
 					pass_soft_short_cal_wfrms_box_vsE->Fill(logE,weight);
 					if(!isSurf[0] && !isSurf[1] && !isSurfEvent_top[0] && !isSurfEvent_top[1]){
 						pass_soft_short_cal_wfrms_box_surf_vsE->Fill(logE,weight);
-						if(!failsRcut[0] || !failsRcut[1])
+						if(!failsRcut[0] || !failsRcut[1]){
 							pass_soft_short_cal_wfrms_box_surf_rcut_vsE->Fill(logE,weight);
+							num_pass_total_either+=weight;
+						}
 					}
 				}
 			}
@@ -903,6 +926,8 @@ int main(int argc, char **argv)
 	printf("Sim Box                :           %7.1f, %7.1f, %7.1f | %7.1f, %7.1f, %7.1f \n",fails_box_first_sim[0],fails_box_insequence_sim[0],fails_box_last_sim[0],fails_box_first_sim[1],fails_box_insequence_sim[1],fails_box_last_sim[1]);
 	printf("Sim Surf               :           %7.1f, %7.1f, %7.1f | %7.1f, %7.1f, %7.1f \n",fails_surface_first_sim[0],fails_surface_insequence_sim[0],fails_surface_last_sim[0],fails_surface_first_sim[1],fails_surface_insequence_sim[1],fails_surface_last_sim[1]);
 	printf("Sim Rcut               :           %7.1f, %7.1f, %7.1f | %7.1f, %7.1f, %7.1f \n",fails_rcut_first_sim[0],fails_rcut_insequence_sim[0],fails_rcut_last_sim[0],fails_rcut_first_sim[1],fails_rcut_insequence_sim[1],fails_rcut_last_sim[1]);
+
+	printf("Num passing either pol total %.2f \n", num_pass_total_either);
 
 	// cook up the efficiencies vs SNR
 	int colors [28] = { kBlue, kRed, kGreen, kMagenta, kCyan};
@@ -1029,7 +1054,7 @@ int main(int argc, char **argv)
 				TLegend *leg = new TLegend(0.5,0.4,0.9,0.2);
 				leg->AddEntry(eff_soft_short_cal_wfrms[pol],"Cut WFMRS","l");
 				leg->AddEntry(eff_soft_short_cal_wfrms_box[pol],"+Cut Cal Pulser Reco","l");
-				leg->AddEntry(eff_soft_short_cal_wfrms_box_surf[pol],"+Cut Surface","l");
+				leg->AddEntry(eff_soft_short_cal_wfrms_box_surf[pol],"+Cut Surf & Top Surf","l");
 				leg->AddEntry(eff_soft_short_cal_wfrms_box_surf_rcut[pol],"+Cut Peak/Corr","l");
 				leg->Draw();
 			}
@@ -1056,15 +1081,9 @@ int main(int argc, char **argv)
 	TLegend *leg2 = new TLegend(0.5,0.4,0.9,0.2);
 	leg2->AddEntry(eff_soft_short_cal_wfrms_vsE,"Cut WFMRS","l");
 	leg2->AddEntry(eff_soft_short_cal_wfrms_box_vsE,"+Cut Cal Pulser Reco","l");
-	leg2->AddEntry(eff_soft_short_cal_wfrms_box_surf_vsE,"+Cut Surface","l");
+	leg2->AddEntry(eff_soft_short_cal_wfrms_box_surf_vsE,"+Cut Surf & Top Surf","l");
 	leg2->AddEntry(eff_soft_short_cal_wfrms_box_surf_rcut_vsE,"+Cut Peak/Corr","l");
 	leg2->Draw();
-
-	for(int eBin=0; eBin<eff_soft_short_cal_wfrms_box_surf_rcut_vsE->GetNbinsX(); eBin++){
-		double binCenter = eff_soft_short_cal_wfrms_box_surf_rcut_vsE->GetBinCenter(eBin);
-		double eff = eff_soft_short_cal_wfrms_box_surf_rcut_vsE->GetBinContent(eBin);
-		printf("Efficiency for energy bin %d with center %.2f is %.2f \n",eBin,binCenter,eff);
-	}
 
 	char save_title[400];
 	sprintf(save_title,"%s/optimize/A%d_config%d_Final_VSlope_%.2f_HSlope_%.2f_VInt_%.2f_Hint_%.2f.png",
@@ -1076,4 +1095,118 @@ int main(int argc, char **argv)
 						selected_intercepts[0],
 						selected_intercepts[1]);
 	cRcut->SaveAs(save_title);	
+
+
+	////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////
+
+	/*
+		And now more plots thaty are more "thesis" quality
+	*/
+	TCanvas *cEff = new TCanvas("","",2*850,850);
+	cEff->Divide(2,1);
+	for(int pol=0; pol<2; pol++){
+		cEff->cd(pol+1);
+		eff_soft_short_cal_wfrms[pol]->Draw("");
+		eff_soft_short_cal_wfrms_box[pol]->Draw("same");
+		eff_soft_short_cal_wfrms_box_surf[pol]->Draw("same");
+		eff_soft_short_cal_wfrms_box_surf_rcut[pol]->Draw("same");
+
+		eff_soft_short_cal_wfrms[pol]->GetXaxis()->SetTitle("3rd Highest Vpeak/RMS");
+		eff_soft_short_cal_wfrms[pol]->GetYaxis()->SetTitle("Efficiency (weighted)");
+
+		eff_soft_short_cal_wfrms[pol]->GetYaxis()->SetTitleOffset(1.2);
+		eff_soft_short_cal_wfrms[pol]->GetXaxis()->SetTitleOffset(1.2);
+		eff_soft_short_cal_wfrms[pol]->GetYaxis()->SetTitleOffset(1.2);
+		eff_soft_short_cal_wfrms[pol]->GetZaxis()->SetTitleOffset(1.2);
+		eff_soft_short_cal_wfrms[pol]->GetXaxis()->SetTitleSize(0.04);
+		eff_soft_short_cal_wfrms[pol]->GetYaxis()->SetTitleSize(0.04);
+		eff_soft_short_cal_wfrms[pol]->GetZaxis()->SetTitleSize(0.04);
+		eff_soft_short_cal_wfrms[pol]->GetXaxis()->SetLabelSize(0.04);
+		eff_soft_short_cal_wfrms[pol]->GetYaxis()->SetLabelSize(0.04);
+		eff_soft_short_cal_wfrms[pol]->GetZaxis()->SetLabelSize(0.04);
+
+		if(pol==0)
+			eff_soft_short_cal_wfrms[pol]->SetTitle("VPol Efficiency");
+		if(pol==1)
+			eff_soft_short_cal_wfrms[pol]->SetTitle("HPol Efficiency");		
+
+
+		eff_soft_short_cal_wfrms[pol]->SetLineColor(colors[0]);
+		eff_soft_short_cal_wfrms_box[pol]->SetLineColor(colors[1]);
+		eff_soft_short_cal_wfrms_box_surf[pol]->SetLineColor(colors[2]);
+		eff_soft_short_cal_wfrms_box_surf_rcut[pol]->SetLineColor(colors[3]);
+
+		eff_soft_short_cal_wfrms[pol]->SetLineWidth(2.);
+		eff_soft_short_cal_wfrms_box[pol]->SetLineWidth(2.);
+		eff_soft_short_cal_wfrms_box_surf[pol]->SetLineWidth(2.);
+		eff_soft_short_cal_wfrms_box_surf_rcut[pol]->SetLineWidth(2.);
+		if(pol==0){
+			TLegend *leg = new TLegend(0.5,0.4,0.9,0.2);
+			leg->AddEntry(eff_soft_short_cal_wfrms[pol],"Cut WFMRS","l");
+			leg->AddEntry(eff_soft_short_cal_wfrms_box[pol],"+Cut Cal Pulser Reco","l");
+			leg->AddEntry(eff_soft_short_cal_wfrms_box_surf[pol],"+Cut Surf & Top Surf","l");
+			leg->AddEntry(eff_soft_short_cal_wfrms_box_surf_rcut[pol],"+Cut Peak/Corr","l");
+			leg->Draw();
+		}
+	}
+	cEff->cd(1);
+	char pretty_title[400];
+	sprintf(pretty_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/thesis/rcut_a%d_c%d_eff.pdf",station,config);
+	cEff->SaveAs(pretty_title);
+
+
+	for(int snrBin=0; snrBin<=eff_soft_short_cal_wfrms_box_surf_rcut[0]->GetNbinsX(); snrBin++){
+		double binCenter = eff_soft_short_cal_wfrms_box_surf_rcut[0]->GetBinCenter(snrBin);
+		double eff = eff_soft_short_cal_wfrms_box_surf_rcut[0]->GetBinContent(snrBin);
+		printf("VPol Efficiency for SNR bin %d with center %.2f is %.2f \n",snrBin,binCenter,eff);
+	}
+
+
+	TCanvas *cEffVsE = new TCanvas("","",1.1*850,850);
+		eff_soft_short_cal_wfrms_vsE->Draw("");
+		eff_soft_short_cal_wfrms_box_vsE->Draw("same");
+		eff_soft_short_cal_wfrms_box_surf_vsE->Draw("same");
+		eff_soft_short_cal_wfrms_box_surf_rcut_vsE->Draw("same");
+
+		eff_soft_short_cal_wfrms_vsE->GetXaxis()->SetTitle("log10(E) [eV]");
+		eff_soft_short_cal_wfrms_vsE->GetYaxis()->SetTitle("Efficiency (weighted)");
+
+		eff_soft_short_cal_wfrms_vsE->GetYaxis()->SetTitleOffset(1.2);
+		eff_soft_short_cal_wfrms_vsE->GetXaxis()->SetTitleOffset(1.2);
+		eff_soft_short_cal_wfrms_vsE->GetYaxis()->SetTitleOffset(1.2);
+		eff_soft_short_cal_wfrms_vsE->GetZaxis()->SetTitleOffset(1.2);
+		eff_soft_short_cal_wfrms_vsE->GetXaxis()->SetTitleSize(0.04);
+		eff_soft_short_cal_wfrms_vsE->GetYaxis()->SetTitleSize(0.04);
+		eff_soft_short_cal_wfrms_vsE->GetZaxis()->SetTitleSize(0.04);
+		eff_soft_short_cal_wfrms_vsE->GetXaxis()->SetLabelSize(0.04);
+		eff_soft_short_cal_wfrms_vsE->GetYaxis()->SetLabelSize(0.04);
+		eff_soft_short_cal_wfrms_vsE->GetZaxis()->SetLabelSize(0.04);
+
+		eff_soft_short_cal_wfrms_vsE->SetLineWidth(3.);
+		eff_soft_short_cal_wfrms_box_vsE->SetLineWidth(3.);
+		eff_soft_short_cal_wfrms_box_surf_vsE->SetLineWidth(3.);
+		eff_soft_short_cal_wfrms_box_surf_rcut_vsE->SetLineWidth(3.);
+		leg2->Draw();
+	sprintf(pretty_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/thesis/rcut_a%d_c%d_eff_vs_energy.pdf",station,config);
+	cEffVsE->SaveAs(pretty_title);
+
+	for(int eBin=0; eBin<=eff_soft_short_cal_wfrms_box_surf_rcut_vsE->GetNbinsX(); eBin++){
+		double binCenter = eff_soft_short_cal_wfrms_box_surf_rcut_vsE->GetBinCenter(eBin);
+		double eff = eff_soft_short_cal_wfrms_box_surf_rcut_vsE->GetBinContent(eBin);
+		printf("Efficiency for energy bin %d with center %.2f is %.2f \n",eBin,binCenter,eff);
+	}
+
+
 }

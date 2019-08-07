@@ -250,10 +250,10 @@ int main(int argc, char **argv)
 	getCalCutPlotBoundary(station,config,pulser,pol,false,projectX_low,projectX_high,projectY_low,projectY_high);
 
 
-	//	projectX_low=-35;
-	//	projectX_high=-15;
-	//	projectY_low=20;
-	//	projectY_high=50;
+		projectX_low=-35;
+		projectX_high=-15;
+		projectY_low=20;
+		projectY_high=50;
 
 
 	double real_phi, real_theta;
@@ -281,15 +281,15 @@ int main(int argc, char **argv)
 	getCalCutPlotBoundary(station,config,pulser,pol,true,projectX_low,projectX_high,projectY_low,projectY_high);
 
 
-	//	projectX_low=-35;
-	////projectX_high=-15;
-	//projectY_low=20;
-	//	projectY_high=50;
+		projectX_low=-35;
+	projectX_high=-15;
+	projectY_low=20;
+		projectY_high=50;
 
-	//	projectX_low+=180;
-	//	projectX_high+=180;
-	//	projectY_low+=90;
-	//	projectY_high+=90;
+		projectX_low+=180;
+		projectX_high+=180;
+		projectY_low+=90;
+		projectY_high+=90;
 
 	TH1D *project_V[2];
 	project_V[0] = (TH1D*) locations_zoom_clone[pol]->ProjectionX("",projectY_low,projectY_high)->Clone();

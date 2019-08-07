@@ -124,6 +124,7 @@ int main(int argc, char **argv)
 	vector<int> BadRunList=BuildBadRunList(station);
 
 	bool version2=false;
+	/*
 	if(version2){
 		double num_total=0.;
 		
@@ -346,24 +347,24 @@ int main(int argc, char **argv)
 		printf("Box                :           %7.1f, %7.1f, %7.1f | %7.1f, %7.1f, %7.1f \n",fails_box_first[0],fails_box_insequence[0],fails_box_last[0],fails_box_first[1],fails_box_insequence[1],fails_box_last[1]);
 		printf("Surf               :           %7.1f, %7.1f, %7.1f | %7.1f, %7.1f, %7.1f \n",fails_surface_first[0],fails_surface_insequence[0],fails_surface_last[0],fails_surface_first[1],fails_surface_insequence[1],fails_surface_last[1]);
 	}
+	*/
 
 	bool version1=true;
 	if(version1){
-		// older version
-		int num_total=0;
-		int num_in_final_plot=0;
-		int num_refilt[2];
-		num_refilt[0]=0;
-		num_refilt[1]=0;
-		int num_cal=0;
-		int num_soft=0;
-		int num_short=0;
-		int num_box=0;
-		int num_surf=0;
 
-		double num_total_trig=0.;
-		double num_pass_pol[2]={0.};
-		double num_pass_either=0.;
+		double num_total=0.;
+		double num_tag_cal=0.;
+		double num_soft=0.;
+		double num_short=0.;
+		double num_box=0.;
+		double num_glitch=0.;
+		double num_pass_either=0.; //sim only
+		
+		double num_surf_org[2]={0., 0.};
+		double num_surf_new[2]={0., 0.};
+		double num_surf_top[2]={0., 0.};
+		double num_filtered[2] = {0., 0.};
+		double num_surf_either=0.;
 
 		for(int file_num=5; file_num<argc; file_num++){
 
@@ -374,7 +375,7 @@ int main(int argc, char **argv)
 			int runNum = atoi(strRunNum.c_str());
 
 			// if(isBadRun(station,runNum,BadRunList) || runNum==3437){
-			if(isBadRun(station,runNum,BadRunList)){
+			if(isBadRun(station,runNum,BadRunList) && !isSim){
 				continue;
 			}
 
@@ -385,54 +386,69 @@ int main(int argc, char **argv)
 			}
 			printf("File %d: run %d \n", file_num, runNum);
 
-			TTree *trees[3];
+			TTree *trees[4];
 			trees[0] = (TTree*) inputFile->Get("VTree");
 			trees[1] = (TTree*) inputFile->Get("HTree");
 			trees[2] = (TTree*) inputFile->Get("AllTree");
+			trees[3] = (TTree*) inputFile->Get("OutputTree");
 
-			double corr_val[2];
-			double snr_val[2];
-			int WFRMS[2];
-			double frac_of_power_notched_V[8];
-			double frac_of_power_notched_H[8];
+			bool original_error;
+			trees[3]->SetBranchAddress("hasDigitizerError",&original_error);
+
+			double corr_val_org[2];
+			double snr_val_org[2];
+			int WFRMS_org[2];
+			int theta_300_org[2];
+			int phi_300_org[2];
+			int theta_41_org[2];
+			int phi_41_org[2];
+
+			trees[0]->SetBranchAddress("corr_val_V_org",&corr_val_org[0]);
+			trees[0]->SetBranchAddress("snr_val_V_org",&snr_val_org[0]);
+			trees[0]->SetBranchAddress("wfrms_val_V_org",&WFRMS_org[0]);
+			trees[0]->SetBranchAddress("theta_300_V_org",&theta_300_org[0]);
+			trees[0]->SetBranchAddress("theta_41_V_org",&theta_41_org[0]);
+			trees[0]->SetBranchAddress("phi_300_V_org",&phi_300_org[0]);
+			trees[0]->SetBranchAddress("phi_41_V_org",&phi_41_org[0]);
+
+			trees[1]->SetBranchAddress("corr_val_H_org",&corr_val_org[1]);
+			trees[1]->SetBranchAddress("snr_val_H_org",&snr_val_org[1]);
+			trees[1]->SetBranchAddress("wfrms_val_H_org",&WFRMS_org[1]);
+			trees[1]->SetBranchAddress("theta_300_H_org",&theta_300_org[1]);
+			trees[1]->SetBranchAddress("theta_41_H_org",&theta_41_org[1]);
+			trees[1]->SetBranchAddress("phi_300_H_org",&phi_300_org[1]);
+			trees[1]->SetBranchAddress("phi_41_H_org",&phi_41_org[1]);
+
+			double corr_val_new[2];
+			double snr_val_new[2];
+			int WFRMS_new[2];
+			int theta_300_new[2];
+			int phi_300_new[2];
+			int theta_41_new[2];
+			int phi_41_new[2];
+
+			trees[0]->SetBranchAddress("corr_val_V_new",&corr_val_new[0]);
+			trees[0]->SetBranchAddress("snr_val_V_new",&snr_val_new[0]);
+			trees[0]->SetBranchAddress("wfrms_val_V_new",&WFRMS_new[0]);
+			trees[0]->SetBranchAddress("theta_300_V_new",&theta_300_new[0]);
+			trees[0]->SetBranchAddress("theta_41_V_new",&theta_41_new[0]);
+			trees[0]->SetBranchAddress("phi_300_V_new",&phi_300_new[0]);
+			trees[0]->SetBranchAddress("phi_41_V_new",&phi_41_new[0]);
+
+			trees[1]->SetBranchAddress("corr_val_H_new",&corr_val_new[1]);
+			trees[1]->SetBranchAddress("snr_val_H_new",&snr_val_new[1]);
+			trees[1]->SetBranchAddress("wfrms_val_H_new",&WFRMS_new[1]);
+			trees[1]->SetBranchAddress("theta_300_H_new",&theta_300_new[1]);
+			trees[1]->SetBranchAddress("theta_41_H_new",&theta_41_new[1]);
+			trees[1]->SetBranchAddress("phi_300_H_new",&phi_300_new[1]);
+			trees[1]->SetBranchAddress("phi_41_H_new",&phi_41_new[1]);
+
 			int Refilt[2];
-
-			trees[0]->SetBranchAddress("corr_val_V",&corr_val[0]);
-			trees[0]->SetBranchAddress("snr_val_V",&snr_val[0]);
-			trees[0]->SetBranchAddress("wfrms_val_V",&WFRMS[0]);
 			trees[0]->SetBranchAddress("Refilt_V",&Refilt[0]);
-			trees[1]->SetBranchAddress("corr_val_H",&corr_val[1]);
-			trees[1]->SetBranchAddress("snr_val_H",&snr_val[1]);
-			trees[1]->SetBranchAddress("wfrms_val_H",&WFRMS[1]);
 			trees[1]->SetBranchAddress("Refilt_H",&Refilt[1]);
 
-			int isCal;
-			int isSoft;
-			int isShort;
-			int isCW;
-			int isNewBox;
-			int isSurf[2];
-			int isBadEvent;
-			double weight;
-			int isSurfEvent_top[2];
-			int unixTime;
-			int isFirstFiveEvent;
-			int hasBadSpareChanIssue;
-
-			trees[2]->SetBranchAddress("cal",&isCal);
-			trees[2]->SetBranchAddress("soft",&isSoft);
-			trees[2]->SetBranchAddress("short",&isShort);
-			trees[2]->SetBranchAddress("CW",&isCW);
-			trees[2]->SetBranchAddress("box",&isNewBox);
-			trees[2]->SetBranchAddress("surf_V",&isSurf[0]);
-			trees[2]->SetBranchAddress("surf_H",&isSurf[1]);
-			trees[2]->SetBranchAddress("bad",&isBadEvent);
-			trees[2]->SetBranchAddress("weight",&weight);
-			trees[2]->SetBranchAddress("surf_top_V",&isSurfEvent_top[0]);
-			trees[2]->SetBranchAddress("surf_top_H",&isSurfEvent_top[1]);
-			trees[2]->SetBranchAddress("unixTime",&unixTime);
-			trees[2]->SetBranchAddress("isFirstFiveEvent",&isFirstFiveEvent);
-			trees[2]->SetBranchAddress("hasBadSpareChanIssue",&hasBadSpareChanIssue);
+			double frac_of_power_notched_V[8];
+			double frac_of_power_notched_H[8];			
 
 			stringstream ss;
 			for(int i=0; i<8; i++){
@@ -445,6 +461,43 @@ int main(int argc, char **argv)
 				ss<<"PowerNotch_Chan"<<i;
 				trees[1]->SetBranchAddress(ss.str().c_str(),&frac_of_power_notched_H[i-8]);
 			}
+
+			int isCal;
+			int isSoft;
+			int isShort;
+			int isCW;
+			int isNewBox;
+			int isSurfEvent_org_out[2]; // originally a surf event?
+			int isSurfEvent_new_out[2]; // a surface event after filtering?
+			int isSurfEvent_top[2]; // a top event?
+
+			trees[2]->SetBranchAddress("cal",&isCal);
+			trees[2]->SetBranchAddress("soft",&isSoft);
+			trees[2]->SetBranchAddress("short",&isShort);
+			trees[2]->SetBranchAddress("CW",&isCW);
+			trees[2]->SetBranchAddress("box",&isNewBox);
+			trees[2]->SetBranchAddress("surf_V_org",&isSurfEvent_org_out[0]);
+			trees[2]->SetBranchAddress("surf_H_org",&isSurfEvent_org_out[1]);
+			trees[2]->SetBranchAddress("surf_V_new",&isSurfEvent_new_out[0]);
+			trees[2]->SetBranchAddress("surf_H_new",&isSurfEvent_new_out[1]);
+			trees[2]->SetBranchAddress("surf_top_V",&isSurfEvent_top[0]);
+			trees[2]->SetBranchAddress("surf_top_H",&isSurfEvent_top[1]);
+
+			int isBadEvent;
+			double weight;
+			int unixTime;
+			int hasBadSpareChanIssue;
+			int hasBadSpareChanIssue2;
+			int isFirstFiveEvent;
+			int eventNumber;
+
+			trees[2]->SetBranchAddress("bad",&isBadEvent);
+			trees[2]->SetBranchAddress("weight",&weight);
+			trees[2]->SetBranchAddress("unixTime",&unixTime);
+			trees[2]->SetBranchAddress("isFirstFiveEvent",&isFirstFiveEvent);
+			trees[2]->SetBranchAddress("hasBadSpareChanIssue",&hasBadSpareChanIssue);
+			trees[2]->SetBranchAddress("hasBadSpareChanIssue2",&hasBadSpareChanIssue2);
+			trees[2]->SetBranchAddress("eventNumber",&eventNumber);
 			
 			int numEntries = trees[0]->GetEntries();
 
@@ -453,25 +506,42 @@ int main(int argc, char **argv)
 				trees[0]->GetEvent(event);
 				trees[1]->GetEvent(event);
 				trees[2]->GetEvent(event);
-				if(isBadEvent || isFirstFiveEvent || hasBadSpareChanIssue){
-					continue;
-				}
+				trees[3]->GetEvent(event);
+
+				num_total+=weight;
+
 				if(isBadLivetime(station,unixTime)){
 					continue;
 				}
 
-				num_total++;
-				num_total_trig+=weight;
+				// now to do some accounting
 
-				if(isCal) num_cal++;
-				if(isSoft) num_soft++;
-				if(isShort) num_short++;
-				if(isNewBox) num_box++;
-				if(isSurf[0] || isSurf[1]) num_surf++;
+				if(!isSim){
+					if(isBadEvent || isFirstFiveEvent || hasBadSpareChanIssue || hasBadSpareChanIssue2){
+						num_glitch+=weight;
+						continue;
+					}
+				}
+				
+				if(isCal)
+					num_tag_cal+=weight;
+				if(isSoft)
+					num_soft+=weight;
+				if(isNewBox)
+					num_box+=weight;
+				for(int pol=0; pol<2; pol++){
+					if(isSurfEvent_org_out[pol])
+						num_surf_org[pol]+=weight;
+					if(isSurfEvent_new_out[pol])
+						num_surf_new[pol]+=weight;
+					if(isSurfEvent_top[pol])
+						num_surf_top[pol]+=weight;
+				}
 
-				if(snr_val[0]>=30.) snr_val[0]=30.;
-				if(snr_val[1]>=30.) snr_val[1]=30.;
+				if(snr_val_new[0]>=29.) snr_val_new[0]=29.;
+				if(snr_val_new[1]>=29.) snr_val_new[1]=29.;
 
+				/*
 				if(isSim){
 					bool this_pass[2]={false};
 					for(int pol=0; pol<2; pol++){
@@ -495,31 +565,32 @@ int main(int argc, char **argv)
 					if(this_pass[0] || this_pass[1])
 						num_pass_either+=weight;
 				}
-
+				*/
 
 				for(int pol=0; pol<2; pol++){
-					PeakCorr_vs_SNR_all[pol]->Fill(snr_val[pol],corr_val[pol],weight);
+
+					PeakCorr_vs_SNR_all[pol]->Fill(snr_val_new[pol],corr_val_new[pol],weight);
 					
 					if(!isCal){ //cut cal pulsers
-						PeakCorr_vs_SNR_cutCal[pol]->Fill(snr_val[pol],corr_val[pol],weight);
+						PeakCorr_vs_SNR_cutCal[pol]->Fill(snr_val_new[pol],corr_val_new[pol],weight);
 						
 						if(!isSoft){ //cut software triggers 
-							PeakCorr_vs_SNR_cutCal_cutSoft[pol]->Fill(snr_val[pol],corr_val[pol],weight);
+							PeakCorr_vs_SNR_cutCal_cutSoft[pol]->Fill(snr_val_new[pol],corr_val_new[pol],weight);
 							
 							if(!isShort){ //cut short
-								PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[pol]->Fill(snr_val[pol],corr_val[pol],weight);
+								PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[pol]->Fill(snr_val_new[pol],corr_val_new[pol],weight);
 								
-								if(!WFRMS[pol]){ //cut WRMS
-									PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[pol]->Fill(snr_val[pol],corr_val[pol],weight);
+								if(!WFRMS_new[pol]){ //cut WRMS
+									PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[pol]->Fill(snr_val_new[pol],corr_val_new[pol],weight);
 									
 									if(!isNewBox){ //cut cal box
-										PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[pol]->Fill(snr_val[pol],corr_val[pol],weight);
+										PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[pol]->Fill(snr_val_new[pol],corr_val_new[pol],weight);
 
 										// if((!isSurf[pol]) && !isSurfEvent_top[pol]){
-										if((!isSurf[0] && !isSurf[1]) && !isSurfEvent_top[pol]){
+										if((!isSurfEvent_new_out[0] && !isSurfEvent_new_out[1]) && !isSurfEvent_top[pol]){
 
 											if(Refilt[pol]){
-												num_refilt[pol]++;
+												num_filtered[pol]++;
 
 												vector<double> frac;
 												for(int i=0; i<8; i++){
@@ -531,13 +602,20 @@ int main(int argc, char **argv)
 												// if(frac[2]>0.06)
 												// 	printf("This event had lots of power cut!\n");
 												if(frac[2]<=0.06){
-													PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol],weight);
+													PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val_new[pol],corr_val_new[pol],weight);
 												}
+
+												if(corr_val_new[pol]>0.04){
+													printf("Run %d, event %d, unixTime %d \n", runNum, event, unixTime);
+												}
+
 											} //refiltered?
 											else{
-												PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val[pol],corr_val[pol],weight);
+												PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val_new[pol],corr_val_new[pol],weight);
+												if(corr_val_new[pol]>0.04){
+													printf("Run %d, event %d, unixTime %d and qual flag is %d but original error is %d \n", runNum, event, unixTime, isBadEvent, original_error);
+												}
 											}
-											num_in_final_plot++;
 										}
 									}
 								}
@@ -549,15 +627,15 @@ int main(int argc, char **argv)
 			inputFile->Close();
 			delete inputFile;
 		}
-		cout<<"Num total is "<<num_total<<endl;
-		cout<<"Num in final plot "<<num_in_final_plot<<endl;
-		cout<<"Num re-filtered in vpol is "<<num_refilt[0]<<" and in hpol is "<<num_refilt[1]<<endl;
+		// cout<<"Num total is "<<num_total<<endl;
+		// cout<<"Num in final plot "<<num_in_final_plot<<endl;
+		// cout<<"Num re-filtered in vpol is "<<num_refilt[0]<<" and in hpol is "<<num_refilt[1]<<endl;
 
-		printf("Num cal is %d -- %.2f %\n", num_cal, double(num_cal)/double(num_total)*100.);
-		printf("Num box is %d -- %.2f %\n", num_box, double(num_box)/double(num_total)*100.);
-		printf("Num soft is %d -- %.2f %\n", num_soft, double(num_soft)/double(num_total)*100.);
-		printf("Num short is %d -- %.2f %\n", num_short, double(num_short)/double(num_total)*100.);
-		printf("Num surf is %d -- %.2f %\n", num_surf, double(num_surf)/double(num_total)*100.);
+		// printf("Num cal is %d -- %.2f %\n", num_cal, double(num_cal)/double(num_total)*100.);
+		// printf("Num box is %d -- %.2f %\n", num_box, double(num_box)/double(num_total)*100.);
+		// printf("Num soft is %d -- %.2f %\n", num_soft, double(num_soft)/double(num_total)*100.);
+		// printf("Num short is %d -- %.2f %\n", num_short, double(num_short)/double(num_total)*100.);
+		// printf("Num surf is %d and %d -- %.2f %\n", num_surf_new[0], double(num_surf)/double(num_total)*100.);
 
 		gStyle->SetOptStat(1);
 		gStyle->SetStatY(0.9);
@@ -567,6 +645,7 @@ int main(int argc, char **argv)
 
 		int colors [28] = { kBlue, kRed, kGreen, kMagenta, kCyan};
 
+		/*
 		if(isSim){
 			for(int pol=0; pol<2; pol++){
 				for(int bin=0; bin<=all_events[pol]->GetNbinsX(); bin++){
@@ -663,6 +742,7 @@ int main(int argc, char **argv)
 			}
 		}
 		printf("Eff on both pols combined is %.3f / %.3f = %.3f \n", num_pass_either, num_total_trig, num_pass_either/num_total_trig);
+		*/
 
 		//save out SNR vs WavefrontRMS plot
 		char graph_title[2][300];
@@ -675,6 +755,8 @@ int main(int argc, char **argv)
 		int box = 0;
 		int surf=0;
 		int cw=0;
+
+		gStyle->SetOptStat(1111111);
 
 		//save out the Corr vs SNR plot for all 
 		sprintf(graph_title[0],"VPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
@@ -691,9 +773,9 @@ int main(int argc, char **argv)
 			gPad->SetLogz();
 		}
 		if(isSim)
-			sprintf(title, "%s/%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, num_total,cal,soft,Short,wrms,box,surf);
+			sprintf(title, "%s/New_%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, int(num_total),cal,soft,Short,wrms,box,surf);
 		else
-			sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,num_total,cal,soft,Short,wrms,box,surf);
+			sprintf(title, "%s/New_%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,int(num_total),cal,soft,Short,wrms,box,surf);
 		c2->SaveAs(title);
 		delete c2;
 		delete PeakCorr_vs_SNR_all[0]; delete PeakCorr_vs_SNR_all[1];
@@ -713,9 +795,8 @@ int main(int argc, char **argv)
 			gPad->SetLogz();
 		}
 		if(isSim)
-			sprintf(title, "%s/%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, num_total,cal,soft,Short,wrms,box,surf);
-		else
-			sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,num_total,cal,soft,Short,wrms,box,surf);
+			sprintf(title, "%s/New_%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, int(num_total),cal,soft,Short,wrms,box,surf);		else
+			sprintf(title, "%s/New_%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,int(num_total),cal,soft,Short,wrms,box,surf);
 		c3->SaveAs(title);
 		delete c3;
 		delete PeakCorr_vs_SNR_cutCal[0]; delete PeakCorr_vs_SNR_cutCal[1];
@@ -735,9 +816,9 @@ int main(int argc, char **argv)
 			gPad->SetLogz();
 		}
 		if(isSim)
-			sprintf(title, "%s/%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, num_total,cal,soft,Short,wrms,box,surf);
+			sprintf(title, "%s/New_%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, int(num_total),cal,soft,Short,wrms,box,surf);
 		else
-			sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,num_total,cal,soft,Short,wrms,box,surf);
+			sprintf(title, "%s/New_%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,int(num_total),cal,soft,Short,wrms,box,surf);
 		c4->SaveAs(title);
 		delete c4;
 		delete PeakCorr_vs_SNR_cutCal_cutSoft[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft[1];
@@ -757,9 +838,9 @@ int main(int argc, char **argv)
 			gPad->SetLogz();
 		}
 		if(isSim)
-			sprintf(title, "%s/%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, num_total,cal,soft,Short,wrms,box,surf);
+			sprintf(title, "%s/New_%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, int(num_total),cal,soft,Short,wrms,box,surf);
 		else
-			sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,num_total,cal,soft,Short,wrms,box,surf);
+			sprintf(title, "%s/New_%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,int(num_total),cal,soft,Short,wrms,box,surf);
 		c5->SaveAs(title);
 		delete c5;
 		delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[1];
@@ -779,9 +860,9 @@ int main(int argc, char **argv)
 			gPad->SetLogz();
 		}
 		if(isSim)
-			sprintf(title, "%s/%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, num_total,cal,soft,Short,wrms,box,surf);
+			sprintf(title, "%s/New_%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, int(num_total),cal,soft,Short,wrms,box,surf);
 		else
-			sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,num_total,cal,soft,Short,wrms,box,surf);
+			sprintf(title, "%s/New_%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,int(num_total),cal,soft,Short,wrms,box,surf);
 		c6->SaveAs(title);
 		delete c6;
 		delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[1];
@@ -801,9 +882,9 @@ int main(int argc, char **argv)
 			gPad->SetLogz();
 		}
 		if(isSim)
-			sprintf(title, "%s/%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, num_total,cal,soft,Short,wrms,box,surf);
+			sprintf(title, "%s/New_%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, int(num_total),cal,soft,Short,wrms,box,surf);
 		else
-			sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,num_total,cal,soft,Short,wrms,box,surf);
+			sprintf(title, "%s/New_%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,int(num_total),cal,soft,Short,wrms,box,surf);
 		c7->SaveAs(title);
 		delete c7;
 		delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[1];
@@ -826,9 +907,9 @@ int main(int argc, char **argv)
 			// PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->GetYaxis()->SetRangeUser(0,0.5);
 		}
 		if(isSim)
-			sprintf(title, "%s/%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, num_total,cal,soft,Short,wrms,box,surf);
+			sprintf(title, "%s/New_%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, int(num_total),cal,soft,Short,wrms,box,surf);
 		else
-			sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,num_total,cal,soft,Short,wrms,box,surf);
+			sprintf(title, "%s/New_%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,int(num_total),cal,soft,Short,wrms,box,surf);
 		c8->SaveAs(title);
 		delete c8;
 		delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[1];
@@ -840,17 +921,13 @@ int main(int argc, char **argv)
 			fracs_power_cut[pol]->Draw("");
 		}
 		if(isSim)
-			sprintf(title, "%s/%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_FracPowerCut.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, num_total);
+			sprintf(title, "%s/New_%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_FracPowerCut.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, int(num_total));
 		else
-			sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_FracPowerCut.png",plotPath,year_now, month_now, day_now,station,config,num_total);
+			sprintf(title, "%s/New_%d.%d.%d_A%d_c%d_%dEvents_FracPowerCut.png",plotPath,year_now, month_now, day_now,station,config,int(num_total));
 		c9->SaveAs(title);
 		delete c9;
 		delete fracs_power_cut[0]; delete fracs_power_cut[1];
 
 	}
-
-
-
-
 
 }

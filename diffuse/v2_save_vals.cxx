@@ -49,13 +49,30 @@ int main(int argc, char **argv)
 	int day_now = time -> tm_mday;
 
 	char *DataDirPath(getenv("DATA_DIR"));
-	if (DataDirPath == NULL) std::cout << "Warning! $DATA_DIR is not set!" << endl;
+	if (DataDirPath == NULL){
+		std::cout << "Warning! $DATA_DIR is not set!" << endl;
+		return -1;
+	}
+	char *DataDirPath_Project(getenv("DATA_DIR_PROJECT"));
+	if (DataDirPath_Project == NULL){
+		std::cout << "Warning! $DATA_DIR_PROJECT is not set!" << endl;
+		return -1;
+	}
 	char *SimDirPath(getenv("SIM_DIR"));
-	if (SimDirPath == NULL) std::cout << "Warning! $SIM_DIR is not set!" << endl;
+	if (SimDirPath == NULL){
+		std::cout << "Warning! $SIM_DIR is not set!" << endl;
+		return -1;
+	}
 	char *PedDirPath(getenv("PED_DIR"));
-	if (PedDirPath == NULL) std::cout << "Warning! $DATA_DIR is not set!" << endl;
+	if (PedDirPath == NULL){
+		std::cout << "Warning! $DATA_DIR is not set!" << endl;
+		return -1;
+	}
 	char *plotPath(getenv("PLOT_PATH"));
-	if (plotPath == NULL) std::cout << "Warning! $PLOT_PATH is not set!" << endl;
+	if (plotPath == NULL){
+		std::cout << "Warning! $PLOT_PATH is not set!" << endl;
+		return -1;
+	}
 
 	stringstream ss;
 	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
@@ -107,7 +124,7 @@ int main(int argc, char **argv)
 		char outfile_name[300];
 		sprintf(outfile_name,"%s/cutvals_snrbins_%d_%d_wfrmsvals_%.1f_%.1f_run_%d.root",output_location.c_str(),thresholdBin_pol[0], thresholdBin_pol[1], (wavefrontRMScut[0]),(wavefrontRMScut[1]),runNum);
 		if(dropBadChans){
-			sprintf(outfile_name,"%s/cutvals_drop_snrbins_%d_%d_wfrmsvals_%.1f_%.1f_run_%d.root",output_location.c_str(),thresholdBin_pol[0], thresholdBin_pol[1], (wavefrontRMScut[0]), (wavefrontRMScut[1]),runNum);
+			sprintf(outfile_name,"%s/cutvals_drop_FiltSurface_snrbins_%d_%d_wfrmsvals_%.1f_%.1f_run_%d.root",output_location.c_str(),thresholdBin_pol[0], thresholdBin_pol[1], (wavefrontRMScut[0]), (wavefrontRMScut[1]),runNum);
 			// sprintf(outfile_name,"%s/cutvals_drop_snrbins_%s%d_%s%d_wfrmsvals_%.1f_%.1f_run_%d.root",output_location.c_str(),thresholdBin_pol[0], thresholdBin_pol[1], wavefrontRMScut[0]<0?'-':'',(wavefrontRMScut[0]), wavefrontRMScut[0]<0?'-':'',(wavefrontRMScut[1]),runNum);
 		}
 		TFile *fpOut = new TFile(outfile_name,"recreate");
@@ -116,33 +133,66 @@ int main(int argc, char **argv)
 		trees[1]= new TTree("HTree","HTree");
 		trees[2]= new TTree("AllTree","AllTree");
 
-		double corr_val[2];
-		double snr_val[2];
-		int WFRMS[2];
+
+		// need "org" and "new" variables so we know what's happening before and after filtering
+		// the way I'm doing this is so, so dumb. Brian, don't ever do it this way again
+
+		double corr_val_org[2];
+		double snr_val_org[2];
+		int WFRMS_org[2];
+		int theta_300_org[2];
+		int phi_300_org[2];
+		int theta_41_org[2];
+		int phi_41_org[2];
+
+		trees[0]->Branch("corr_val_V_org",&corr_val_org[0]);
+		trees[0]->Branch("snr_val_V_org",&snr_val_org[0]);
+		trees[0]->Branch("wfrms_val_V_org",&WFRMS_org[0]);
+		trees[0]->Branch("theta_300_V_org",&theta_300_org[0]);
+		trees[0]->Branch("theta_41_V_org",&theta_41_org[0]);
+		trees[0]->Branch("phi_300_V_org",&phi_300_org[0]);
+		trees[0]->Branch("phi_41_V_org",&phi_41_org[0]);
+
+		trees[1]->Branch("corr_val_H_org",&corr_val_org[1]);
+		trees[1]->Branch("snr_val_H_org",&snr_val_org[1]);
+		trees[1]->Branch("wfrms_val_H_org",&WFRMS_org[1]);
+		trees[1]->Branch("theta_300_H_org",&theta_300_org[1]);
+		trees[1]->Branch("theta_41_H_org",&theta_41_org[1]);
+		trees[1]->Branch("phi_300_H_org",&phi_300_org[1]);
+		trees[1]->Branch("phi_41_H_org",&phi_41_org[1]);
+
+
+		double corr_val_new[2];
+		double snr_val_new[2];
+		int WFRMS_new[2];
+		int theta_300_new[2];
+		int phi_300_new[2];
+		int theta_41_new[2];
+		int phi_41_new[2];
+
+		trees[0]->Branch("corr_val_V_new",&corr_val_new[0]);
+		trees[0]->Branch("snr_val_V_new",&snr_val_new[0]);
+		trees[0]->Branch("wfrms_val_V_new",&WFRMS_new[0]);
+		trees[0]->Branch("theta_300_V_new",&theta_300_new[0]);
+		trees[0]->Branch("theta_41_V_new",&theta_41_new[0]);
+		trees[0]->Branch("phi_300_V_new",&phi_300_new[0]);
+		trees[0]->Branch("phi_41_V_new",&phi_41_new[0]);
+
+		trees[1]->Branch("corr_val_H_new",&corr_val_new[1]);
+		trees[1]->Branch("snr_val_H_new",&snr_val_new[1]);
+		trees[1]->Branch("wfrms_val_H_new",&WFRMS_new[1]);
+		trees[1]->Branch("theta_300_H_new",&theta_300_new[1]);
+		trees[1]->Branch("theta_41_H_new",&theta_41_new[1]);
+		trees[1]->Branch("phi_300_H_new",&phi_300_new[1]);
+		trees[1]->Branch("phi_41_H_new",&phi_41_new[1]);
+
+		int Refilt[2];	
+		trees[0]->Branch("Refilt_V",&Refilt[0]);
+		trees[1]->Branch("Refilt_H",&Refilt[1]);
+
 		double frac_of_power_notched_V[8];
 		double frac_of_power_notched_H[8];
-		int Refilt[2];
-		int theta_300[2];
-		int phi_300[2];
-		int theta_41[2];
-		int phi_41[2];
-		trees[0]->Branch("corr_val_V",&corr_val[0]);
-		trees[0]->Branch("snr_val_V",&snr_val[0]);
-		trees[0]->Branch("wfrms_val_V",&WFRMS[0]);
-		trees[0]->Branch("Refilt_V",&Refilt[0]);
-		trees[0]->Branch("theta_300_V",&theta_300[0]);
-		trees[0]->Branch("theta_41_V",&theta_41[0]);
-		trees[0]->Branch("phi_300_V",&phi_300[0]);
-		trees[0]->Branch("phi_41_V",&phi_41[0]);
-		
-		trees[1]->Branch("corr_val_H",&corr_val[1]);
-		trees[1]->Branch("snr_val_H",&snr_val[1]);
-		trees[1]->Branch("wfrms_val_H",&WFRMS[1]);
-		trees[1]->Branch("Refilt_H",&Refilt[1]);
-		trees[1]->Branch("theta_300_H",&theta_300[1]);
-		trees[1]->Branch("theta_41_H",&theta_41[1]);
-		trees[1]->Branch("phi_300_H",&phi_300[1]);
-		trees[1]->Branch("phi_41_H",&phi_41[1]);
+
 		for(int i=0; i<8; i++){
 			ss.str("");
 			ss<<"PowerNotch_Chan"<<i;
@@ -154,35 +204,43 @@ int main(int argc, char **argv)
 			trees[1]->Branch(ss.str().c_str(),&frac_of_power_notched_H[i-8]);
 		}
 
-		int isCal;
-		int isSoft;
-		int isShortWave;
-		int isCW;
-		int isNewBox;
-		int isSurfEvent[2];
-		int isSurfEvent_top[2];
-		int isBadEvent;
+		// mark these as "out" so we can see them clearly
+
+		int isCal_out;
+		int isSoft_out;
+		int isShortWave_out;
+		int isCW_out;
+		int isNewBox_out;
+		int isSurfEvent_org_out[2]; // originally a surf event?
+		int isSurfEvent_new_out[2]; // a surface event after filtering?
+		int isSurfEvent_top[2]; // a top event?
+		trees[2]->Branch("cal",&isCal_out);
+		trees[2]->Branch("soft",&isSoft_out);
+		trees[2]->Branch("short",&isShortWave_out);
+		trees[2]->Branch("CW",&isCW_out);
+		trees[2]->Branch("box",&isNewBox_out);
+		trees[2]->Branch("surf_V_org",&isSurfEvent_org_out[0]);
+		trees[2]->Branch("surf_H_org",&isSurfEvent_org_out[1]);
+		trees[2]->Branch("surf_V_new",&isSurfEvent_new_out[0]);
+		trees[2]->Branch("surf_H_new",&isSurfEvent_new_out[1]);
+		trees[2]->Branch("surf_top_V",&isSurfEvent_top[0]);
+		trees[2]->Branch("surf_top_H",&isSurfEvent_top[1]);
+
+		int isBadEvent_out;
 		double outweight;
 		int Trig_Pass_out[16];
 		int unixTime_out;
-		int hasBadSpareChanIssue;
-		int isFirstFiveEvent;
+		int hasBadSpareChanIssue_out;
+		int hasBadSpareChanIssue2_out;
+		int isFirstFiveEvent_out;
 		int eventNumber_out;
 
-		trees[2]->Branch("cal",&isCal);
-		trees[2]->Branch("soft",&isSoft);
-		trees[2]->Branch("short",&isShortWave);
-		trees[2]->Branch("CW",&isCW);
-		trees[2]->Branch("box",&isNewBox);
-		trees[2]->Branch("surf_V",&isSurfEvent[0]);
-		trees[2]->Branch("surf_H",&isSurfEvent[1]);
-		trees[2]->Branch("surf_top_V",&isSurfEvent_top[0]);
-		trees[2]->Branch("surf_top_H",&isSurfEvent_top[1]);
-		trees[2]->Branch("bad",&isBadEvent);
+		trees[2]->Branch("bad",&isBadEvent_out);
 		trees[2]->Branch("weight",&outweight);
 		trees[2]->Branch("unixTime",&unixTime_out);
-		trees[2]->Branch("hasBadSpareChanIssue",&hasBadSpareChanIssue);
-		trees[2]->Branch("isFirstFiveEvent",&isFirstFiveEvent);
+		trees[2]->Branch("hasBadSpareChanIssue",&hasBadSpareChanIssue_out);
+		trees[2]->Branch("hasBadSpareChanIssue2",&hasBadSpareChanIssue2_out);
+		trees[2]->Branch("isFirstFiveEvent",&isFirstFiveEvent_out);
 		trees[2]->Branch("eventNumber",&eventNumber_out);
 		if(isSimulation)
 			trees[2]->Branch("Trig_Pass", &Trig_Pass_out, "Trig_Pass_out[16]/I");
@@ -206,10 +264,10 @@ int main(int argc, char **argv)
 			cout<<"Can't open filter tree"<<endl;
 			return -1;
 		}
-		bool isCalPulser;
-		bool isSoftTrigger;
-		int waveformLength[16];
-		bool hasDigitizerError;
+		bool isCalPulser_in;
+		bool isSoftTrigger_in;
+		int waveformLength_in[16];
+		bool hasDigitizerError_in;
 		double inweight;
 		int Trig_Pass_in[16];
 		int unixTime_in;
@@ -240,10 +298,10 @@ int main(int argc, char **argv)
 		inputTree_filter->SetBranchAddress("rms_pol_thresh_face_alternate_V", &rms_pol_thresh_face_alternate_V);
 		inputTree_filter->SetBranchAddress("rms_pol_thresh_face_alternate_H", &rms_pol_thresh_face_alternate_H);
 		
-		inputTree_filter->SetBranchAddress("isCalpulser",&isCalPulser);
-		inputTree_filter->SetBranchAddress("isSoftTrigger",&isSoftTrigger);
-		inputTree_filter->SetBranchAddress("waveformLength",&waveformLength);
-		inputTree_filter->SetBranchAddress("hasDigitizerError",&hasDigitizerError);
+		inputTree_filter->SetBranchAddress("isCalpulser",&isCalPulser_in);
+		inputTree_filter->SetBranchAddress("isSoftTrigger",&isSoftTrigger_in);
+		inputTree_filter->SetBranchAddress("waveformLength",&waveformLength_in);
+		inputTree_filter->SetBranchAddress("hasDigitizerError",&hasDigitizerError_in);
 
 		// copy over the whole filter tree
 		fpOut->cd();
@@ -306,7 +364,9 @@ int main(int argc, char **argv)
 		int numEntries = inputTree_filter->GetEntries();
 		Long64_t starEvery=numEntries/200;
 		if(starEvery==0) starEvery++;
+		cout<<"Num entries is "<<numEntries<<endl;
 		cout<<"Star every is "<<starEvery<<endl;
+		// numEntries=2000;
 
 		int start=0;
 		//now to loop over events
@@ -315,36 +375,41 @@ int main(int argc, char **argv)
 				// std::cout<<"*";
 			}
 
-			isCal=0;
-			isSoft=0;
-			isShortWave=0;
-			isCW=0;
-			isNewBox=0;
-			isSurfEvent[0]=0;
-			isSurfEvent[1]=0;
-			Refilt[0]=0;
-			Refilt[1]=0;
-			corr_val[0]=0.;
-			corr_val[1]=0.;
-			snr_val[0]=0.;
-			snr_val[1]=0.;
-			WFRMS[0]=0;
-			WFRMS[1]=0;
-			for(int i=0; i<8; i++){
-				frac_of_power_notched_V[i]=0.;
-				frac_of_power_notched_H[i]=0.;
+			// reset the variables that we are passing *out*
+
+			// things that don't require loops
+			isCal_out=0;
+			isSoft_out=0;
+			isShortWave_out=0;
+			isCW_out=0;
+			isNewBox_out=0;
+			isFirstFiveEvent_out=false;
+			hasBadSpareChanIssue_out=false;
+			hasBadSpareChanIssue2_out=false;
+
+			for(int pol=0; pol<2; pol++){
+				isSurfEvent_org_out[pol]=0;
+				isSurfEvent_new_out[pol]=0;
+				Refilt[pol]=0;
+				corr_val_org[pol]=-10000;
+				snr_val_org[pol]=-10000;
+				corr_val_new[pol]=-10000;
+				snr_val_new[pol]=-10000;
+				WFRMS_org[pol]=0;
+				WFRMS_new[pol]=0;
+				for(int i=0; i<8; i++){
+					frac_of_power_notched_V[i]=0.;
+					frac_of_power_notched_H[i]=0.;
+				}
+				isSurfEvent_top[pol]=0;
 			}
-			isSurfEvent_top[0]=0;
-			isSurfEvent_top[1]=0;
-			isFirstFiveEvent=false;
-			hasBadSpareChanIssue=false;
 
 			inputTree_filter->GetEvent(event);
 
 			unixTime_out=unixTime_in; //copy over the unixtime
 			eventNumber_out=eventNumber_in;
 			if(eventNumber_out<5 && !isSimulation){ //eep, never check this for simulation, will be huge efficiency hit!
-				isFirstFiveEvent=true;
+				isFirstFiveEvent_out=true;
 			}
 
 			bool isShort=false;
@@ -356,11 +421,12 @@ int main(int argc, char **argv)
 			failWavefrontRMS[1]=false;
 
 			outweight=inweight;
-			isBadEvent=hasDigitizerError;
+			isBadEvent_out=hasDigitizerError_in;
 
 			for(int i=0;i<16;i++){ 
-				if(waveformLength[i]<500)
+				if(waveformLength_in[i]<500){
 					isShort=true;
+				}
 				Trig_Pass_out[i]=Trig_Pass_in[i];
 			}
 
@@ -400,8 +466,8 @@ int main(int argc, char **argv)
 
 
 			for(int pol=0; pol<2; pol++){
-				// printf("Pol %d has theta %d \n",pol,bestTheta[pol]);
 				if(bestTheta[pol] >= 37){
+					// printf("Pol %d has theta %d \n",pol,bestTheta[pol]);
 					isSurf[pol]=true;
 				}
 			}
@@ -436,41 +502,19 @@ int main(int argc, char **argv)
 			
 			//draw a box around the cal pulser
 			for (int pol = 0; pol < 2; pol++){
-
-				identifyCalPulser(station,bestTheta_pulser[pol], bestPhi_pulser[pol], isCP5, isCP6);
-
-				// if(station==2){
-				// 	if (bestPhi_pulser[pol] >= -30 && bestPhi_pulser[pol] <= -20
-				// 	 	&& bestTheta_pulser[pol] >= -25 && bestTheta_pulser[pol] <= -10)
-				// 	{
-				// 		isCP5=true;
-				// 	}
-				// 	//if (bestPhi_pulser[pol] > 60 && bestPhi_pulser[pol] < 70 && bestTheta_pulser[pol] > 10 && bestTheta_pulser[pol] < 25){
-				// 	if (bestPhi_pulser[pol] >= 60 && bestPhi_pulser[pol] <= 70 
-				// 		&& bestTheta_pulser[pol] >= 0 && bestTheta_pulser[pol] <= 15)
-				// 	{
-				// 		isCP6=true;
-				// 	}
-				// }
-				// else if(station==3){
-				// 	if (bestPhi_pulser[pol] >= -28 && bestPhi_pulser[pol] <= -18 
-				// 		&& bestTheta_pulser[pol] >= -20 && bestTheta_pulser[pol] <= -5)
-				// 	{
-				// 		isCP5=true;
-				// 	}
-				// 	//if (bestPhi_pulser[pol] > 60 && bestPhi_pulser[pol] < 70 && bestTheta_pulser[pol] > 10 && bestTheta_pulser[pol] < 25){
-				// 	if (bestPhi_pulser[pol] >= 60 && bestPhi_pulser[pol] <= 70 
-				// 		&& bestTheta_pulser[pol] >= -20 && bestTheta_pulser[pol] <= -5)
-				// 	{
-				// 		isCP6=true;
-				// 	}
-				// }
+				identifyCalPulser(station,config, bestTheta_pulser[pol], bestPhi_pulser[pol], isCP5, isCP6);
 			}
 			for(int pol=0; pol<2; pol++){
-				theta_300[pol]=bestTheta[pol];
-				phi_300[pol]=bestPhi[pol];
-				theta_41[pol]=bestTheta_pulser[pol];
-				phi_41[pol]=bestPhi_pulser[pol];
+				theta_300_org[pol]=bestTheta[pol];
+				phi_300_org[pol]=bestPhi[pol];
+				theta_41_org[pol]=bestTheta_pulser[pol];
+				phi_41_org[pol]=bestPhi_pulser[pol];
+				
+				// we also need to populate the "new" arrays
+				theta_300_new[pol]=theta_300_org[pol];
+				phi_300_new[pol]=phi_300_org[pol];
+				theta_41_new[pol]=theta_41_org[pol];
+				phi_41_new[pol]=phi_41_org[pol];
 			}
 
 			//deal w/ CW cut
@@ -604,32 +648,73 @@ int main(int argc, char **argv)
 				failWavefrontRMS[1]=true;
 			}
 
-			if(isCalPulser) isCal=1;
-			if(isSoftTrigger) isSoft=1;
-			if(isShort) isShortWave=1;
-			if(failWavefrontRMS[0]) WFRMS[0]=1;
-			if(failWavefrontRMS[1]) WFRMS[1]=1;
-			if(isCP5 || isCP6 ) isNewBox=1;
-			if(isSurf[0]) isSurfEvent[0]=1;
-			if(isSurf[1]) isSurfEvent[1]=1;
+			if(isCalPulser_in){
+				isCal_out=1;
+			}
+			if(isSoftTrigger_in){
+				isSoft_out=1;
+			}
+			if(isShort){
+				isShortWave_out=1;
+			}
+			if(isCP5 || isCP6 ){
+				isNewBox_out=1;
+			}
 
 			for(int pol=0; pol<2; pol++){
-				corr_val[pol]=bestCorr[pol];
-				snr_val[pol]=SNRs[pol];
+				if(failWavefrontRMS[pol]){
+					WFRMS_org[pol]=1;
+				}
+				if(isSurf[pol]){
+					isSurfEvent_org_out[pol]=1;
+				}
+				// and, we need to set the "new" parameters to the "old" parameters
+				// so that if they don't get altered again after filtering, they are set correctly
+				isSurfEvent_new_out[pol] = isSurfEvent_org_out[pol];
+				WFRMS_new[pol] = WFRMS_org[pol];
+			}
+
+			for(int pol=0; pol<2; pol++){
+				corr_val_org[pol]=bestCorr[pol];
+				snr_val_org[pol]=SNRs[pol];
+
+				// copy these over
+				corr_val_new[pol] = corr_val_org[pol];
+				snr_val_new[pol] = snr_val_org[pol];
 
 				// printf(BLUE"Run %4d, Event %5d/%5d, Pol %d : isCal %d, isSoft %d, isShort %d, does Fail WFRMS %d, isCP5 %d, isCP6 %d, isSurf %d and %d, isBad %d, isFirstFive %d \n"RESET
 				// 	,runNum, event, eventNumber_out, pol, isCalPulser, isSoftTrigger, isShort, failWavefrontRMS[pol], isCP5, isCP6, isSurf[0], isSurf[1], isBadEvent, isFirstFiveEvent);
 				
-				if(!isCalPulser
-					&& !isSoftTrigger
+
+				// this is a sad and desperate mix of "input" and "output variables"
+				// that is objectively a bad idea; I should really clean this up.
+
+				// printf("Status: %d, %d, %d, %d, %d, %d, %d, %d \n"
+				// 				,isCalPulser_in
+				// 				,isSoftTrigger_in
+				// 				,isShort
+				// 				,failWavefrontRMS[pol]
+				// 				,isCP5
+				// 				,isCP6
+				// 				,isBadEvent_out
+				// 				,isFirstFiveEvent_out
+				// 				 );
+
+				// if(!failWavefrontRMS[pol])
+				// 	cout<<"Event "<<event<<" doesn't fail the WFRMS filter"<<endl;
+
+				if(!isCalPulser_in
+					&& !isSoftTrigger_in
 					&& !isShort
 					&& !failWavefrontRMS[pol]
 					&& !isCP5 && !isCP6
-					&& !isSurf[0] && !isSurf[1] //check both pols for surface
-					&& !isBadEvent
-					&& !isFirstFiveEvent
+					&& !isBadEvent_out
+					&& !isFirstFiveEvent_out
+					// now, we will let all events which are surface be filtered too. this is a  major change.
+					// && !isSurf[0] && !isSurf[1] //check both pols for surface
 				){ //cut cal pulsers
 
+					// printf(RED"Time to do math on event %d \n"RESET,event);
 
 					// load in the data for the event
 					char run_file_name[400];
@@ -640,9 +725,11 @@ int main(int argc, char **argv)
 							// should just be Kotera
 							sprintf(run_file_name,"%s/RawSim/A%d/c%d/E%d/AraOut.A%d_c%d_E%d.txt.run%d.root",SimDirPath,station,config,int(year_or_energy),station,config,int(year_or_energy),runNum);
 						}
-					else
-						sprintf(run_file_name,"%s/RawData/A%d/by_config/c%d/event%d.root",DataDirPath,station,config,runNum);
-					TFile *mapFile = TFile::Open(run_file_name);
+					else{
+						// sprintf(run_file_name,"%s/RawData/A%d/by_config/c%d/event%d.root",DataDirPath,station,config,runNum);
+						sprintf(run_file_name,"%s/RawData/A%d/by_config/c%d/event%d.root",DataDirPath_Project,station,config,runNum);
+					}
+					TFile *mapFile = TFile::Open(run_file_name,"READ");
 					if(!mapFile){
 						cout<<"Can't open data file for map!"<<endl;
 						return -1;
@@ -674,19 +761,37 @@ int main(int argc, char **argv)
 						spareElecChanGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(14));
 						spareElecChanGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(22));
 						spareElecChanGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(30));
-						hasBadSpareChanIssue = hasSpareChannelIssue(spareElecChanGraphs);
+						hasBadSpareChanIssue_out = hasSpareChannelIssue(spareElecChanGraphs);
+						hasBadSpareChanIssue2_out = hasSpareChannelIssue_v2(spareElecChanGraphs, station);
 						deleteGraphVector(spareElecChanGraphs);
 					}
 
-					// printf(GREEN"	Event %d has bad channel %d \n"RESET,event,hasBadSpareChanIssue);
+					stringstream ss1;
+					string xLabel, yLabel;
+					xLabel = "Time (ns)"; yLabel = "Voltage (mV)";
+					vector<string> titlesForGraphs;
+					for (int i = 0; i < 16; i++){
+						ss1.str("");
+						ss << "Channel " << i;
+						titlesForGraphs.push_back(ss1.str());
+					}
+
+					// vector <TGraph*> grWaveformsRaw = makeGraphsFromRF(realAtriEvPtr,16,xLabel,yLabel,titlesForGraphs);
+					// for(int i=0; i<16; i++){
+					// 	printf("Number of points is %d \n", grWaveformsRaw[i]->GetN());
+					// }
+
+					// printf(GREEN"     Event %d has bad channel %d and %d  \n"RESET,event,hasBadSpareChanIssue_out, hasBadSpareChanIssue2_out);
 
 					/*
 					if it's not in need of re-filtering, check the "top" reco again
 					*/
 
 					// printf("CW Status for Run %4d Event %5d, Pol %d: CW fwd %d, CW back %d, CW Baseline %d \n", runNum, event, pol, isCutonCW_fwd[pol], isCutonCW_back[pol], isCutonCW_baseline[pol]);
-					if((!isCutonCW_fwd[pol] && !isCutonCW_back[pol] && !isCutonCW_baseline[pol]) && !hasBadSpareChanIssue){
+					if((!isCutonCW_fwd[pol] && !isCutonCW_back[pol] && !isCutonCW_baseline[pol]) && !hasBadSpareChanIssue_out && !hasBadSpareChanIssue2_out){
 					// if((!isCutonCW_fwd[pol] && !isCutonCW_back[pol] && !isCutonCW_baseline[pol]) && !hasBadSpareChanIssue && 2==3){
+
+						// printf(BLUE"          Okay, so, no CW, yay\n"RESET);
 						vector <int> chan_list_V;
 						vector <int> chan_list_H;
 						
@@ -744,13 +849,14 @@ int main(int argc, char **argv)
 							cMaps->SaveAs(save_temp_title);
 							delete cMaps;
 						}
-
 						int PeakTheta_Recompute_300m_top;
 						int PeakPhi_Recompute_300m_top;
 						double PeakCorr_Recompute_300m_top;
 						getCorrMapPeak(map_300m_top,PeakTheta_Recompute_300m_top,PeakPhi_Recompute_300m_top,PeakCorr_Recompute_300m_top);
+						// cout<<"                    New theta peak in map is "<<PeakTheta_Recompute_300m_top<<endl;
 
 						if(PeakTheta_Recompute_300m_top>=37){
+							// cout<<"                         Ah-ha! This is a top surface event!"<<endl;
 							isSurfEvent_top[pol]=1;
 						}
 
@@ -758,9 +864,9 @@ int main(int argc, char **argv)
 					}
 
 					// and now to do *filtering*
-					if((isCutonCW_fwd[pol] || isCutonCW_back[pol] || isCutonCW_baseline[pol]) && !hasBadSpareChanIssue){
+					if((isCutonCW_fwd[pol] || isCutonCW_back[pol] || isCutonCW_baseline[pol]) && !hasBadSpareChanIssue_out && !hasBadSpareChanIssue2_out){
 					// if((isCutonCW_fwd[pol] || isCutonCW_back[pol] || isCutonCW_baseline[pol]) && !hasBadSpareChanIssue && 2==3){
-						isCW=1;
+						isCW_out=1;
 						Refilt[pol]=1;
 
 						printf(RED"	Need to filter event %d in pol %d \n"RESET,event,pol);
@@ -842,7 +948,7 @@ int main(int argc, char **argv)
 						theCorrelators[0]->pickFreqsAndBands(mergedFreqList,uniqueNotchFreqs,uniqueNotchBands);
 						for (int i = 0; i < uniqueNotchFreqs.size(); ++i)
 						{
-							printf("Unique freq to be notched is %.2f with width %.2f \n", uniqueNotchFreqs[i],uniqueNotchBands[i]);
+							// printf("Unique freq to be notched is %.2f with width %.2f \n", uniqueNotchFreqs[i],uniqueNotchBands[i]);
 						}
 
 						// for(int iFreq=0; iFreq<uniqueNotchFreqs.size(); iFreq++)
@@ -861,6 +967,7 @@ int main(int argc, char **argv)
 							ss << "Channel " << i;
 							titlesForGraphs.push_back(ss1.str());
 						}
+
 						vector <TGraph*> grWaveformsRaw = makeGraphsFromRF(realAtriEvPtr,16,xLabel,yLabel,titlesForGraphs);
 						vector<TGraph*> grWaveformsInt = makeInterpolatedGraphs(grWaveformsRaw, interpolationTimeStep, xLabel, yLabel, titlesForGraphs);
 						vector<TGraph*> grWaveformsPadded = makePaddedGraphs(grWaveformsInt, 0, xLabel, yLabel, titlesForGraphs);
@@ -1211,10 +1318,16 @@ int main(int argc, char **argv)
 						getCorrMapPeak(map_30m,PeakTheta_Recompute_30m,PeakPhi_Recompute_30m,PeakCorr_Recompute_30m);
 						getCorrMapPeak(map_300m,PeakTheta_Recompute_300m,PeakPhi_Recompute_300m,PeakCorr_Recompute_300m);
 
-						theta_300[pol]=PeakTheta_Recompute_300m;
-						phi_300[pol]=PeakPhi_Recompute_300m;
-						theta_41[pol]=PeakTheta_Recompute_30m;
-						phi_41[pol]=PeakPhi_Recompute_30m;
+						// theta_300[pol]=PeakTheta_Recompute_300m;
+						// phi_300[pol]=PeakPhi_Recompute_300m;
+						// theta_41[pol]=PeakTheta_Recompute_30m;
+						// phi_41[pol]=PeakPhi_Recompute_30m;
+
+						// update--only change the _new verions
+						theta_300_new[pol]=PeakTheta_Recompute_300m;
+						phi_300_new[pol]=PeakPhi_Recompute_300m;
+						theta_41_new[pol]=PeakTheta_Recompute_30m;
+						phi_41_new[pol]=PeakPhi_Recompute_30m;						
 						
 						chan_list_V.clear();
 						chan_list_V.push_back(0);
@@ -1267,7 +1380,7 @@ int main(int argc, char **argv)
 
 						printf("		old vs new logrms calc in pol %d: %.2f vs %.2f \n",pol,log(bestFaceRMS[pol])/log(10),log(bestFaceRMS_new[pol])/log(10));
 						printf("		old vs new snr in pol %d: %.2f vs %.2f \n",pol,SNRs[pol],SNRs_new[pol] );
-						printf("		old vs new corr in pol %d: %.4f vs %.4f \n",pol,corr_val[pol],PeakCorr_Recompute_300m);
+						printf("		old vs new corr in pol %d: %.4f vs %.4f \n",pol,corr_val_org[pol],PeakCorr_Recompute_300m);
 
 
 						// re-check top face reco
@@ -1275,20 +1388,31 @@ int main(int argc, char **argv)
 							isSurfEvent_top[pol]=1;
 
 						// re-check surface cut
-						if(PeakTheta_Recompute_300m>=37)
-							isSurfEvent[pol]=1;
-						else
-							isSurfEvent[pol]=0;
+						if(PeakTheta_Recompute_300m>=37){
+							// isSurfEvent[pol]=1;
+							isSurfEvent_new_out[pol]=1;
+						}
+						else{
+							// isSurfEvent[pol]=0;
+							isSurfEvent_new_out[pol]=0;
+						}
 
 						// re-check wavefront RMS cut
-						if(log(bestFaceRMS_new[pol])/log(10) < wavefrontRMScut[pol])
-							WFRMS[pol]=0;
-						else
-							WFRMS[pol]=1;
+						if(log(bestFaceRMS_new[pol])/log(10) < wavefrontRMScut[pol]){
+							// WFRMS[pol]=0;
+							WFRMS_new[pol]=0;
+						}
+						else{
+							// WFRMS[pol]=1;
+							WFRMS_new[pol]=1;
+						}
 
 						// assign the newly computed corr and snr values
-						corr_val[pol]=PeakCorr_Recompute_300m;
-						snr_val[pol]=SNRs_new[pol];
+						// corr_val[pol]=PeakCorr_Recompute_300m;
+						// snr_val[pol]=SNRs_new[pol];
+
+						corr_val_new[pol]=PeakCorr_Recompute_300m;
+						snr_val_new[pol]=SNRs_new[pol];
 
 						delete map_300m;
 						delete map_300m_top;
