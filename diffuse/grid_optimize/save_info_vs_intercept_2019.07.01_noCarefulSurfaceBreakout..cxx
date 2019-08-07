@@ -192,8 +192,7 @@ int Optimize(int station, int config, int pol_select, double slope, int numBins_
 	TChain dataAllTree("AllTree");
 	TChain dataFilterTree("OutputTree");
 	char the_data[500];
-	// sprintf(the_data,"/fs/scratch/PAS0654/ara/10pct/ValsForCuts/A%d/c%d/cutvals_drop_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config);
-	sprintf(the_data,"/fs/project/PAS0654/ARA_DATA/A23/10pct/ValsForCuts/A%d/c%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config);
+	sprintf(the_data,"/fs/scratch/PAS0654/ara/10pct/ValsForCuts/A%d/c%d/cutvals_drop_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config);
 	dataVTree.Add(the_data);
 	dataHTree.Add(the_data);
 	dataAllTree.Add(the_data);
@@ -209,78 +208,56 @@ int Optimize(int station, int config, int pol_select, double slope, int numBins_
 	// do this inside brackets for scoping power and re-use of identical variable names when it comes time for simulation to happen
 	{
 
-		// just swap out for the "new" variables
-
 		double corr_val[2];
 		double snr_val[2];
 		int WFRMS[2];
-		int theta_300[2];
-		int phi_300[2];
-		int theta_41[2];
-		int phi_41[2];
-
+		double frac_of_power_notched_V[8];
+		double frac_of_power_notched_H[8];
 		int Refilt[2];
+
+		dataVTree.SetBranchAddress("corr_val_V",&corr_val[0]);
+		dataVTree.SetBranchAddress("snr_val_V",&snr_val[0]);
+		dataVTree.SetBranchAddress("wfrms_val_V",&WFRMS[0]);
 		dataVTree.SetBranchAddress("Refilt_V",&Refilt[0]);
+		dataHTree.SetBranchAddress("corr_val_H",&corr_val[1]);
+		dataHTree.SetBranchAddress("snr_val_H",&snr_val[1]);
+		dataHTree.SetBranchAddress("wfrms_val_H",&WFRMS[1]);
 		dataHTree.SetBranchAddress("Refilt_H",&Refilt[1]);
-
-		dataVTree.SetBranchAddress("corr_val_V_new",&corr_val[0]);
-		dataVTree.SetBranchAddress("snr_val_V_new",&snr_val[0]);
-		dataVTree.SetBranchAddress("wfrms_val_V_new",&WFRMS[0]);
-		dataVTree.SetBranchAddress("theta_300_V_new",&theta_300[0]);
-		dataVTree.SetBranchAddress("theta_41_V_new",&theta_41[0]);
-		dataVTree.SetBranchAddress("phi_300_V_new",&phi_300[0]);
-		dataVTree.SetBranchAddress("phi_41_V_new",&phi_41[0]);
-
-		dataHTree.SetBranchAddress("corr_val_H_new",&corr_val[1]);
-		dataHTree.SetBranchAddress("snr_val_H_new",&snr_val[1]);
-		dataHTree.SetBranchAddress("wfrms_val_H_new",&WFRMS[1]);
-		dataHTree.SetBranchAddress("theta_300_H_new",&theta_300[1]);
-		dataHTree.SetBranchAddress("theta_41_H_new",&theta_41[1]);
-		dataHTree.SetBranchAddress("phi_300_H_new",&phi_300[1]);
-		dataHTree.SetBranchAddress("phi_41_H_new",&phi_41[1]);
 
 		int isCal;
 		int isSoft;
 		int isShort;
 		int isCW;
 		int isNewBox;
+		int isSurf[2];
+		int isBadEvent;
+		double weight;
+		int isSurfEvent_top[2];
+		int unixTime;
+		int isFirstFiveEvent;
+		int hasBadSpareChanIssue;
+		int runNum;
+		int badRun;
 
 		dataAllTree.SetBranchAddress("cal",&isCal);
 		dataAllTree.SetBranchAddress("soft",&isSoft);
 		dataAllTree.SetBranchAddress("short",&isShort);
 		dataAllTree.SetBranchAddress("CW",&isCW);
 		dataAllTree.SetBranchAddress("box",&isNewBox);
-
-		int isSurf[2]; // a surface event after filtering?
-		int isSurfEvent_top[2]; // a top event?
-
-		dataAllTree.SetBranchAddress("surf_V_new",&isSurf[0]);
-		dataAllTree.SetBranchAddress("surf_H_new",&isSurf[1]);
-
-		dataAllTree.SetBranchAddress("surf_top_V",&isSurfEvent_top[0]);
-		dataAllTree.SetBranchAddress("surf_top_H",&isSurfEvent_top[1]);
-
-		int isBadEvent;
-		double weight;
-		int unixTime;
-		int isFirstFiveEvent;
-		int hasBadSpareChanIssue;
-		int hasBadSpareChanIssue2;
-		int runNum;
-
+		dataAllTree.SetBranchAddress("surf_V",&isSurf[0]);
+		dataAllTree.SetBranchAddress("surf_H",&isSurf[1]);
 		dataAllTree.SetBranchAddress("bad",&isBadEvent);
 		dataAllTree.SetBranchAddress("weight",&weight);
+		dataAllTree.SetBranchAddress("surf_top_V",&isSurfEvent_top[0]);
+		dataAllTree.SetBranchAddress("surf_top_H",&isSurfEvent_top[1]);
 		dataAllTree.SetBranchAddress("unixTime",&unixTime);
 		dataAllTree.SetBranchAddress("isFirstFiveEvent",&isFirstFiveEvent);
 		dataAllTree.SetBranchAddress("hasBadSpareChanIssue",&hasBadSpareChanIssue);
-		dataAllTree.SetBranchAddress("hasBadSpareChanIssue2",&hasBadSpareChanIssue2);
 		dataAllTree.SetBranchAddress("runNum",&runNum);
+		dataAllTree.SetBranchAddress("badRun",&badRun);
 
 		int eventNumber;
 		dataFilterTree.SetBranchAddress("eventNumber",&eventNumber);
-
-		double frac_of_power_notched_V[8];
-		double frac_of_power_notched_H[8];
 
 		stringstream ss;
 		for(int i=0; i<8; i++){
@@ -317,10 +294,13 @@ int Optimize(int station, int config, int pol_select, double slope, int numBins_
 				}
 
 			}
-			if( isSoft || isBadEvent || hasBadSpareChanIssue || hasBadSpareChanIssue2 ||  isFirstFiveEvent || isShort || isCal || isThisABadRun){
+			if( isSoft || isBadEvent || hasBadSpareChanIssue || isFirstFiveEvent || isShort || isCal || isThisABadRun){
 				continue;
 			}
 			if(isBadLivetime(station,unixTime)){
+				continue;
+			}
+			if(runNum==3663 && eventNumber==38){ //special glitchy event we need to skip...
 				continue;
 			}
 			for(int pol=0; pol<2; pol++){
@@ -427,11 +407,6 @@ int Optimize(int station, int config, int pol_select, double slope, int numBins_
 	r->Print("V");
 	TMatrixDSym cov_matrix = r->GetCovarianceMatrix(); 
 	TMatrixDSym cor_matrix = r->GetCorrelationMatrix();
-
-	TCanvas *dump_canvas = new TCanvas("","",850,850);
-	hEventsVsSNR->Draw("");
-	gPad->SetLogy();
-	dump_canvas->SaveAs("tester.png");
 	
 	double fitParams[2];
 	fitParams[0] = fit->GetParameter(0);
@@ -583,8 +558,7 @@ int Optimize(int station, int config, int pol_select, double slope, int numBins_
 	TChain simHTree("HTree");
 	TChain simAllTree("AllTree");
 	char the_sims[500];
-	// sprintf(the_sims,"/fs/scratch/PAS0654/ara/sim/ValsForCuts/A%d/c%d/E%d/cutvals_drop_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config,224);
-	sprintf(the_sims,"/fs/project/PAS0654/ARA_DATA/A23/sim/ValsForCuts/A%d/c%d/E%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config,224);
+	sprintf(the_sims,"/fs/scratch/PAS0654/ara/sim/ValsForCuts/A%d/c%d/E%d/cutvals_drop_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config,224);
 	simVTree.Add(the_sims);
 	simHTree.Add(the_sims);
 	simAllTree.Add(the_sims);
@@ -604,15 +578,13 @@ int Optimize(int station, int config, int pol_select, double slope, int numBins_
 		double frac_of_power_notched_H[8];
 		int Refilt[2];
 
-		// just swap out for "_new" variables in our new files
-
-		simVTree.SetBranchAddress("corr_val_V_new",&corr_val[0]);
-		simVTree.SetBranchAddress("snr_val_V_new",&snr_val[0]);
-		simVTree.SetBranchAddress("wfrms_val_V_new",&WFRMS[0]);
+		simVTree.SetBranchAddress("corr_val_V",&corr_val[0]);
+		simVTree.SetBranchAddress("snr_val_V",&snr_val[0]);
+		simVTree.SetBranchAddress("wfrms_val_V",&WFRMS[0]);
 		simVTree.SetBranchAddress("Refilt_V",&Refilt[0]);
-		simHTree.SetBranchAddress("corr_val_H_new",&corr_val[1]);
-		simHTree.SetBranchAddress("snr_val_H_new",&snr_val[1]);
-		simHTree.SetBranchAddress("wfrms_val_H_new",&WFRMS[1]);
+		simHTree.SetBranchAddress("corr_val_H",&corr_val[1]);
+		simHTree.SetBranchAddress("snr_val_H",&snr_val[1]);
+		simHTree.SetBranchAddress("wfrms_val_H",&WFRMS[1]);
 		simHTree.SetBranchAddress("Refilt_H",&Refilt[1]);
 
 		int isCal;
@@ -627,15 +599,14 @@ int Optimize(int station, int config, int pol_select, double slope, int numBins_
 		int unixTime;
 		int isFirstFiveEvent;
 		int hasBadSpareChanIssue;
-		int hasBadSpareChanIssue2;
 
 		simAllTree.SetBranchAddress("cal",&isCal);
 		simAllTree.SetBranchAddress("soft",&isSoft);
 		simAllTree.SetBranchAddress("short",&isShort);
 		simAllTree.SetBranchAddress("CW",&isCW);
 		simAllTree.SetBranchAddress("box",&isNewBox);
-		simAllTree.SetBranchAddress("surf_V_new",&isSurf[0]);
-		simAllTree.SetBranchAddress("surf_H_new",&isSurf[1]);
+		simAllTree.SetBranchAddress("surf_V",&isSurf[0]);
+		simAllTree.SetBranchAddress("surf_H",&isSurf[1]);
 		simAllTree.SetBranchAddress("bad",&isBadEvent);
 		simAllTree.SetBranchAddress("weight",&weight);
 		simAllTree.SetBranchAddress("surf_top_V",&isSurfEvent_top[0]);
@@ -643,7 +614,6 @@ int Optimize(int station, int config, int pol_select, double slope, int numBins_
 		simAllTree.SetBranchAddress("unixTime",&unixTime);
 		simAllTree.SetBranchAddress("isFirstFiveEvent",&isFirstFiveEvent);
 		simAllTree.SetBranchAddress("hasBadSpareChanIssue",&hasBadSpareChanIssue);
-		simAllTree.SetBranchAddress("hasBadSpareChanIssue2",&hasBadSpareChanIssue2);
 
 		stringstream ss;
 		for(int i=0; i<8; i++){
