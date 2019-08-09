@@ -374,7 +374,7 @@ int main(int argc, char **argv)
 			continue; //don't do any further processing on this event
 		}
 
-		printf("Event %d good for reco! WFRMS are %.2f, %.2f \n", event, TMath::Log10(bestFaceRMS[0]), TMath::Log10(bestFaceRMS[1]));
+		printf("Event %d good for CWID! WFRMS are %.2f, %.2f \n", event, TMath::Log10(bestFaceRMS[0]), TMath::Log10(bestFaceRMS[1]));
 
 
 		eventTree->GetEntry(event); //get the event
