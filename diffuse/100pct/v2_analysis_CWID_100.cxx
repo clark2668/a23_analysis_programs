@@ -374,7 +374,7 @@ int main(int argc, char **argv)
 			continue; //don't do any further processing on this event
 		}
 
-		printf("Event %d good for CWID! WFRMS are %.2f, %.2f \n", event, TMath::Log10(bestFaceRMS[0]), TMath::Log10(bestFaceRMS[1]));
+		//printf("Event %d good for CWID! WFRMS are %.2f, %.2f \n", event, TMath::Log10(bestFaceRMS[0]), TMath::Log10(bestFaceRMS[1]));
 
 
 		eventTree->GetEntry(event); //get the event
@@ -402,12 +402,14 @@ int main(int argc, char **argv)
 			vector<double> baseline_CW_cut_V = CWCut_TB(grWaveformsRaw, average, 0, 6., 5.5, station_num, 3, chan_exclusion_list, runNum, event,false);
 			vector<double> baseline_CW_cut_H = CWCut_TB(grWaveformsRaw, average, 1, 6., 5.5, station_num, 3, chan_exclusion_list, runNum, event,false);
 			
+			/*
 			for(int i=0; i<baseline_CW_cut_V.size(); i++){
 				printf(CYAN"	V: Event %d Baseline CW Cut %.2f \n"RESET, event, baseline_CW_cut_V[i]);
 			}
 			for(int i=0; i<baseline_CW_cut_H.size(); i++){
 				printf(CYAN"	H: Event %d Baseline CW Cut %.2f \n"RESET, event, baseline_CW_cut_H[i]);
 			}
+			*/
 
 			badFreqs_baseline.push_back(baseline_CW_cut_V);
 			badFreqs_baseline.push_back(baseline_CW_cut_H);
