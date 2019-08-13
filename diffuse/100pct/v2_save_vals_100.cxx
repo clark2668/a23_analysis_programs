@@ -49,19 +49,19 @@ int main(int argc, char **argv)
 	int month_now = time -> tm_mon + 1;
 	int day_now = time -> tm_mday;
 
-	char *DataDirPath(getenv("DATA_DIR"));
-	if (DataDirPath == NULL){
-		std::cout << "Warning! $DATA_DIR is not set!" << endl;
-		return -1;
-	}
 	char *SimDirPath(getenv("SIM_DIR"));
 	if (SimDirPath == NULL){
 		std::cout << "Warning! $SIM_DIR is not set!" << endl;
 		return -1;
 	}
+	char *DataDirPath(getenv("DATA_DIR"));
+	if (DataDirpath == NULL){
+		std::cout << "Warning! $DATA_DIR is not set! This is needed to find run summary files." << endl;
+		return -1;
+	}
 	char *PedDirPath(getenv("PED_DIR"));
 	if (PedDirPath == NULL){
-		std::cout << "Warning! $DATA_DIR is not set!" << endl;
+		std::cout << "Warning! $PED_DIR is not set! This is needed to find pedestal files." << endl;
 		return -1;
 	}
 	char *plotPath(getenv("PLOT_PATH"));
@@ -73,8 +73,8 @@ int main(int argc, char **argv)
 	stringstream ss;
 	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
 	
-	if(argc<12){
-		cout<< "Usage\n" << argv[0] << " <isSim?> <station> <config> <year_or_energy (as float, eg 17.0 or 18.5)> <drop_bad_chan> <output_location> <V SNR bin> <H SNR bin> <V WFRMS val> <H WFRMS val> <joined filename 1> <joined filename 2 > ... <joined filename x>"<<endl;
+	if(argc<13){
+		cout<< "Usage\n" << argv[0] << " <isSim?> <station> <config> <year_or_energy (as float, eg 17.0 or 18.5)> <drop_bad_chan> <output_location> <data_directory> <V SNR bin> <H SNR bin> <V WFRMS val> <H WFRMS val> <joined filename 1> <joined filename 2 > ... <joined filename x>"<<endl;
 		return 0;
 	}
 	int isSimulation = atoi(argv[1]);
@@ -83,10 +83,11 @@ int main(int argc, char **argv)
 	double year_or_energy = double(atof(argv[4]));
 	int dropBadChans = atoi(argv[5]);
 	string output_location = argv[6];
+	string data_directory = argv[7];
 
 	//just to have the cut parameters up front and easy to find
-	int thresholdBin_pol[]={atoi(argv[7]), atoi(argv[8])}; //bin 3 = 2.3, bin 5 = 2.5 //what is the faceRMS inclusion threshold?
-	double wavefrontRMScut[]={atof(argv[9]),atof(argv[10])}; //event wavefrontRMS < this value
+	int thresholdBin_pol[]={atoi(argv[8]), atoi(argv[9])}; //bin 0 = 2.0, bin 0 = 2.0 //what is the faceRMS SNR inclusion threshold?
+	double wavefrontRMScut[]={atof(argv[10]),atof(argv[11])}; //event wavefrontRMS < this value
 
 	//set up the ray tracer
 	Settings *settings = new Settings();
@@ -99,7 +100,7 @@ int main(int argc, char **argv)
 	theCorrelators[0] =  new RayTraceCorrelator(station, 41., settings, 1, 4); //41 m, cal puser
 	theCorrelators[1] =  new RayTraceCorrelator(station, 300., settings, 1, 4);//300 m, far reco
 
-	for(int file_num=11; file_num<argc; file_num++){
+	for(int file_num=12; file_num<argc; file_num++){
 
 		string file = string(argv[file_num]);
 		string wordRun = "run_";
@@ -129,9 +130,9 @@ int main(int argc, char **argv)
 		trees[1]= new TTree("HTree","HTree");
 		trees[2]= new TTree("AllTree","AllTree");
 
-
 		// need "org" and "new" variables so we know what's happening before and after filtering
 		// the way I'm doing this is so, so dumb. Brian, don't ever do it this way again
+		// nothing here really needs to change (I think)
 
 		double corr_val_org[2];
 		double snr_val_org[2];
@@ -156,7 +157,6 @@ int main(int argc, char **argv)
 		trees[1]->Branch("theta_41_H_org",&theta_41_org[1]);
 		trees[1]->Branch("phi_300_H_org",&phi_300_org[1]);
 		trees[1]->Branch("phi_41_H_org",&phi_41_org[1]);
-
 
 		double corr_val_new[2];
 		double snr_val_new[2];
@@ -240,21 +240,24 @@ int main(int argc, char **argv)
 		trees[2]->Branch("eventNumber",&eventNumber_out);
 		if(isSimulation)
 			trees[2]->Branch("Trig_Pass", &Trig_Pass_out, "Trig_Pass_out[16]/I");
-		
 
 		cout << "Run " << file_num << " :: " << argv[file_num] << endl;
+
+		// now, for the 100pct sample, we are just drawing information in from the
+		// reco file, which will contain info about the filter and info about the reco all in one go
+		// this should actually look *simpler* than the 10pct case 
+		// because the output is more sensibly organized (theoretically)
 		
-		//first, load in the data file; this shoud be a "joined" file
-		//meaning it should contain "filter" trees and "reco" trees
 		TFile *inputFile = TFile::Open(argv[file_num]);
 		if(!inputFile){
 			cout<<"Can't open joined file!"<<endl;			
 			return -1;
 		}
 		
-		//next, we need to load the filter tree
+		// in the 100pct files, these are just called "OutputTree"
+		// these are really the filter trees of course
 		ss.str("");
-		ss << "OutputTree_filter";
+		ss << "OutputTree";
 		TTree *inputTree_filter = (TTree*) inputFile->Get(ss.str().c_str());
 		if(!inputTree_filter){
 			cout<<"Can't open filter tree"<<endl;
@@ -303,28 +306,38 @@ int main(int argc, char **argv)
 		fpOut->cd();
 		trees[3]= inputTree_filter->CloneTree(0);
 
-		//next, load the reco tree
-		TTree *inputTree_reco[35];
-		double peakCorr[35][2];
-		int peakTheta[35][2];
-		int peakPhi[35][2];
+		// next, load the reco tree
+		// this actually looks *simpler* than it did before because all the reco happened at one
+		// like it should have been in the 10pct if Brian had refactored it sooner, but oh well...
+		ss.str("");
+		ss << "OutputTreeReco" << i;
+		TTree *inputTree_reco = (TTree*) inputFile->Get(ss.str().c_str());
+		if(!inputTree_reco){
+			cout<<"Can't open reco tree"<<endl;
+			return -1;
+		}
+		// 2x2 array
+		// first element is for radius (0=41m and 1=300)
+		// second element is polarization (0=V and 1=H)
+
+		double peakCorr[2][2];
+		int peakTheta[2][2];
+		int peakPhi[2][2];
+		// firt correlation
+		intputTree_reco->SetBranchAddress("peakCorr_41m",peakCorr[0]);
+		intputTree_reco->SetBranchAddress("peakCorr_300m",peakCorr[1]);
+		// then peak theta
+		intputTree_reco->SetBranchAddress("peakTheta_41m",peakTheta[0]);
+		intputTree_reco->SetBranchAddress("peakTheta_300m",peakTheta[1]);
+		// then peak phi
+		intputTree_reco->SetBranchAddress("peakPhi_41m",peakTheta[0]);
+		intputTree_reco->SetBranchAddress("peakPhi_300m",peakTheta[1]);
+
 		int recoBinSelect = 19; //300 m map
 		int recoBinCalpulser = 6; //41 m map
-		for(int i=0; i<35; i++){
-			if(i==recoBinSelect||i==recoBinCalpulser){
-				ss.str("");
-				ss << "OutputTree_recoRadius_" << i;
-				inputTree_reco[i] = (TTree*) inputFile->Get(ss.str().c_str());
-				if(!inputTree_reco[i]) {
-					std::cout << "Can't find OutputTree: " << i << "\n";
-					return -1;
-				}
-				inputTree_reco[i]->SetBranchAddress("peakCorr_single", &peakCorr[i]);
-				inputTree_reco[i]->SetBranchAddress("peakTheta_single", &peakTheta[i]);
-				inputTree_reco[i]->SetBranchAddress("peakPhi_single", &peakPhi[i]);
-			}
-		}
 
+		// now to open the CW file
+		// which should work just the same as it did before (yay)
 		char summary_file_name[400];
 		if(isSimulation){
 			if(year_or_energy<25)
@@ -333,7 +346,7 @@ int main(int argc, char **argv)
 				sprintf(summary_file_name,"%s/CWID/A%d/c%d/E%d/CWID_station_%d_run_%d.root",SimDirPath,station,config,int(year_or_energy),station,runNum);
 		}
 		else{
-			sprintf(summary_file_name,"%s/CWID/A%d/all_runs/CWID_station_%d_run_%d.root",DataDirPath,station,station,runNum);
+			sprintf(summary_file_name,"%s/CWID/A%d/all_runs/CWID_station_%d_run_%d.root",data_directory,station,station,runNum);
 		}
 		TFile *NewCWFile = TFile::Open(summary_file_name);
 		if(!NewCWFile) {
@@ -372,7 +385,6 @@ int main(int argc, char **argv)
 			}
 
 			// reset the variables that we are passing *out*
-
 			// things that don't require loops
 			isCal_out=0;
 			isSoft_out=0;
@@ -426,11 +438,18 @@ int main(int argc, char **argv)
 				Trig_Pass_out[i]=Trig_Pass_in[i];
 			}
 
-			for (int i = 0; i < 35; i++){
-				if (i == recoBinSelect || i == recoBinCalpulser){
-					inputTree_reco[i]->GetEntry(event);
-				}
+			// probably should check the WFRMS filter here so that we don't try to do things with garbage events
+			// FIX ME!!!!
+			bool didYouFixEarlyWFRMSCheck=false;
+			if(didYouFixEarlyWFRMSCheck==false){
+				cout<<"Brian! You need to fix the check for the WFRMS earlier in the code!"<<endl;
+				return -1;
 			}
+
+			// our peak finding in the 100pct code is "simpler" than in 10pct, but still, be careful...
+
+			// get the event
+			intputTree_reco->GetEntry(event);
 
 			//figure out which reconstruction map (vpol or hpol) is best
 			//in the present analysis, this only matters for the 300m bin
@@ -440,26 +459,16 @@ int main(int argc, char **argv)
 			int bestTheta[3];
 			int bestPhi[3];
 
-			for(int pol=0; pol<2; pol++){
-				for(int i=0; i<35; i++){
-					if(i==recoBinSelect){
-						if(peakCorr[i][pol] > bestCorr[pol]){
-							bestCorr[pol]=peakCorr[i][pol];
-							bestCorrRadiusBin[pol]=i;
-							bestTheta[pol]=peakTheta[i][pol];
-							bestPhi[pol]=peakPhi[i][pol];
-						}
-						if(peakCorr[i][pol] > bestCorr[2]){
-							bestCorr[2]=peakCorr[i][pol];
-							bestCorrRadiusBin[2]=i;
-							bestTheta[2]=peakTheta[i][pol];
-							bestPhi[2]=peakPhi[i][pol];
-							bestPol=pol;
-						}
-					}//300m bin check
-				}//loop over reco bins
-			}//loop over polarizations
+			// "bestTheta" is the 300m radius, so peakTheta[1][x], peakPhi[1][x], etc.
+			// where x=0 for VPol and x=1 for Hpol
+			// we never use the third element of bestTheta or bestPhi or bestCorr, so let's just leave those unfilled
 
+			bestTheta[0] = peakTheta[1][0];
+			bestTheta[1] = peakTheta[1][1];
+			bestPhi[0] = peakPhi[1][0];
+			bestPhi[1] = peakPhi[1][1];
+			bestCorr[0] = peakCorr[1][0];
+			bestCorr[1] = peakCorr[1][0];
 
 			for(int pol=0; pol<2; pol++){
 				if(bestTheta[pol] >= 37){
@@ -476,25 +485,15 @@ int main(int argc, char **argv)
 			int bestTheta_pulser[3];
 			int bestPhi_pulser[3];
 
-			for(int pol=0; pol<2; pol++){
-				for(int i=0; i<35; i++){
-					if (i == recoBinCalpulser){
-						if (peakCorr[i][pol] > bestCorr_pulser[pol]){
-							bestCorr_pulser[pol] = peakCorr[i][pol];
-							bestCorrRadiusBin_pulser[pol] = i;
-							bestTheta_pulser[pol] = peakTheta[i][pol];
-							bestPhi_pulser[pol] = peakPhi[i][pol];
-						}
-						if (peakCorr[i][pol] > bestCorr_pulser[2]){
-							bestCorr_pulser[2] = peakCorr[i][pol];
-							bestCorrRadiusBin_pulser[2] = i;
-							bestTheta_pulser[2] = peakTheta[i][pol];
-							bestPhi_pulser[2] = peakPhi[i][pol];
-							bestPol_pulser = pol;
-						}
-					}//cal pulser (41m) bin check
-				}//loop over reco bins
-			}//loop over polarizations
+			// "bestTheta_pulser" is the 300m radius, so peakTheta[0][x], peakPhi[0][x], etc.
+			// where x=0 for VPol and x=1 for Hpol
+			// we never use the third element of bestTheta_pulser or bestPhi_pulser or bestCorr_pulser, so let's just leave those unfilled
+			bestTheta_pulser[0] = peakTheta[0][0];
+			bestTheta_pulser[1] = peakTheta[0][1];
+			bestPhi_pulser[0] = peakPhi[0][0];
+			bestPhi_pulser[1] = peakPhi[0][1];
+			bestCorr_pulser[0] = peakCorr[0][0];
+			bestCorr_pulser[1] = peakCorr[0][1];
 			
 			//draw a box around the cal pulser
 			for (int pol = 0; pol < 2; pol++){
@@ -714,16 +713,16 @@ int main(int argc, char **argv)
 
 					// load in the data for the event
 					char run_file_name[400];
-					if(isSimulation)
+					if(isSimulation){
 						if(year_or_energy<25)
 							sprintf(run_file_name,"%s/RawSim/A%d/c%d/E%2.1f/AraOut.A%d_c%d_E%2.1f.txt.run%d.root",SimDirPath,station,config,year_or_energy,station,config,year_or_energy,runNum);
 						else{
 							// should just be Kotera
 							sprintf(run_file_name,"%s/RawSim/A%d/c%d/E%d/AraOut.A%d_c%d_E%d.txt.run%d.root",SimDirPath,station,config,int(year_or_energy),station,config,int(year_or_energy),runNum);
 						}
+					}
 					else{
-						// sprintf(run_file_name,"%s/RawData/A%d/by_config/c%d/event%d.root",DataDirPath,station,config,runNum);
-						sprintf(run_file_name,"%s/RawData/A%d/by_config/c%d/event%d.root",DataDirPath_Project,station,config,runNum);
+						sprintf(run_file_name,"%s/RawData/A%d/by_config/c%d/event%d.root",data_directory.c_str(),station,config,runNum);
 					}
 					TFile *mapFile = TFile::Open(run_file_name,"READ");
 					if(!mapFile){
@@ -772,11 +771,6 @@ int main(int argc, char **argv)
 						titlesForGraphs.push_back(ss1.str());
 					}
 
-					// vector <TGraph*> grWaveformsRaw = makeGraphsFromRF(realAtriEvPtr,16,xLabel,yLabel,titlesForGraphs);
-					// for(int i=0; i<16; i++){
-					// 	printf("Number of points is %d \n", grWaveformsRaw[i]->GetN());
-					// }
-
 					// printf(GREEN"     Event %d has bad channel %d and %d  \n"RESET,event,hasBadSpareChanIssue_out, hasBadSpareChanIssue2_out);
 
 					/*
@@ -784,8 +778,11 @@ int main(int argc, char **argv)
 					*/
 
 					// printf("CW Status for Run %4d Event %5d, Pol %d: CW fwd %d, CW back %d, CW Baseline %d \n", runNum, event, pol, isCutonCW_fwd[pol], isCutonCW_back[pol], isCutonCW_baseline[pol]);
-					if((!isCutonCW_fwd[pol] && !isCutonCW_back[pol] && !isCutonCW_baseline[pol]) && !hasBadSpareChanIssue_out && !hasBadSpareChanIssue2_out){
-					// if((!isCutonCW_fwd[pol] && !isCutonCW_back[pol] && !isCutonCW_baseline[pol]) && !hasBadSpareChanIssue && 2==3){
+					if(
+						(!isCutonCW_fwd[pol] && !isCutonCW_back[pol] && !isCutonCW_baseline[pol]) 
+						&& !hasBadSpareChanIssue_out 
+						&& !hasBadSpareChanIssue2_out)
+					{
 
 						// printf(BLUE"          Okay, so, no CW, yay\n"RESET);
 						vector <int> chan_list_V;
@@ -808,7 +805,7 @@ int main(int argc, char **argv)
 								dropBadChans
 								&& station==3
 								&& (
-									(!isSimulation && runNum>getA3BadRunBoundary())
+						 			(!isSimulation && runNum>getA3BadRunBoundary())
 									||
 									(isSimulation && config>2)
 								)
@@ -817,7 +814,6 @@ int main(int argc, char **argv)
 							chan_list_V.push_back(3);
 							chan_list_H.push_back(11);
 						}
-
 
 						vector<double> chan_SNRs;
 						for(int i=0; i<16; i++){
@@ -860,12 +856,16 @@ int main(int argc, char **argv)
 					}
 
 					// and now to do *filtering*
-					if((isCutonCW_fwd[pol] || isCutonCW_back[pol] || isCutonCW_baseline[pol]) && !hasBadSpareChanIssue_out && !hasBadSpareChanIssue2_out){
-					// if((isCutonCW_fwd[pol] || isCutonCW_back[pol] || isCutonCW_baseline[pol]) && !hasBadSpareChanIssue && 2==3){
+					if(
+						(isCutonCW_fwd[pol] || isCutonCW_back[pol] || isCutonCW_baseline[pol]) 
+						&& !hasBadSpareChanIssue_out 
+						&& !hasBadSpareChanIssue2_out
+					)
+					{
 						isCW_out=1;
 						Refilt[pol]=1;
 
-						printf(RED"	Need to filter event %d in pol %d \n"RESET,event,pol);
+						// printf(RED"	Need to filter event %d in pol %d \n"RESET,event,pol);
 
 						//get the frequencies to notch
 						vector<double> badFreqListLocal_fwd;
