@@ -54,11 +54,6 @@ int main(int argc, char **argv)
 		std::cout << "Warning! $SIM_DIR is not set!" << endl;
 		return -1;
 	}
-	char *DataDirPath(getenv("DATA_DIR"));
-	if (DataDirpath == NULL){
-		std::cout << "Warning! $DATA_DIR is not set! This is needed to find run summary files." << endl;
-		return -1;
-	}
 	char *PedDirPath(getenv("PED_DIR"));
 	if (PedDirPath == NULL){
 		std::cout << "Warning! $PED_DIR is not set! This is needed to find pedestal files." << endl;
@@ -73,8 +68,8 @@ int main(int argc, char **argv)
 	stringstream ss;
 	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
 	
-	if(argc<13){
-		cout<< "Usage\n" << argv[0] << " <isSim?> <station> <config> <year_or_energy (as float, eg 17.0 or 18.5)> <drop_bad_chan> <output_location> <data_directory> <V SNR bin> <H SNR bin> <V WFRMS val> <H WFRMS val> <joined filename 1> <joined filename 2 > ... <joined filename x>"<<endl;
+	if(argc<14){
+		cout<< "Usage\n" << argv[0] << " <isSim?> <station> <config> <year_or_energy (as float, eg 17.0 or 18.5)> <drop_bad_chan> <output_location> <data_directory> <cwid_directory> <V SNR bin> <H SNR bin> <V WFRMS val> <H WFRMS val> <100pct reco filename 1> <100pct reco filename 2 > ... <100pct reco filename x>"<<endl;
 		return 0;
 	}
 	int isSimulation = atoi(argv[1]);
@@ -84,10 +79,11 @@ int main(int argc, char **argv)
 	int dropBadChans = atoi(argv[5]);
 	string output_location = argv[6];
 	string data_directory = argv[7];
+	string cw_directory = argv[8];
 
 	//just to have the cut parameters up front and easy to find
-	int thresholdBin_pol[]={atoi(argv[8]), atoi(argv[9])}; //bin 0 = 2.0, bin 0 = 2.0 //what is the faceRMS SNR inclusion threshold?
-	double wavefrontRMScut[]={atof(argv[10]),atof(argv[11])}; //event wavefrontRMS < this value
+	int thresholdBin_pol[]={atoi(argv[9]), atoi(argv[10])}; //bin 0 = 2.0, bin 0 = 2.0 //what is the faceRMS SNR inclusion threshold?
+	double wavefrontRMScut[]={atof(argv[11]),atof(argv[12])}; //event wavefrontRMS < this value
 
 	//set up the ray tracer
 	Settings *settings = new Settings();
@@ -100,12 +96,12 @@ int main(int argc, char **argv)
 	theCorrelators[0] =  new RayTraceCorrelator(station, 41., settings, 1, 4); //41 m, cal puser
 	theCorrelators[1] =  new RayTraceCorrelator(station, 300., settings, 1, 4);//300 m, far reco
 
-	for(int file_num=12; file_num<argc; file_num++){
+	for(int file_num=13; file_num<argc; file_num++){
 
 		string file = string(argv[file_num]);
 		string wordRun = "run_";
 		size_t foundRun = file.find(wordRun);
-		string wordFilter = "_joined";
+		string wordFilter = "_reco";
 		size_t foundFilter = file.find(wordFilter);
 		size_t diff=(foundFilter-wordRun.length())-foundRun;
 		string strRunNum = file.substr(foundRun+4,diff);
@@ -125,7 +121,7 @@ int main(int argc, char **argv)
 			// sprintf(outfile_name,"%s/cutvals_drop_snrbins_%s%d_%s%d_wfrmsvals_%.1f_%.1f_run_%d.root",output_location.c_str(),thresholdBin_pol[0], thresholdBin_pol[1], wavefrontRMScut[0]<0?'-':'',(wavefrontRMScut[0]), wavefrontRMScut[0]<0?'-':'',(wavefrontRMScut[1]),runNum);
 		}
 		TFile *fpOut = new TFile(outfile_name,"recreate");
-		TTree *trees[4];
+		TTree *trees[5];
 		trees[0]= new TTree("VTree","VTree");
 		trees[1]= new TTree("HTree","HTree");
 		trees[2]= new TTree("AllTree","AllTree");
@@ -310,12 +306,14 @@ int main(int argc, char **argv)
 		// this actually looks *simpler* than it did before because all the reco happened at one
 		// like it should have been in the 10pct if Brian had refactored it sooner, but oh well...
 		ss.str("");
-		ss << "OutputTreeReco" << i;
+		ss << "OutputTreeReco";
 		TTree *inputTree_reco = (TTree*) inputFile->Get(ss.str().c_str());
 		if(!inputTree_reco){
 			cout<<"Can't open reco tree"<<endl;
 			return -1;
 		}
+		// copy over the whole reco tree also, because why lose information right?
+		trees[4] = inputTree_reco->CloneTree(0);
 		// 2x2 array
 		// first element is for radius (0=41m and 1=300)
 		// second element is polarization (0=V and 1=H)
@@ -324,14 +322,14 @@ int main(int argc, char **argv)
 		int peakTheta[2][2];
 		int peakPhi[2][2];
 		// firt correlation
-		intputTree_reco->SetBranchAddress("peakCorr_41m",peakCorr[0]);
-		intputTree_reco->SetBranchAddress("peakCorr_300m",peakCorr[1]);
+		inputTree_reco->SetBranchAddress("peakCorr_41m",peakCorr[0]);
+		inputTree_reco->SetBranchAddress("peakCorr_300m",peakCorr[1]);
 		// then peak theta
-		intputTree_reco->SetBranchAddress("peakTheta_41m",peakTheta[0]);
-		intputTree_reco->SetBranchAddress("peakTheta_300m",peakTheta[1]);
+		inputTree_reco->SetBranchAddress("peakTheta_41m",peakTheta[0]);
+		inputTree_reco->SetBranchAddress("peakTheta_300m",peakTheta[1]);
 		// then peak phi
-		intputTree_reco->SetBranchAddress("peakPhi_41m",peakTheta[0]);
-		intputTree_reco->SetBranchAddress("peakPhi_300m",peakTheta[1]);
+		inputTree_reco->SetBranchAddress("peakPhi_41m",peakTheta[0]);
+		inputTree_reco->SetBranchAddress("peakPhi_300m",peakTheta[1]);
 
 		int recoBinSelect = 19; //300 m map
 		int recoBinCalpulser = 6; //41 m map
@@ -346,7 +344,7 @@ int main(int argc, char **argv)
 				sprintf(summary_file_name,"%s/CWID/A%d/c%d/E%d/CWID_station_%d_run_%d.root",SimDirPath,station,config,int(year_or_energy),station,runNum);
 		}
 		else{
-			sprintf(summary_file_name,"%s/CWID/A%d/all_runs/CWID_station_%d_run_%d.root",data_directory,station,station,runNum);
+			sprintf(summary_file_name,"%s/CWID/A%d/all_runs/CWID_station_%d_run_%d.root",cw_directory.c_str(),station,station,runNum);
 		}
 		TFile *NewCWFile = TFile::Open(summary_file_name);
 		if(!NewCWFile) {
@@ -375,7 +373,7 @@ int main(int argc, char **argv)
 		if(starEvery==0) starEvery++;
 		cout<<"Num entries is "<<numEntries<<endl;
 		cout<<"Star every is "<<starEvery<<endl;
-		// numEntries=2000;
+		// numEntries=200;
 
 		int start=0;
 		//now to loop over events
@@ -440,16 +438,16 @@ int main(int argc, char **argv)
 
 			// probably should check the WFRMS filter here so that we don't try to do things with garbage events
 			// FIX ME!!!!
-			bool didYouFixEarlyWFRMSCheck=false;
-			if(didYouFixEarlyWFRMSCheck==false){
-				cout<<"Brian! You need to fix the check for the WFRMS earlier in the code!"<<endl;
-				return -1;
-			}
+			// bool didYouFixEarlyWFRMSCheck=false;
+			// if(didYouFixEarlyWFRMSCheck==false){
+			// 	cout<<"Brian! You need to fix the check for the WFRMS earlier in the code!"<<endl;
+			// 	return -1;
+			// }
 
 			// our peak finding in the 100pct code is "simpler" than in 10pct, but still, be careful...
 
 			// get the event
-			intputTree_reco->GetEntry(event);
+			inputTree_reco->GetEntry(event);
 
 			//figure out which reconstruction map (vpol or hpol) is best
 			//in the present analysis, this only matters for the 300m bin
@@ -696,7 +694,7 @@ int main(int argc, char **argv)
 				// 				 );
 
 				// if(!failWavefrontRMS[pol])
-				// 	cout<<"Event "<<event<<" doesn't fail the WFRMS filter"<<endl;
+				// 	cout<<"Event "<<event<<" doesn't fail the WFRMS filter in pol "<<pol<<" with a value of "<<TMath::Log10(bestFaceRMS[pol])<<endl;
 
 				if(!isCalPulser_in
 					&& !isSoftTrigger_in
@@ -1004,7 +1002,7 @@ int main(int argc, char **argv)
 						
 						char run_summary_name[400];
 						if (isSimulation == false){
-							sprintf(run_summary_name,"%s/RunSummary/A%d/by_config/c%d/run_summary_station_%d_run_%d.root",DataDirPath,station,config,station,runNum);
+							sprintf(run_summary_name,"%s/RunSummary/A%d/by_config/c%d/run_summary_station_%d_run_%d.root",data_directory.c_str(),station,config,station,runNum);
 						}
 						else {
 							if(station==2){
@@ -1427,6 +1425,7 @@ int main(int argc, char **argv)
 			}//loop over polarization
 			trees[2]->Fill();
 			trees[3]->Fill();
+			trees[4]->Fill();
 		}//loop over events
 		inputFile->Close();
 		NewCWFile->Close();
