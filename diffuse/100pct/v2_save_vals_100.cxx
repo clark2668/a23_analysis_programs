@@ -373,7 +373,7 @@ int main(int argc, char **argv)
 		if(starEvery==0) starEvery++;
 		cout<<"Num entries is "<<numEntries<<endl;
 		cout<<"Star every is "<<starEvery<<endl;
-		// numEntries=200;
+		//numEntries=100;
 
 		int start=0;
 		//now to loop over events
@@ -466,7 +466,7 @@ int main(int argc, char **argv)
 			bestPhi[0] = peakPhi[1][0];
 			bestPhi[1] = peakPhi[1][1];
 			bestCorr[0] = peakCorr[1][0];
-			bestCorr[1] = peakCorr[1][0];
+			bestCorr[1] = peakCorr[1][1];
 
 			for(int pol=0; pol<2; pol++){
 				if(bestTheta[pol] >= 37){
