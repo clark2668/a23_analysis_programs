@@ -114,7 +114,7 @@ int main(int argc, char **argv)
 	TChain dataAllTree("AllTree");
 	char the_data[500];
 	// sprintf(the_data,"/fs/scratch/PAS0654/ara/10pct/ValsForCuts/A%d/c%d/cutvals_drop_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config);
-	sprintf(the_data,"/fs/project/PAS0654/ARA_DATA/A23/10pct/ValsForCuts/A%d/c%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_23*.root",station,config);
+	sprintf(the_data,"/fs/project/PAS0654/ARA_DATA/A23/10pct_redo/ValsForCuts/A%d/c%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config);
 	int result = dataVTree.Add(the_data);
 
 	dataHTree.Add(the_data);
@@ -639,7 +639,7 @@ int main(int argc, char **argv)
 	TChain simFilterTree("OutputTree"); // need this for energy distribution
 	char the_sims[500];
 	// sprintf(the_sims,"/fs/scratch/PAS0654/ara/sim/ValsForCuts/A%d/c%d/E%d/cutvals_drop_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config,224);
-	sprintf(the_sims,"/fs/project/PAS0654/ARA_DATA/A23/sim/ValsForCuts/A%d/c%d/E%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config,224);
+	sprintf(the_sims,"/fs/project/PAS0654/ARA_DATA/A23/sim/ValsForCuts_UsedInA2FinalOpt/A%d/c%d/E%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_1111*.root",station,config,224);
 	simVTree.Add(the_sims);
 	simHTree.Add(the_sims);
 	simAllTree.Add(the_sims);
@@ -1086,8 +1086,10 @@ int main(int argc, char **argv)
 	leg2->Draw();
 
 	char save_title[400];
-	sprintf(save_title,"%s/optimize/A%d_config%d_Final_VSlope_%.2f_HSlope_%.2f_VInt_%.2f_Hint_%.2f.png",
+	// sprintf(save_title,"%s/optimize/A%d_config%d_Final_VSlope_%.2f_HSlope_%.2f_VInt_%.2f_Hint_%.2f.png",
+	sprintf(save_title,"%s/%d.%d.%d_A%d_config%d_Final_VSlope_%.2f_HSlope_%.2f_VInt_%.2f_Hint_%.2f.png",
 						plotPath,
+						year_now, month_now, day_now,
 						station,
 						config,
 						selected_slopes[0],
@@ -1114,99 +1116,99 @@ int main(int argc, char **argv)
 	/*
 		And now more plots thaty are more "thesis" quality
 	*/
-	TCanvas *cEff = new TCanvas("","",2*850,850);
-	cEff->Divide(2,1);
-	for(int pol=0; pol<2; pol++){
-		cEff->cd(pol+1);
-		eff_soft_short_cal_wfrms[pol]->Draw("");
-		eff_soft_short_cal_wfrms_box[pol]->Draw("same");
-		eff_soft_short_cal_wfrms_box_surf[pol]->Draw("same");
-		eff_soft_short_cal_wfrms_box_surf_rcut[pol]->Draw("same");
+	// TCanvas *cEff = new TCanvas("","",2*850,850);
+	// cEff->Divide(2,1);
+	// for(int pol=0; pol<2; pol++){
+	// 	cEff->cd(pol+1);
+	// 	eff_soft_short_cal_wfrms[pol]->Draw("");
+	// 	eff_soft_short_cal_wfrms_box[pol]->Draw("same");
+	// 	eff_soft_short_cal_wfrms_box_surf[pol]->Draw("same");
+	// 	eff_soft_short_cal_wfrms_box_surf_rcut[pol]->Draw("same");
 
-		eff_soft_short_cal_wfrms[pol]->GetXaxis()->SetTitle("3rd Highest Vpeak/RMS");
-		eff_soft_short_cal_wfrms[pol]->GetYaxis()->SetTitle("Efficiency (weighted)");
+	// 	eff_soft_short_cal_wfrms[pol]->GetXaxis()->SetTitle("3rd Highest Vpeak/RMS");
+	// 	eff_soft_short_cal_wfrms[pol]->GetYaxis()->SetTitle("Efficiency (weighted)");
 
-		eff_soft_short_cal_wfrms[pol]->GetYaxis()->SetTitleOffset(1.2);
-		eff_soft_short_cal_wfrms[pol]->GetXaxis()->SetTitleOffset(1.2);
-		eff_soft_short_cal_wfrms[pol]->GetYaxis()->SetTitleOffset(1.2);
-		eff_soft_short_cal_wfrms[pol]->GetZaxis()->SetTitleOffset(1.2);
-		eff_soft_short_cal_wfrms[pol]->GetXaxis()->SetTitleSize(0.04);
-		eff_soft_short_cal_wfrms[pol]->GetYaxis()->SetTitleSize(0.04);
-		eff_soft_short_cal_wfrms[pol]->GetZaxis()->SetTitleSize(0.04);
-		eff_soft_short_cal_wfrms[pol]->GetXaxis()->SetLabelSize(0.04);
-		eff_soft_short_cal_wfrms[pol]->GetYaxis()->SetLabelSize(0.04);
-		eff_soft_short_cal_wfrms[pol]->GetZaxis()->SetLabelSize(0.04);
+	// 	eff_soft_short_cal_wfrms[pol]->GetYaxis()->SetTitleOffset(1.2);
+	// 	eff_soft_short_cal_wfrms[pol]->GetXaxis()->SetTitleOffset(1.2);
+	// 	eff_soft_short_cal_wfrms[pol]->GetYaxis()->SetTitleOffset(1.2);
+	// 	eff_soft_short_cal_wfrms[pol]->GetZaxis()->SetTitleOffset(1.2);
+	// 	eff_soft_short_cal_wfrms[pol]->GetXaxis()->SetTitleSize(0.04);
+	// 	eff_soft_short_cal_wfrms[pol]->GetYaxis()->SetTitleSize(0.04);
+	// 	eff_soft_short_cal_wfrms[pol]->GetZaxis()->SetTitleSize(0.04);
+	// 	eff_soft_short_cal_wfrms[pol]->GetXaxis()->SetLabelSize(0.04);
+	// 	eff_soft_short_cal_wfrms[pol]->GetYaxis()->SetLabelSize(0.04);
+	// 	eff_soft_short_cal_wfrms[pol]->GetZaxis()->SetLabelSize(0.04);
 
-		if(pol==0)
-			eff_soft_short_cal_wfrms[pol]->SetTitle("VPol Efficiency");
-		if(pol==1)
-			eff_soft_short_cal_wfrms[pol]->SetTitle("HPol Efficiency");		
-
-
-		eff_soft_short_cal_wfrms[pol]->SetLineColor(colors[0]);
-		eff_soft_short_cal_wfrms_box[pol]->SetLineColor(colors[1]);
-		eff_soft_short_cal_wfrms_box_surf[pol]->SetLineColor(colors[2]);
-		eff_soft_short_cal_wfrms_box_surf_rcut[pol]->SetLineColor(colors[3]);
-
-		eff_soft_short_cal_wfrms[pol]->SetLineWidth(2.);
-		eff_soft_short_cal_wfrms_box[pol]->SetLineWidth(2.);
-		eff_soft_short_cal_wfrms_box_surf[pol]->SetLineWidth(2.);
-		eff_soft_short_cal_wfrms_box_surf_rcut[pol]->SetLineWidth(2.);
-		if(pol==0){
-			TLegend *leg = new TLegend(0.5,0.4,0.9,0.2);
-			leg->AddEntry(eff_soft_short_cal_wfrms[pol],"Cut WFMRS","l");
-			leg->AddEntry(eff_soft_short_cal_wfrms_box[pol],"+Cut Cal Pulser Reco","l");
-			leg->AddEntry(eff_soft_short_cal_wfrms_box_surf[pol],"+Cut Surf & Top Surf","l");
-			leg->AddEntry(eff_soft_short_cal_wfrms_box_surf_rcut[pol],"+Cut Peak/Corr","l");
-			leg->Draw();
-		}
-	}
-	cEff->cd(1);
-	char pretty_title[400];
-	sprintf(pretty_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/thesis/rcut_a%d_c%d_eff.pdf",station,config);
-	cEff->SaveAs(pretty_title);
+	// 	if(pol==0)
+	// 		eff_soft_short_cal_wfrms[pol]->SetTitle("VPol Efficiency");
+	// 	if(pol==1)
+	// 		eff_soft_short_cal_wfrms[pol]->SetTitle("HPol Efficiency");		
 
 
-	for(int snrBin=0; snrBin<=eff_soft_short_cal_wfrms_box_surf_rcut[0]->GetNbinsX(); snrBin++){
-		double binCenter = eff_soft_short_cal_wfrms_box_surf_rcut[0]->GetBinCenter(snrBin);
-		double eff = eff_soft_short_cal_wfrms_box_surf_rcut[0]->GetBinContent(snrBin);
-		printf("VPol Efficiency for SNR bin %d with center %.2f is %.2f \n",snrBin,binCenter,eff);
-	}
+	// 	eff_soft_short_cal_wfrms[pol]->SetLineColor(colors[0]);
+	// 	eff_soft_short_cal_wfrms_box[pol]->SetLineColor(colors[1]);
+	// 	eff_soft_short_cal_wfrms_box_surf[pol]->SetLineColor(colors[2]);
+	// 	eff_soft_short_cal_wfrms_box_surf_rcut[pol]->SetLineColor(colors[3]);
+
+	// 	eff_soft_short_cal_wfrms[pol]->SetLineWidth(2.);
+	// 	eff_soft_short_cal_wfrms_box[pol]->SetLineWidth(2.);
+	// 	eff_soft_short_cal_wfrms_box_surf[pol]->SetLineWidth(2.);
+	// 	eff_soft_short_cal_wfrms_box_surf_rcut[pol]->SetLineWidth(2.);
+	// 	if(pol==0){
+	// 		TLegend *leg = new TLegend(0.5,0.4,0.9,0.2);
+	// 		leg->AddEntry(eff_soft_short_cal_wfrms[pol],"Cut WFMRS","l");
+	// 		leg->AddEntry(eff_soft_short_cal_wfrms_box[pol],"+Cut Cal Pulser Reco","l");
+	// 		leg->AddEntry(eff_soft_short_cal_wfrms_box_surf[pol],"+Cut Surf & Top Surf","l");
+	// 		leg->AddEntry(eff_soft_short_cal_wfrms_box_surf_rcut[pol],"+Cut Peak/Corr","l");
+	// 		leg->Draw();
+	// 	}
+	// }
+	// cEff->cd(1);
+	// char pretty_title[400];
+	// sprintf(pretty_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/thesis/rcut_a%d_c%d_eff.pdf",station,config);
+	// cEff->SaveAs(pretty_title);
 
 
-	TCanvas *cEffVsE = new TCanvas("","",1.1*850,850);
-		eff_soft_short_cal_wfrms_vsE->Draw("");
-		eff_soft_short_cal_wfrms_box_vsE->Draw("same");
-		eff_soft_short_cal_wfrms_box_surf_vsE->Draw("same");
-		eff_soft_short_cal_wfrms_box_surf_rcut_vsE->Draw("same");
+	// for(int snrBin=0; snrBin<=eff_soft_short_cal_wfrms_box_surf_rcut[0]->GetNbinsX(); snrBin++){
+	// 	double binCenter = eff_soft_short_cal_wfrms_box_surf_rcut[0]->GetBinCenter(snrBin);
+	// 	double eff = eff_soft_short_cal_wfrms_box_surf_rcut[0]->GetBinContent(snrBin);
+	// 	printf("VPol Efficiency for SNR bin %d with center %.2f is %.2f \n",snrBin,binCenter,eff);
+	// }
 
-		eff_soft_short_cal_wfrms_vsE->GetXaxis()->SetTitle("log10(E) [eV]");
-		eff_soft_short_cal_wfrms_vsE->GetYaxis()->SetTitle("Efficiency (weighted)");
 
-		eff_soft_short_cal_wfrms_vsE->GetYaxis()->SetTitleOffset(1.2);
-		eff_soft_short_cal_wfrms_vsE->GetXaxis()->SetTitleOffset(1.2);
-		eff_soft_short_cal_wfrms_vsE->GetYaxis()->SetTitleOffset(1.2);
-		eff_soft_short_cal_wfrms_vsE->GetZaxis()->SetTitleOffset(1.2);
-		eff_soft_short_cal_wfrms_vsE->GetXaxis()->SetTitleSize(0.04);
-		eff_soft_short_cal_wfrms_vsE->GetYaxis()->SetTitleSize(0.04);
-		eff_soft_short_cal_wfrms_vsE->GetZaxis()->SetTitleSize(0.04);
-		eff_soft_short_cal_wfrms_vsE->GetXaxis()->SetLabelSize(0.04);
-		eff_soft_short_cal_wfrms_vsE->GetYaxis()->SetLabelSize(0.04);
-		eff_soft_short_cal_wfrms_vsE->GetZaxis()->SetLabelSize(0.04);
+	// TCanvas *cEffVsE = new TCanvas("","",1.1*850,850);
+	// 	eff_soft_short_cal_wfrms_vsE->Draw("");
+	// 	eff_soft_short_cal_wfrms_box_vsE->Draw("same");
+	// 	eff_soft_short_cal_wfrms_box_surf_vsE->Draw("same");
+	// 	eff_soft_short_cal_wfrms_box_surf_rcut_vsE->Draw("same");
 
-		eff_soft_short_cal_wfrms_vsE->SetLineWidth(3.);
-		eff_soft_short_cal_wfrms_box_vsE->SetLineWidth(3.);
-		eff_soft_short_cal_wfrms_box_surf_vsE->SetLineWidth(3.);
-		eff_soft_short_cal_wfrms_box_surf_rcut_vsE->SetLineWidth(3.);
-		leg2->Draw();
-	sprintf(pretty_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/thesis/rcut_a%d_c%d_eff_vs_energy.pdf",station,config);
-	cEffVsE->SaveAs(pretty_title);
+	// 	eff_soft_short_cal_wfrms_vsE->GetXaxis()->SetTitle("log10(E) [eV]");
+	// 	eff_soft_short_cal_wfrms_vsE->GetYaxis()->SetTitle("Efficiency (weighted)");
 
-	for(int eBin=0; eBin<=eff_soft_short_cal_wfrms_box_surf_rcut_vsE->GetNbinsX(); eBin++){
-		double binCenter = eff_soft_short_cal_wfrms_box_surf_rcut_vsE->GetBinCenter(eBin);
-		double eff = eff_soft_short_cal_wfrms_box_surf_rcut_vsE->GetBinContent(eBin);
-		printf("Efficiency for energy bin %d with center %.2f is %.2f \n",eBin,binCenter,eff);
-	}
+	// 	eff_soft_short_cal_wfrms_vsE->GetYaxis()->SetTitleOffset(1.2);
+	// 	eff_soft_short_cal_wfrms_vsE->GetXaxis()->SetTitleOffset(1.2);
+	// 	eff_soft_short_cal_wfrms_vsE->GetYaxis()->SetTitleOffset(1.2);
+	// 	eff_soft_short_cal_wfrms_vsE->GetZaxis()->SetTitleOffset(1.2);
+	// 	eff_soft_short_cal_wfrms_vsE->GetXaxis()->SetTitleSize(0.04);
+	// 	eff_soft_short_cal_wfrms_vsE->GetYaxis()->SetTitleSize(0.04);
+	// 	eff_soft_short_cal_wfrms_vsE->GetZaxis()->SetTitleSize(0.04);
+	// 	eff_soft_short_cal_wfrms_vsE->GetXaxis()->SetLabelSize(0.04);
+	// 	eff_soft_short_cal_wfrms_vsE->GetYaxis()->SetLabelSize(0.04);
+	// 	eff_soft_short_cal_wfrms_vsE->GetZaxis()->SetLabelSize(0.04);
+
+	// 	eff_soft_short_cal_wfrms_vsE->SetLineWidth(3.);
+	// 	eff_soft_short_cal_wfrms_box_vsE->SetLineWidth(3.);
+	// 	eff_soft_short_cal_wfrms_box_surf_vsE->SetLineWidth(3.);
+	// 	eff_soft_short_cal_wfrms_box_surf_rcut_vsE->SetLineWidth(3.);
+	// 	leg2->Draw();
+	// sprintf(pretty_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/thesis/rcut_a%d_c%d_eff_vs_energy.pdf",station,config);
+	// cEffVsE->SaveAs(pretty_title);
+
+	// for(int eBin=0; eBin<=eff_soft_short_cal_wfrms_box_surf_rcut_vsE->GetNbinsX(); eBin++){
+	// 	double binCenter = eff_soft_short_cal_wfrms_box_surf_rcut_vsE->GetBinCenter(eBin);
+	// 	double eff = eff_soft_short_cal_wfrms_box_surf_rcut_vsE->GetBinContent(eBin);
+	// 	printf("Efficiency for energy bin %d with center %.2f is %.2f \n",eBin,binCenter,eff);
+	// }
 
 
 }
