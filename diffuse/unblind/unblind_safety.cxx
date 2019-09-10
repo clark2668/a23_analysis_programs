@@ -48,17 +48,22 @@ int main(int argc, char **argv)
 	char *plotPath(getenv("PLOT_PATH"));
 	if (plotPath == NULL) std::cout << "Warning! $PLOT_PATH is not set!" << endl;
 
-	if(argc<2){
-		cout<< "Usage\n" << argv[0] << " <1-station> <2-config> "<<endl;;
+	if(argc<3){
+		cout<< "Usage\n" << argv[0] << " <1-station> <2-config> <100 or 10> <isOrg>"<<endl;;
 		return -1;
 	}
 	int station = atoi(argv[1]);
 	int config = atoi(argv[2]);
+	int full_or_partial = atoi(argv[3]);
+	int isOrg = atoi(argv[4]);
 
 	if(station!=2 && station!=3){
 		printf("No good! You asked for station %d, but this code only works for stations 2 and 3 \n",station);
 		return -1;
 	}
+
+	double side_cut_corr[2] = {0.005, 0.004}; // in corr, side region is <=0.005 for V and <=0.004 in H
+	double side_cut_snr[2] = {4.,4.}; // in snr, side region is <=4 in V and H
 
 	vector<int> BadRunList=BuildBadRunList(station);
 
@@ -73,14 +78,77 @@ int main(int argc, char **argv)
 	TChain dataVTree("VTree");
 	TChain dataHTree("HTree");
 	TChain dataAllTree("AllTree");
+	TChain dataRecoTree("OutputTreeReco");
 	char the_data[500];
-	// sprintf(the_data,"/fs/project/PAS0654/ARA_DATA/A23/100pct/ValsForCuts/A%d/c%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config);
-	// sprintf(the_data,"/fs/project/PAS0654/ARA_DATA/A23/10pct_verify/ValsForCuts/A%d/c%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config);
-	sprintf(the_data,"/fs/project/PAS0654/ARA_DATA/A23/10pct/ValsForCuts_UsedInA2FinalOpt//A%d/c%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config);
-	int result = dataVTree.Add(the_data);
 
+	// string loc100 = "/fs/project/PAS0654/ARA_DATA/A23/100pct/ValsForCuts/"
+	// string loc10new = "/fs/project/PAS0654/ARA_DATA/A23/10pct/ValsForCuts/"
+	// string loc10org = "/fs/project/PAS0654/ARA_DATA/A23/10pct/ValsForCuts/"
+
+	sprintf(the_data,"/fs/project/PAS0654/ARA_DATA/A23/100pct/ValsForCuts/A%d/c%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config);
+	if(full_or_partial==100){
+		// use the 100pct sample
+		if(config==1){
+			sprintf(the_data,"/fs/project/PAS0654/ARA_DATA/A23/100pct/ValsForCuts/A%d/c%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config);
+		}
+		else if(config==2){
+			sprintf(the_data,"/fs/project/PAS0654/ARA_DATA/A23/100pct/ValsForCuts/A%d/c%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config);
+		}
+		else if(config==3){
+			sprintf(the_data,"/fs/project/PAS0654/ARA_DATA/A23/100pct/ValsForCuts/A%d/c%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config);
+		}
+		else if(config==4){
+			sprintf(the_data,"/fs/project/PAS0654/ARA_DATA/A23/100pct/ValsForCuts/A%d/c%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config);
+		}
+		else if(config==5){
+			sprintf(the_data,"/fs/project/PAS0654/ARA_DATA/A23/100pct/ValsForCuts/A%d/c%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config);
+		}
+	}
+	if(full_or_partial==10 && isOrg==1){
+		// use the *original* 10pct sample from optimization
+		if(config==1){
+			sprintf(the_data,"/fs/project/PAS0654/ARA_DATA/A23/10pct/ValsForCuts_UsedInA2FinalOpt/A%d/c%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config);
+		}
+		else if(config==2){
+			sprintf(the_data,"/fs/project/PAS0654/ARA_DATA/A23/10pct/ValsForCuts_UsedInA2FinalOpt/A%d/c%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config);
+		}
+		else if(config==3){
+			sprintf(the_data,"/fs/project/PAS0654/ARA_DATA/A23/10pct/ValsForCuts_UsedInA2FinalOpt/A%d/c%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config);
+		}
+		else if(config==4){
+			sprintf(the_data,"/fs/project/PAS0654/ARA_DATA/A23/10pct/ValsForCuts_UsedInA2FinalOpt/A%d/c%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config);
+		}
+		else if(config==5){
+			sprintf(the_data,"/fs/project/PAS0654/ARA_DATA/A23/10pct/ValsForCuts_UsedInA2FinalOpt/A%d/c%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config);
+		}
+	}
+	if(full_or_partial==10 && isOrg==0){
+		// use the *new* 10pct sample from the slightly revised code base
+		if(config==1){
+			sprintf(the_data,"/fs/project/PAS0654/ARA_DATA/A23/10pct_verify/ValsForCuts/A%d/c%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config);
+		}
+		else if(config==2){
+			sprintf(the_data,"/fs/project/PAS0654/ARA_DATA/A23/10pct_verify/ValsForCuts/A%d/c%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config);
+		}
+		else if(config==3){
+			sprintf(the_data,"/fs/project/PAS0654/ARA_DATA/A23/10pct_verify/ValsForCuts/A%d/c%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config);
+		}
+		else if(config==4){
+			sprintf(the_data,"/fs/project/PAS0654/ARA_DATA/A23/10pct_verify/ValsForCuts/A%d/c%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config);
+		}
+		else if(config==5){
+			sprintf(the_data,"/fs/project/PAS0654/ARA_DATA/A23/10pct_verify/ValsForCuts/A%d/c%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config);
+		}
+	}
+
+	printf("The data: %s\n", the_data);
+
+	dataVTree.Add(the_data);
 	dataHTree.Add(the_data);
 	dataAllTree.Add(the_data);
+	if(isOrg==0){
+		dataRecoTree.Add(the_data);
+	}
 	int numDataEvents = dataVTree.GetEntries();
 	// numDataEvents=100;
 
@@ -167,6 +235,13 @@ int main(int argc, char **argv)
 			dataHTree.SetBranchAddress(ss.str().c_str(),&frac_of_power_notched_H[i-8]);
 		}
 
+		double peakCorr_brianstupid[2][2];
+
+		if(isOrg==0){
+			dataRecoTree.SetBranchAddress("peakCorr_41m",peakCorr_brianstupid[0]);
+			dataRecoTree.SetBranchAddress("peakCorr_300m",peakCorr_brianstupid[1]);
+		}
+
 		int numEntries = dataVTree.GetEntries();
 		numTotal+=numEntries;
 
@@ -178,6 +253,9 @@ int main(int argc, char **argv)
 			dataVTree.GetEvent(event);
 			dataHTree.GetEvent(event);
 			dataAllTree.GetEvent(event);
+			if(isOrg==0){
+				dataRecoTree.GetEvent(event);
+			}
 			if(runNum!=currentRunNum){
 				currentRunNum=runNum;
 				isThisABadRun = isBadRun(station,runNum, BadRunList);
@@ -209,10 +287,14 @@ int main(int argc, char **argv)
 						}
 					} //refiltered?
 					if(!failsCWPowerCut){
+						double which_corr_to_use = corr_val[pol];
+						if(!Refilt[pol] && pol==1 && isOrg==0){
+							which_corr_to_use = peakCorr_brianstupid[1][pol];
+						}
 
 						// now, we only plot if the event is in the "safety cut" region
-						if( corr_val[pol] <=0.005 || snr_val[pol]<=4 ){
-							h2SNRvsCorr[pol]->Fill(corr_val[pol],snr_val[pol],weight);
+						if( which_corr_to_use <=side_cut_corr[pol] || snr_val[pol]<=side_cut_snr[pol] ){
+							h2SNRvsCorr[pol]->Fill(which_corr_to_use,snr_val[pol],weight);
 						}
 
 					}// not failing CW power cut?
@@ -238,7 +320,7 @@ int main(int argc, char **argv)
 	}
 
 	// now to actually draw the safety cut lines
-	double vert_cuts[2] = {0.005, 0.005};
+	double vert_cuts[2] = {side_cut_corr[0], side_cut_corr[1]};
 	vector<TGraph*> vert_lines;
 	for(int pol=0; pol<2; pol++){
 		vector <double> x_vals_for_line;
@@ -250,7 +332,7 @@ int main(int argc, char **argv)
 		vert_lines.push_back(new TGraph(x_vals_for_line.size(), &x_vals_for_line[0], &y_vals_for_line[0]));
 	}
 
-	double horz_cuts[2] = {4., 4.};
+	double horz_cuts[2] = {side_cut_snr[0], side_cut_snr[1]};
 	vector<TGraph*> horz_lines;
 	for(int pol=0; pol<2; pol++){
 		vector <double> x_vals_for_line;
@@ -261,17 +343,6 @@ int main(int argc, char **argv)
 		}
 		horz_lines.push_back(new TGraph(x_vals_for_line.size(), &x_vals_for_line[0], &y_vals_for_line[0]));
 	}
-
-	vector<TGraph*> horz_lines2;
-	for(int pol=0; pol<2; pol++){
-		vector <double> x_vals_for_line;
-		vector <double> y_vals_for_line;
-		for(double x=0; x<0.05; x+=0.01){
-			y_vals_for_line.push_back(horz_cuts[pol]);
-			x_vals_for_line.push_back(x);
-		}
-		horz_lines2.push_back(new TGraph(x_vals_for_line.size(), &x_vals_for_line[0], &y_vals_for_line[0]));
-	}	
 
 	// okay, now save out the 2D histogram
 	TCanvas *cSNRvsCorr = new TCanvas("","",2.1*850, 850);
@@ -290,8 +361,12 @@ int main(int argc, char **argv)
 		horz_lines[pol]->SetLineColor(kBlue);
 	}
 	char title[300];
-	sprintf(title, "%s/unblind/A%d_config%d_%dEvents_UnblindSides_SNRvsCorr.png",plotPath,station,config,numTotal);
+	if(full_or_partial==100)
+		sprintf(title, "%s/unblind/A%d_config%d_%dEvents_UnblindSides_SNRvsCorr100.png",plotPath,station,config,numTotal);
+	else if(full_or_partial==10 && isOrg==0)
+		sprintf(title, "%s/unblind/A%d_config%d_%dEvents_UnblindSides_SNRvsCorr10_New.png",plotPath,station,config,numTotal);
+	else if(full_or_partial==10 && isOrg==1)
+		sprintf(title, "%s/unblind/A%d_config%d_%dEvents_UnblindSides_SNRvsCorr10_Org.png",plotPath,station,config,numTotal);
 	cSNRvsCorr->SaveAs(title);
 	delete cSNRvsCorr;
-
 }
