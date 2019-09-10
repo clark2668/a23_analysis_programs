@@ -197,6 +197,7 @@ int main(int argc, char **argv)
 	Long64_t numEntries=eventTree->GetEntries();
 	Long64_t starEvery=numEntries/80;
 	if(starEvery==0) starEvery++;
+	//numEntries=10;
 
 	eventTree->GetEntry(0); //just to get runNum
 	printf("Reco Run Number %d \n", runNum);
@@ -226,6 +227,10 @@ int main(int argc, char **argv)
 		}
 		filterTree->SetBranchAddress("VPeakOverRMS", &VPeakOverRMS);
 		filterFile->cd();
+	}
+	if(!filterFile){
+	  printf("There is no filter file! Running without a filter file is not allowed!");
+	  return -1;
 	}
 
 	// prepare for output
@@ -404,6 +409,7 @@ int main(int argc, char **argv)
 			if(hasFilterFile){
 				for(int i=0; i<16; i++){
 					chan_SNRs.push_back(VPeakOverRMS[i]);
+					//printf("Event %d: The SNR for chan %d is %.2f \n",event,i,chan_SNRs[i]);
 				}
 			}
 
@@ -441,6 +447,8 @@ int main(int argc, char **argv)
 
 			getCorrMapPeak_wStats(map_V_raytrace, peakTheta_single[0], peakPhi_single[0], peakCorr_single[0], minCorr_single[0], meanCorr_single[0], rmsCorr_single[0], peakSigma_single[0]);
 			getCorrMapPeak_wStats(map_H_raytrace, peakTheta_single[1], peakPhi_single[1], peakCorr_single[1], minCorr_single[1], meanCorr_single[1], rmsCorr_single[1], peakSigma_single[1]);
+
+			//cout<<"For event "<<event<<" the v corr is "<<peakCorr_single[0]<<endl;
 
 			bool print_maps = false;
 			if(print_maps){
