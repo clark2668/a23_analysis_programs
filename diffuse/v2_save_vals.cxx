@@ -48,9 +48,9 @@ int main(int argc, char **argv)
 	int month_now = time -> tm_mon + 1;
 	int day_now = time -> tm_mday;
 
-	char *DataDirPath(getenv("DATA_DIR"));
-	if (DataDirPath == NULL){
-		std::cout << "Warning! $DATA_DIR is not set!" << endl;
+	char *AuxDirPath(getenv("AUX_DIR"));
+	if (AuxDirPath == NULL){
+		std::cout << "Warning! $AUX_DIR is not set! You need this for CWID and RunSummary files" << endl;
 		return -1;
 	}
 	char *DataDirPath_Project(getenv("DATA_DIR_PROJECT"));
@@ -337,7 +337,7 @@ int main(int argc, char **argv)
 				sprintf(summary_file_name,"%s/CWID/A%d/c%d/E%d/CWID_station_%d_run_%d.root",SimDirPath,station,config,int(year_or_energy),station,runNum);
 		}
 		else{
-			sprintf(summary_file_name,"%s/CWID/A%d/all_runs/CWID_station_%d_run_%d.root",DataDirPath,station,station,runNum);
+			sprintf(summary_file_name,"%s/CWID/A%d/all_runs/CWID_station_%d_run_%d.root",AuxDirPath,station,station,runNum);
 		}
 		TFile *NewCWFile = TFile::Open(summary_file_name);
 		if(!NewCWFile) {
@@ -1008,7 +1008,7 @@ int main(int argc, char **argv)
 						
 						char run_summary_name[400];
 						if (isSimulation == false){
-							sprintf(run_summary_name,"%s/RunSummary/A%d/by_config/c%d/run_summary_station_%d_run_%d.root",DataDirPath,station,config,station,runNum);
+							sprintf(run_summary_name,"%s/RunSummary/A%d/by_config/c%d/run_summary_station_%d_run_%d.root",AuxDirPath,station,config,station,runNum);
 						}
 						else {
 							if(station==2){
