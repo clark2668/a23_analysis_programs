@@ -28,14 +28,20 @@
 RawAtriStationEvent *rawAtriEvPtr;
 UsefulAtriStationEvent *realAtriEvPtr;
 
-#include "/home/brianclark/A23_analysis_new2/AraRoot/include/Settings.h"
-#include "/home/brianclark/A23_analysis_new2/AraRoot/include/Event.h"
-#include "/home/brianclark/A23_analysis_new2/AraRoot/include/Detector.h"
-#include "/home/brianclark/A23_analysis_new2/AraRoot/include/Report.h"
+// #include "/home/brianclark/A23_analysis_new2/AraRoot/include/Settings.h"
+// #include "/home/brianclark/A23_analysis_new2/AraRoot/include/Event.h"
+// #include "/home/brianclark/A23_analysis_new2/AraRoot/include/Detector.h"
+// #include "/home/brianclark/A23_analysis_new2/AraRoot/include/Report.h"
+
+#include "Settings.h"
+#include "Event.h"
+#include "Detector.h"
+#include "Report.h"
 
 #include "AraAntennaInfo.h"
 #include "AraQualCuts.h"
-#include "/home/brianclark/A23_analysis_new2/AraRoot/include/RayTraceCorrelator.h"
+// #include "/home/brianclark/A23_analysis_new2/AraRoot/include/RayTraceCorrelator.h"
+#include "RayTraceCorrelator.h"
 
 #include "tools_inputParameters.h"
 #include "tools_outputObjects.h"
@@ -76,6 +82,10 @@ int main(int argc, char **argv)
 	6: input file name
 	7: pedestal file name
 	*/
+
+	//	cout<<argv[0]<<" "<<argv[1]<<" "<<argv[2]<<" "<<argv[3]<<" "<<argv[4]<<" "<<argv[5]<<" "<<argv[6]<<" "<<argv[7]<<endl;
+	//cout<<""<<endl;
+	//return 0;
 
 	isSimulation=atoi(argv[1]);
 	int station_num=atoi(argv[2]);
@@ -180,7 +190,7 @@ int main(int argc, char **argv)
 	Long64_t numEntries=eventTree->GetEntries();
 	Long64_t starEvery=numEntries/80;
 	if(starEvery==0) starEvery++;
-	// numEntries=20;
+	//numEntries=150;
 
 	eventTree->GetEntry(0); //just to get runNum
 	printf("Reco Run Number %d \n", runNum);
@@ -494,6 +504,7 @@ int main(int argc, char **argv)
 			vector<double> chan_SNRs;
 			for(int i=0; i<16; i++){
 				chan_SNRs.push_back(VPeakOverRMS[i]);
+				//printf("Event %d: chan %d SNR is %.2f \n",event,i,chan_SNRs[i]);
 			}
 
 			vector <int> chan_list_V;
@@ -537,6 +548,8 @@ int main(int argc, char **argv)
 			getCorrMapPeak_wStats(map_V_raytrace_300, peakTheta_300m[0], peakPhi_300m[0], peakCorr_300m[0], minCorr_300m[0], meanCorr_300m[0], rmsCorr_300m[0], peakSigma_300m[0]);
 			getCorrMapPeak_wStats(map_H_raytrace_300, peakTheta_300m[1], peakPhi_300m[1], peakCorr_300m[1], minCorr_300m[1], meanCorr_300m[1], rmsCorr_300m[1], peakSigma_300m[1]);
 
+
+			//cout<<"Run "<<runNum<<" Event "<<event<<" 300m v corr is "<<peakCorr_300m[0]<<endl;
 			// cleanup
 			delete map_V_raytrace_41;
 			delete map_V_raytrace_300;
