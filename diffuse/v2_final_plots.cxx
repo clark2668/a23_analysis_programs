@@ -500,9 +500,10 @@ int main(int argc, char **argv)
 			trees[2]->SetBranchAddress("eventNumber",&eventNumber);
 			
 			int numEntries = trees[0]->GetEntries();
+			// numEntries=100;
 
 			//now to loop over events
-			for(int event=0; event<trees[0]->GetEntries(); event++){
+			for(int event=0; event<numEntries; event++){
 				trees[0]->GetEvent(event);
 				trees[1]->GetEvent(event);
 				trees[2]->GetEvent(event);
@@ -569,6 +570,9 @@ int main(int argc, char **argv)
 
 				for(int pol=0; pol<2; pol++){
 
+					// if(pol==0)
+					// 	printf("Event %d, pol %d: cal %d, soft %d, short %d, WFRMS %d, box %d, surf 0 %d (%3d), surf 1 %d (%3d), surf top %d, refilt %d\n", event, pol, isCal, isSoft, isShort, WFRMS_new[pol], isNewBox, isSurfEvent_new_out[0], theta_300_new[0], isSurfEvent_new_out[1], theta_300_new[1], isSurfEvent_top[pol], Refilt[pol]);
+
 					PeakCorr_vs_SNR_all[pol]->Fill(snr_val_new[pol],corr_val_new[pol],weight);
 					
 					if(!isCal){ //cut cal pulsers
@@ -601,20 +605,27 @@ int main(int argc, char **argv)
 												fracs_power_cut[pol]->Fill(frac[2]);
 												// if(frac[2]>0.06)
 												// 	printf("This event had lots of power cut!\n");
-												if(frac[2]<=0.06){
-													PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val_new[pol],corr_val_new[pol],weight);
-												}
+												// if(frac[2]<=0.06){
+												// 	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val_new[pol],corr_val_new[pol],weight);
+												// }
 
+												/*
 												if(corr_val_new[pol]>0.04){
 													printf("Run %d, event %d, unixTime %d \n", runNum, event, unixTime);
 												}
+												*/
 
 											} //refiltered?
 											else{
 												PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val_new[pol],corr_val_new[pol],weight);
+
+												// if(pol==0)
+												  // printf("Event %d, pol %d: SNR %.3f, Corr %.5f\n",event,pol,snr_val_new[pol],corr_val_new[pol]);
+												/*
 												if(corr_val_new[pol]>0.04){
 													printf("Run %d, event %d, unixTime %d and qual flag is %d but original error is %d \n", runNum, event, unixTime, isBadEvent, original_error);
 												}
+												*/
 											}
 										}
 									}
