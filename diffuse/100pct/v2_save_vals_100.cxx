@@ -68,22 +68,23 @@ int main(int argc, char **argv)
 	stringstream ss;
 	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
 	
-	if(argc<14){
-		cout<< "Usage\n" << argv[0] << " <isSim?> <station> <config> <year_or_energy (as float, eg 17.0 or 18.5)> <drop_bad_chan> <output_location> <data_directory> <cwid_directory> <V SNR bin> <H SNR bin> <V WFRMS val> <H WFRMS val> <100pct reco filename 1> <100pct reco filename 2 > ... <100pct reco filename x>"<<endl;
-		return 0;
+	if(argc<15){
+	  cout<< "Usage is: " << argv[0] << " <isSim?> <station> <config> <year_or_energy (as float, eg 17.0 or 18.5)> <drop_bad_chan> <output_location> <data_directory> <cwid_directory> <run_summary_directory> <V SNR bin> <H SNR bin> <V WFRMS val> <H WFRMS val> <100pct reco filename 1> <100pct reco filename 2 > ... <100pct reco filename x>"<<endl;
+	  return 0;	
 	}
 	int isSimulation = atoi(argv[1]);
 	int station = atoi(argv[2]);
 	int config = atoi(argv[3]);
 	double year_or_energy = double(atof(argv[4]));
-	int dropBadChans = atoi(argv[5]);
+	int dropBadChans = atoi(argv[5]);	
 	string output_location = argv[6];
 	string data_directory = argv[7];
 	string cw_directory = argv[8];
+	string runsummary_directory = argv[9];
 
 	//just to have the cut parameters up front and easy to find
-	int thresholdBin_pol[]={atoi(argv[9]), atoi(argv[10])}; //bin 0 = 2.0, bin 0 = 2.0 //what is the faceRMS SNR inclusion threshold?
-	double wavefrontRMScut[]={atof(argv[11]),atof(argv[12])}; //event wavefrontRMS < this value
+	int thresholdBin_pol[]={atoi(argv[10]), atoi(argv[11])}; //bin 0 = 2.0, bin 0 = 2.0 //what is the faceRMS SNR inclusion threshold?
+	double wavefrontRMScut[]={atof(argv[12]),atof(argv[13])}; //event wavefrontRMS < this value
 
 	//set up the ray tracer
 	Settings *settings = new Settings();
@@ -96,7 +97,7 @@ int main(int argc, char **argv)
 	theCorrelators[0] =  new RayTraceCorrelator(station, 41., settings, 1, 4); //41 m, cal puser
 	theCorrelators[1] =  new RayTraceCorrelator(station, 300., settings, 1, 4);//300 m, far reco
 
-	for(int file_num=13; file_num<argc; file_num++){
+	for(int file_num=14; file_num<argc; file_num++){
 
 		string file = string(argv[file_num]);
 		string wordRun = "run_";
@@ -328,8 +329,8 @@ int main(int argc, char **argv)
 		inputTree_reco->SetBranchAddress("peakTheta_41m",peakTheta[0]);
 		inputTree_reco->SetBranchAddress("peakTheta_300m",peakTheta[1]);
 		// then peak phi
-		inputTree_reco->SetBranchAddress("peakPhi_41m",peakTheta[0]);
-		inputTree_reco->SetBranchAddress("peakPhi_300m",peakTheta[1]);
+		inputTree_reco->SetBranchAddress("peakPhi_41m",peakPhi[0]);
+		inputTree_reco->SetBranchAddress("peakPhi_300m",peakPhi[1]);
 
 		int recoBinSelect = 19; //300 m map
 		int recoBinCalpulser = 6; //41 m map
@@ -1002,7 +1003,7 @@ int main(int argc, char **argv)
 						
 						char run_summary_name[400];
 						if (isSimulation == false){
-							sprintf(run_summary_name,"%s/RunSummary/A%d/by_config/c%d/run_summary_station_%d_run_%d.root",data_directory.c_str(),station,config,station,runNum);
+							sprintf(run_summary_name,"%s/RunSummary/A%d/by_config/c%d/run_summary_station_%d_run_%d.root",runsummary_directory.c_str(),station,config,station,runNum);
 						}
 						else {
 							if(station==2){
@@ -1430,6 +1431,7 @@ int main(int argc, char **argv)
 		inputFile->Close();
 		NewCWFile->Close();
 		delete inputFile;
+		delete NewCWFile;
 
 		fpOut->Write();
 		fpOut->Close();
