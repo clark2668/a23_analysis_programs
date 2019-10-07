@@ -107,8 +107,8 @@ int main(int argc, char **argv)
 	stop.Set(2016, 01, 02, 18, 42, 0, 0, true, 0);
 
 	// run 6554
-	start.Set(2015, 12, 13, 00, 00, 0, 0, true, 0);
-	stop.Set(215, 12, 14, 00, 00, 0, 0, true, 0);	
+	start.Set(2015, 12, 13, 05, 03, 0, 0, true, 0);
+	stop.Set(2015, 12, 13, 05, 04, 0, 0, true, 0);	
 
 	int start_bin = start.GetSec();
 	int stop_bin = stop.GetSec();

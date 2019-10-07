@@ -88,9 +88,20 @@ int main(int argc, char **argv)
 
 	// a place to print things to file
 	char title_txt[200];
-	sprintf(title_txt,"%s/unblind/surface/A%d_c%d_%dSample_EventListsigmavsfreq_ch%d.txt", plotPath,station,config,full_or_partial);
-
+	if(full_or_partial==100 && isOrg==0){
+		sprintf(title_txt,"%s/unblind/surface/reduced_surface/A%d_c%d_%dSample_EventList.txt", plotPath,station,config,full_or_partial);
+	}
+	else{
+		sprintf(title_txt,"%s/unblind/surface/A%d_c%d_%dSample_EventList.txt", plotPath,station,config,full_or_partial);
+	}
+	
 	vector<int> BadRunList=BuildBadRunList(station);
+	vector<int> BadSurfaceRunList=BuildSurfaceRunList(station);
+
+	// for(int i=0; i<BadSurfaceRunList.size(); i++){
+	// 	printf("Bad run %d \n", BadSurfaceRunList[i]);
+	// }
+	// return 0;
 
 	int numTotal=0;
 
@@ -125,6 +136,8 @@ int main(int argc, char **argv)
 		numBins=365*2;
 	}
 
+	TH1D *phi_dist = new TH1D ("","",360, -180, 180);
+
 	TH2D *zoom_burst = new TH2D("","",360,-180,180,180,-90,90);
 
 	int start_bin = start.GetSec();
@@ -153,7 +166,7 @@ int main(int argc, char **argv)
 	TChain dataFilterTree("OutputTree");
 	char the_data[500];
 
-	if(full_or_partial==100){
+	if(full_or_partial==100 && isOrg==1){
 		// use the 100pct sample
 		sprintf(the_data,"/fs/project/PAS0654/ARA_DATA/A23/100pct_try2/ValsForCuts/A%d/c%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config);
 
@@ -167,11 +180,11 @@ int main(int argc, char **argv)
 		// sprintf(the_data,"/fs/project/PAS0654/ARA_DATA/A23/10pct_verify_try2/ValsForCuts/A%d/c%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config);
 	}
 
-	// printf("The data: %s\n", the_data);
-	// dataVTree.Add(the_data);
-	// dataHTree.Add(the_data);
-	// dataAllTree.Add(the_data);
-	// dataFilterTree.Add(the_data);
+	printf("The data: %s\n", the_data);
+	dataVTree.Add(the_data);
+	dataHTree.Add(the_data);
+	dataAllTree.Add(the_data);
+	dataFilterTree.Add(the_data);
 
 	if(full_or_partial==10 && isOrg==1){ // to make plotting just a little easier
 
@@ -245,6 +258,273 @@ int main(int argc, char **argv)
 
 		for(int i=0; i<runs_to_loop_over.size(); i++){
 			sprintf(the_data,"/fs/project/PAS0654/ARA_DATA/A23/10pct_redo/ValsForCuts/A%d/c%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_%d.root",station,config, runs_to_loop_over[i]);
+			dataVTree.Add(the_data);
+			dataHTree.Add(the_data);
+			dataAllTree.Add(the_data);
+			dataFilterTree.Add(the_data);
+		}
+	}
+
+	if(full_or_partial==100 && isOrg==0){ // to make plotting just a little easier
+
+		vector<int> runs_to_loop_over;
+		if(config==1){
+			runs_to_loop_over.push_back(2466);
+			runs_to_loop_over.push_back(2589);
+			runs_to_loop_over.push_back(2626);
+			runs_to_loop_over.push_back(2636);
+			runs_to_loop_over.push_back(2662);
+			runs_to_loop_over.push_back(2678);
+			runs_to_loop_over.push_back(2779);
+			runs_to_loop_over.push_back(2784);
+			runs_to_loop_over.push_back(2849);
+			runs_to_loop_over.push_back(2864);
+			runs_to_loop_over.push_back(2869);
+			runs_to_loop_over.push_back(2871);
+			runs_to_loop_over.push_back(2934);
+			runs_to_loop_over.push_back(2937);
+			runs_to_loop_over.push_back(2990);
+			runs_to_loop_over.push_back(3043);
+			runs_to_loop_over.push_back(3202);
+			runs_to_loop_over.push_back(3206);
+			runs_to_loop_over.push_back(3232);
+			runs_to_loop_over.push_back(3233);
+			runs_to_loop_over.push_back(3325);
+			runs_to_loop_over.push_back(3364);
+			runs_to_loop_over.push_back(3392);
+			runs_to_loop_over.push_back(3412);
+		}
+		if(config==2){
+			runs_to_loop_over.push_back(1455);
+			runs_to_loop_over.push_back(1514);
+			runs_to_loop_over.push_back(1518);
+			runs_to_loop_over.push_back(1571);
+			runs_to_loop_over.push_back(1629);
+			runs_to_loop_over.push_back(1647);
+			runs_to_loop_over.push_back(1689);
+			runs_to_loop_over.push_back(1647);
+			runs_to_loop_over.push_back(1689);
+			runs_to_loop_over.push_back(1776);
+			runs_to_loop_over.push_back(1778);
+			runs_to_loop_over.push_back(1779);
+			runs_to_loop_over.push_back(1830);
+			runs_to_loop_over.push_back(1831);
+			runs_to_loop_over.push_back(1834);
+			runs_to_loop_over.push_back(1835);
+			runs_to_loop_over.push_back(1849);
+			runs_to_loop_over.push_back(1850);
+			runs_to_loop_over.push_back(1855);
+			runs_to_loop_over.push_back(1858);
+			runs_to_loop_over.push_back(1859);
+			runs_to_loop_over.push_back(1860);
+			runs_to_loop_over.push_back(1950);
+			runs_to_loop_over.push_back(1952);
+			runs_to_loop_over.push_back(1953);
+			runs_to_loop_over.push_back(2035);
+			runs_to_loop_over.push_back(2049);
+			runs_to_loop_over.push_back(2087);
+			runs_to_loop_over.push_back(2090);
+			runs_to_loop_over.push_back(2091);
+			runs_to_loop_over.push_back(2155);
+			runs_to_loop_over.push_back(2156);
+			runs_to_loop_over.push_back(2165);
+			runs_to_loop_over.push_back(2173);
+			runs_to_loop_over.push_back(2174);
+		}
+		if(config==3){
+			runs_to_loop_over.push_back(3529);
+			runs_to_loop_over.push_back(3534);
+			runs_to_loop_over.push_back(3543);
+			runs_to_loop_over.push_back(3663);
+			runs_to_loop_over.push_back(3726);
+			runs_to_loop_over.push_back(3766);
+			runs_to_loop_over.push_back(3772);
+			runs_to_loop_over.push_back(3905);
+			runs_to_loop_over.push_back(3906);
+			runs_to_loop_over.push_back(3907);
+			runs_to_loop_over.push_back(3909);
+			runs_to_loop_over.push_back(3917);
+			runs_to_loop_over.push_back(4006);
+			runs_to_loop_over.push_back(4008);
+		}
+		if(config==4){
+			runs_to_loop_over.push_back(4106);
+			runs_to_loop_over.push_back(4114);
+			runs_to_loop_over.push_back(4140);
+			runs_to_loop_over.push_back(4317);
+			runs_to_loop_over.push_back(4336);
+			runs_to_loop_over.push_back(4386);
+			runs_to_loop_over.push_back(4398);
+			runs_to_loop_over.push_back(4399);
+			runs_to_loop_over.push_back(4406);
+			runs_to_loop_over.push_back(4407);
+			runs_to_loop_over.push_back(4408);
+			runs_to_loop_over.push_back(4458);
+			runs_to_loop_over.push_back(4474);
+			runs_to_loop_over.push_back(4486);
+			runs_to_loop_over.push_back(4497);
+			runs_to_loop_over.push_back(4536);
+			runs_to_loop_over.push_back(4572);
+			runs_to_loop_over.push_back(4622);
+			runs_to_loop_over.push_back(4624);
+			runs_to_loop_over.push_back(4651);
+			runs_to_loop_over.push_back(4772);
+			runs_to_loop_over.push_back(4777);
+			runs_to_loop_over.push_back(4817);
+			runs_to_loop_over.push_back(4837);
+			runs_to_loop_over.push_back(4842);
+			runs_to_loop_over.push_back(4855);
+			runs_to_loop_over.push_back(4943);
+			runs_to_loop_over.push_back(4947);
+			runs_to_loop_over.push_back(4979);
+			runs_to_loop_over.push_back(5002);
+			runs_to_loop_over.push_back(5004);
+			runs_to_loop_over.push_back(5007);
+			runs_to_loop_over.push_back(5009);
+			runs_to_loop_over.push_back(5032);
+			runs_to_loop_over.push_back(5042);
+			runs_to_loop_over.push_back(5043);
+			runs_to_loop_over.push_back(5047);
+			runs_to_loop_over.push_back(5049);
+			runs_to_loop_over.push_back(5052);
+			runs_to_loop_over.push_back(5062);
+			runs_to_loop_over.push_back(5094);
+			runs_to_loop_over.push_back(5162);
+			runs_to_loop_over.push_back(5168);
+			runs_to_loop_over.push_back(5169);
+			runs_to_loop_over.push_back(5170);
+			runs_to_loop_over.push_back(5174);
+			runs_to_loop_over.push_back(5185);
+			runs_to_loop_over.push_back(5310);
+			runs_to_loop_over.push_back(5324);
+			runs_to_loop_over.push_back(5356);
+			runs_to_loop_over.push_back(5357);
+			runs_to_loop_over.push_back(5369);
+			runs_to_loop_over.push_back(5405);
+			runs_to_loop_over.push_back(5406);
+			runs_to_loop_over.push_back(5446);
+			runs_to_loop_over.push_back(5505);
+			runs_to_loop_over.push_back(5512);
+			runs_to_loop_over.push_back(5514);
+			runs_to_loop_over.push_back(5515);
+			runs_to_loop_over.push_back(5516);
+			runs_to_loop_over.push_back(5517);
+			runs_to_loop_over.push_back(5539);
+			runs_to_loop_over.push_back(5586);
+			runs_to_loop_over.push_back(5600);
+			runs_to_loop_over.push_back(5610);
+			runs_to_loop_over.push_back(5614);
+			runs_to_loop_over.push_back(5615);
+			runs_to_loop_over.push_back(5616);
+			runs_to_loop_over.push_back(5617);
+			runs_to_loop_over.push_back(5619);
+			runs_to_loop_over.push_back(5620);
+			runs_to_loop_over.push_back(5621);
+			runs_to_loop_over.push_back(5625);
+			runs_to_loop_over.push_back(5645);
+			runs_to_loop_over.push_back(5649);
+			runs_to_loop_over.push_back(5650);
+			runs_to_loop_over.push_back(5652);
+			runs_to_loop_over.push_back(5654);
+			runs_to_loop_over.push_back(5660);
+			runs_to_loop_over.push_back(5661);
+			runs_to_loop_over.push_back(5662);
+			runs_to_loop_over.push_back(5664);
+			runs_to_loop_over.push_back(5666);
+			runs_to_loop_over.push_back(5667);
+			runs_to_loop_over.push_back(5669);
+			runs_to_loop_over.push_back(5670);
+			runs_to_loop_over.push_back(5671);
+			runs_to_loop_over.push_back(5675);
+			runs_to_loop_over.push_back(5676);
+			runs_to_loop_over.push_back(5680);
+			runs_to_loop_over.push_back(5681);
+			runs_to_loop_over.push_back(5683);
+			runs_to_loop_over.push_back(5684);
+			runs_to_loop_over.push_back(5699);
+			runs_to_loop_over.push_back(5700);
+			runs_to_loop_over.push_back(5701);
+			runs_to_loop_over.push_back(5702);
+			runs_to_loop_over.push_back(5704);
+			runs_to_loop_over.push_back(5706);
+			runs_to_loop_over.push_back(5760);
+			runs_to_loop_over.push_back(5764);
+			runs_to_loop_over.push_back(5774);
+			runs_to_loop_over.push_back(5775);
+			runs_to_loop_over.push_back(5780);
+			runs_to_loop_over.push_back(5799);
+			runs_to_loop_over.push_back(5810);
+			runs_to_loop_over.push_back(5811);
+			runs_to_loop_over.push_back(5820);
+			runs_to_loop_over.push_back(5847);
+			runs_to_loop_over.push_back(5849);
+			runs_to_loop_over.push_back(5854);
+			runs_to_loop_over.push_back(5861);
+			runs_to_loop_over.push_back(5881);
+			runs_to_loop_over.push_back(5894);
+			runs_to_loop_over.push_back(5895);
+			runs_to_loop_over.push_back(5896);
+			runs_to_loop_over.push_back(5897);
+			runs_to_loop_over.push_back(6080); //not in 100pct?
+			runs_to_loop_over.push_back(6445);
+		}
+		if(config==5){
+			runs_to_loop_over.push_back(6506);
+			runs_to_loop_over.push_back(6511);
+			runs_to_loop_over.push_back(6532);
+			runs_to_loop_over.push_back(6536);
+			runs_to_loop_over.push_back(6542);
+			runs_to_loop_over.push_back(6544);
+			runs_to_loop_over.push_back(6554);
+			runs_to_loop_over.push_back(6561);
+			runs_to_loop_over.push_back(6577);
+			runs_to_loop_over.push_back(6588);
+			runs_to_loop_over.push_back(6593);
+			runs_to_loop_over.push_back(6603);
+			runs_to_loop_over.push_back(6610);
+			runs_to_loop_over.push_back(6628);
+			runs_to_loop_over.push_back(6635);
+			runs_to_loop_over.push_back(6655);
+			runs_to_loop_over.push_back(6657);
+			runs_to_loop_over.push_back(6669);
+			runs_to_loop_over.push_back(6673);
+			runs_to_loop_over.push_back(6674);
+			runs_to_loop_over.push_back(6675);
+			runs_to_loop_over.push_back(6679);
+			runs_to_loop_over.push_back(6687);
+			runs_to_loop_over.push_back(6694);
+			runs_to_loop_over.push_back(6705);
+			runs_to_loop_over.push_back(6733);
+			runs_to_loop_over.push_back(6759);
+			runs_to_loop_over.push_back(6818);
+			runs_to_loop_over.push_back(6820);
+			runs_to_loop_over.push_back(6851);
+			runs_to_loop_over.push_back(6857);
+			runs_to_loop_over.push_back(6860);
+			runs_to_loop_over.push_back(6861);
+			runs_to_loop_over.push_back(6876);
+			runs_to_loop_over.push_back(6943);
+			runs_to_loop_over.push_back(7170);
+			runs_to_loop_over.push_back(7264);
+			runs_to_loop_over.push_back(7418);
+			runs_to_loop_over.push_back(7434);
+			runs_to_loop_over.push_back(7494);
+			runs_to_loop_over.push_back(7501);
+			runs_to_loop_over.push_back(7584);
+			runs_to_loop_over.push_back(7814);
+			runs_to_loop_over.push_back(7824);
+			runs_to_loop_over.push_back(7836);
+			runs_to_loop_over.push_back(7923);
+			runs_to_loop_over.push_back(8052);
+			runs_to_loop_over.push_back(8064);
+			runs_to_loop_over.push_back(8074);
+			runs_to_loop_over.push_back(8085);
+		}
+
+		for(int i=0; i<runs_to_loop_over.size(); i++){
+			// sprintf(the_data,"/fs/project/PAS0654/ARA_DATA/A23/10pct_redo/ValsForCuts/A%d/c%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_%d.root",station,config, runs_to_loop_over[i]);
+			sprintf(the_data,"/fs/project/PAS0654/ARA_DATA/A23/100pct_try2/ValsForCuts/A%d/c%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_%d.root",station,config, runs_to_loop_over[i]);
+			// printf("/fs/project/PAS0654/ARA_DATA/A23/100pct_try2/ValsForCuts/A%d/c%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_%d.root \n",station,config, runs_to_loop_over[i]);
 			dataVTree.Add(the_data);
 			dataHTree.Add(the_data);
 			dataAllTree.Add(the_data);
@@ -357,7 +637,12 @@ int main(int argc, char **argv)
 
 		dataAllTree.GetEvent(0);
 		int currentRunNum = runNum;
+		
+		// check both
 		bool isThisABadRun = isBadRun(station,runNum,BadRunList);
+		if(!isThisABadRun){
+			isThisABadRun = isBadRun(station, runNum, BadSurfaceRunList);
+		}
 
 		for(int event=0; event<numDataEvents; event++){
 			dataVTree.GetEvent(event);
@@ -368,6 +653,9 @@ int main(int argc, char **argv)
 			if(runNum!=currentRunNum){
 				currentRunNum=runNum;
 				isThisABadRun = isBadRun(station,runNum, BadRunList);
+				if(!isThisABadRun){
+					isThisABadRun = isBadRun(station,runNum, BadSurfaceRunList);
+				}
 				if(isThisABadRun){
 					printf(RED"*"RESET);
 					// printf("     Yup, run %d is bad \n",runNum);
@@ -411,9 +699,13 @@ int main(int argc, char **argv)
 							events_vs_time[pol]->Fill(unixTime);
 							h2SNRvsCorr[pol]->Fill(which_corr_to_use,snr_val[pol],weight);
 
-							if(runNum==2090 || runNum==2091){
-								zoom_burst->Fill(phi_300[pol], theta_300[pol]);
+							if(pol==0){
+								phi_dist->Fill(phi_300[pol]);
 							}
+
+							// if(runNum==2090 || runNum==2091){
+							// 	zoom_burst->Fill(phi_300[pol], theta_300[pol]);
+							// }
 
 							// FILE *fout = fopen(title_txt, "a");
 							// fprintf(fout,"Run %4d, Event %6d, Pol %1d, unixTime %d, theta %3d, phi %3d, coor %.4f, refilt %d, surfv %d, surfh %d, surftopppol %d \n",runNum, eventNumber, pol, unixTime, theta_300[pol], phi_300[pol], corr_val[pol], Refilt[pol], isSurf[0], isSurf[1], isSurfEvent_top[pol]);
@@ -430,19 +722,32 @@ int main(int argc, char **argv)
 	}
 	std::cout<<endl;
 
-	TCanvas *cZoomBurst = new TCanvas("","",1.1*850,850);
-		zoom_burst->Draw("colz");
-		zoom_burst->GetXaxis()->SetTitle("Phi [deg]");
-		zoom_burst->GetYaxis()->SetTitle("Theta [deg]");
-		zoom_burst->GetZaxis()->SetTitle("Number of Events");
-		zoom_burst->GetXaxis()->SetRangeUser(-136,-124);
-		zoom_burst->GetYaxis()->SetRangeUser(36,48);
-		gPad->SetRightMargin(0.15);
-	char thistitle_zoomburst[300];
-	sprintf(thistitle_zoomburst, "%s/unblind/surface/%d.%d.%d_A%d_c%d_%dEvents_SurfaceRate_%dSample_ZoomBurst.png",plotPath,year_now,month_now,day_now,station,config,int(numTotal),full_or_partial);
-	cZoomBurst->SaveAs(thistitle_zoomburst);
-	delete cZoomBurst;		
+	// TCanvas *cZoomBurst = new TCanvas("","",1.1*850,850);
+	// 	zoom_burst->Draw("colz");
+	// 	zoom_burst->GetXaxis()->SetTitle("Phi [deg]");
+	// 	zoom_burst->GetYaxis()->SetTitle("Theta [deg]");
+	// 	zoom_burst->GetZaxis()->SetTitle("Number of Events");
+	// 	zoom_burst->GetXaxis()->SetRangeUser(-136,-124);
+	// 	zoom_burst->GetYaxis()->SetRangeUser(36,48);
+	// 	gPad->SetRightMargin(0.15);
+	// char thistitle_zoomburst[300];
+	// sprintf(thistitle_zoomburst, "%s/unblind/surface/%d.%d.%d_A%d_c%d_%dEvents_SurfaceRate_%dSample_ZoomBurst.png",plotPath,year_now,month_now,day_now,station,config,int(numTotal),full_or_partial);
+	// cZoomBurst->SaveAs(thistitle_zoomburst);
+	// delete cZoomBurst;
 
+	
+	if(full_or_partial==100 && isOrg==0){
+
+		TCanvas *cPhiDist = new TCanvas("","",1.1*850,850);
+		phi_dist->Draw("");
+			phi_dist->GetXaxis()->SetTitle("Phi [deg]");
+			phi_dist->GetYaxis()->SetTitle("Number of Events");
+			gPad->SetLogy();
+		char thistitle[300];
+		sprintf(thistitle, "%s/unblind/surface/reduced_surface/%d.%d.%d_A%d_c%d_%dEvents_PhiDist_%dSample.png",plotPath,year_now,month_now,day_now,station,config,int(numTotal),full_or_partial);
+		cPhiDist->SaveAs(thistitle);
+		delete cPhiDist;
+	}
 
 	TCanvas *cSurfaceRate = new TCanvas("","",2.1*850,2.1*850);
 	cSurfaceRate->Divide(1,2);
@@ -465,6 +770,9 @@ int main(int argc, char **argv)
 	}
 	char thistitle[300];
 	sprintf(thistitle, "%s/unblind/surface/%d.%d.%d_A%d_c%d_%dEvents_SurfaceRate_%dSample.png",plotPath,year_now,month_now,day_now,station,config,int(numTotal),full_or_partial);
+	if(full_or_partial==100 && isOrg==0){
+		sprintf(thistitle, "%s/unblind/surface/reduced_surface/%d.%d.%d_A%d_c%d_%dEvents_SurfaceRate_%dSample.png",plotPath,year_now,month_now,day_now,station,config,int(numTotal),full_or_partial);
+	}
 	cSurfaceRate->SaveAs(thistitle);
 	delete cSurfaceRate;
 
@@ -526,8 +834,10 @@ int main(int argc, char **argv)
 		horz_lines[pol]->SetLineColor(kBlue);
 	}
 	char title[300];
-	if(full_or_partial==100)
+	if(full_or_partial==100 && isOrg==1)
 	  sprintf(title, "%s/unblind/surface/%d.%d.%d_A%d_c%d_%dEvents_UnblindSurface_SNRvsCorr_100Sample.png",plotPath,year_now,month_now,day_now,station,config,numTotal);
+	else if(full_or_partial==100 && isOrg==0)
+	  sprintf(title, "%s/unblind/surface/reduced_surface/%d.%d.%d_A%d_c%d_%dEvents_UnblindSurface_SNRvsCorr_100Sample.png",plotPath,year_now,month_now,day_now,station,config,numTotal);
 	else if(full_or_partial==10 && isOrg==0)
 	  sprintf(title, "%s/unblind/surface/%d.%d.%d_A%d_c%d_%dEvents_UnblindSurface_SNRvsCorr_10Sample_New.png",plotPath,year_now,month_now,day_now,station,config,numTotal);
 	else if(full_or_partial==10 && isOrg==1)
