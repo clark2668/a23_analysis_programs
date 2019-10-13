@@ -107,6 +107,7 @@ int main(int argc, char **argv)
 	if(starEvery==0) starEvery++;
 	printf("Num events is %d \n", numEntries);
 	cout<<"This file has a starEvery of "<<starEvery<<endl;
+	// numEntries=100;
 
 	//first, let's get the baselines loaded in
 	string runSummaryFilename;
@@ -196,7 +197,9 @@ int main(int argc, char **argv)
 	tempFile->cd();
 	TTree *tempTree = new TTree("tempTree","tempTree");
 	bool hasError=0;
+	bool isCalPulser=0;
 	tempTree->Branch("hasError",&hasError);
+	tempTree->Branch("isCalPulser", &isCalPulser);
 	vector<TGraph*> temp_phs;
 	temp_phs.resize(16);
 	stringstream ss;
@@ -205,10 +208,12 @@ int main(int argc, char **argv)
 		tempTree->Branch(ss.str().c_str(),&temp_phs[i]);
 	}
 	for(int event=0; event<numEntries; event++){
+		// printf("Inside FFT loop on event %d \n", event);
 		eventTree->GetEntry(event);
 		if (isSimulation == false){
 			realAtriEvPtr = new UsefulAtriStationEvent(rawAtriEvPtr, AraCalType::kLatestCalib);
 			hasError = !(qualCut->isGoodEvent(realAtriEvPtr));
+			isCalPulser=rawAtriEvPtr->isCalpulserEvent();
 			if(realAtriEvPtr->eventNumber<5){
 				hasError=true;
 			}
@@ -225,6 +230,7 @@ int main(int argc, char **argv)
 		}
 		else if(isSimulation){
 			hasError=false;
+			isCalPulser=false;
 		}
 
 		stringstream ss;
@@ -268,6 +274,7 @@ int main(int argc, char **argv)
 
 	//now, to loop over events!
 	for(Long64_t event=0;event<numEntries;event++){
+		// printf("Inside CW search loop, on event %d \n", event);
 		// cout<<"On event "<<event<<endl;
 
 		badFreqs_fwd.clear();
@@ -308,7 +315,13 @@ int main(int argc, char **argv)
 		// cDump->SaveAs(dump_title);
 		// delete cDump;
 	
-		if(!hasError){
+		// if(!hasError){
+		// for station 3, skip cal pulsers
+		// so only proceed if it doen't have an error
+		// and if it's not (A3 and a cal pulser)
+		// this is done for backwards compatibility with A2, which did not exclude cal pulsers
+		// from phase variance search
+		if(!hasError && !(isCalPulser && station_num==3) ){ 
 
 			//before we do the phase variance, we should check for baseline violations	
 			vector<double> baseline_CW_cut_V = CWCut_TB(grWaveformsRaw, average, 0, 6., 5.5, station_num, 3, chan_exclusion_list, runNum, event,false);
@@ -396,7 +409,8 @@ int main(int argc, char **argv)
 				// printf("			I've found %d good events \n",found_events_forward);
 				if(found_events_forward==14) break; //after you've collected 15 events (0->14), we're good to go.
 				tempTree->GetEntry(event_next);
-				if(!hasError){
+				// if(!hasError){
+				if(!hasError && !(isCalPulser && station_num==3)){ // try also with excluding cal pulsers when we can
 					found_events_forward++;
 					vector<TGraph*> this_event_phases;
 					for(int chan=0; chan<16; chan++){
@@ -498,7 +512,8 @@ int main(int argc, char **argv)
 				// printf("			Trying to move backwards to event %d \n",event_next);
 				if(found_events_backwards==0) break;
 				tempTree->GetEntry(event_next);
-				if(!hasError){
+				// if(!hasError){
+				if(!hasError && !(isCalPulser && station_num==3)){ // try also with excluding cal pulsers when we can
 					found_events_backwards--;
 					vector<TGraph*> this_event_phases;
 					for(int chan=0; chan<16; chan++){
