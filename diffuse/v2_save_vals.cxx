@@ -73,6 +73,12 @@ int main(int argc, char **argv)
 		std::cout << "Warning! $PLOT_PATH is not set!" << endl;
 		return -1;
 	}
+	char *ToolsDirPath(getenv("TOOLS_DIR"));
+	if(ToolsDirPath == NULL){
+		std::cout << "Warning! $TOOLS_DIR is not set! This is needed for finding where your list of runs without cal pulses is "<< endl;
+		return -1;
+	}
+
 
 	stringstream ss;
 	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
@@ -530,13 +536,15 @@ int main(int argc, char **argv)
 				if(badFreqListLocal_baseline.size()>0) isCutonCW_baseline[pol]=true;
 			}
 
-			double threshCW=10;
-			if(station==2){
-				threshCW = 1.5;
+
+			// start out with a problem threshold of 1.5 for A2 and most of A3
+			// if the run has untagged cal pulses though, lift the threshold to 2.0
+			double threshCW=1.5;
+			bool doesRunHaveUntagedCalPulses = hasUntaggedCalpul(ToolsDirPath, station, config, runNum);
+			if(station==3 && doesRunHaveUntagedCalPulses){
+				threshCW=2.0;
 			}
-			else if(station==3){
-				threshCW = 1.0;
-			}
+
 			vector<double> badFreqList_fwd;
 			vector<double> badSigmaList_fwd;
 			for(int pol=0; pol<badFreqs_fwd->size(); pol++){
