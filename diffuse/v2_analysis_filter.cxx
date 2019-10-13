@@ -43,6 +43,7 @@ UsefulAtriStationEvent *realAtriEvPtr;
 #include "tools_RecoFns.h"
 #include "tools_filterEvent.h"
 #include "tools_Cuts.h"
+#include "tools_CommandLine.h"
 
 int main(int argc, char **argv)
 {
@@ -141,7 +142,7 @@ int main(int argc, char **argv)
 		simTree->SetBranchAddress("report", &reportPtr);
 		simTree->GetEvent(0);
 	}
-	
+
 	vector<int> polarizations;
 	vector<int> antenna_numbers;
 	polarizations.resize(16);
@@ -187,7 +188,7 @@ int main(int argc, char **argv)
 		eventTree->SetBranchAddress("event",&rawAtriEvPtr);
 		printf("Data; load raw event tree \n");
 	}
-	
+
 	Long64_t numEntries=eventTree->GetEntries();
 	Long64_t starEvery=numEntries/80;
 	if(starEvery==0) starEvery++;
@@ -279,6 +280,7 @@ int main(int argc, char **argv)
 	OutputTree->Branch("rms_pol_thresh_face_V", &rms_pol_thresh_face_V, "rms_pol_thresh_face_V[15][12]/D");
 	OutputTree->Branch("rms_pol_thresh_face_H", &rms_pol_thresh_face_H, "rms_pol_thresh_face_H[15][12]/D");
 
+
 	int dropBadChans=1;
 	int numFaces_new_V;
 	int numFaces_new_H;
@@ -290,7 +292,6 @@ int main(int argc, char **argv)
 		numFaces_new_V = numFaces_A3_drop;
 		numFaces_new_H = numFaces_A3_drop;
 	}
-
 
 	// list of what channels to exclude in finding the SNR of the event
 	vector<int> chan_exclusion_list;
@@ -327,8 +328,9 @@ int main(int argc, char **argv)
 	OutputTree->Branch("polarizationRatio", &polarizationRatio, "polarizationRatio/D");   
 
 	int eventSim = 0;
+	int start=0;
 
-	for(Long64_t event=0;event<numEntries;event++) {
+	for(Long64_t event=start;event<numEntries;event++) {
 
 		if(event%starEvery==0) {
 			std::cout << "*";       
@@ -343,7 +345,7 @@ int main(int argc, char **argv)
 			eventNumber = event;
 		}
 
-		
+	
 		if (isSimulation == true){
 			bool foundNextSimEvent = false;
 			
@@ -419,6 +421,7 @@ int main(int argc, char **argv)
 			weight = 1.;
 		}
 
+
 		bool analyzeEvent = false;
 		if (calpulserRunMode == 0) { analyzeEvent = true; } // analyze all events
 		if (calpulserRunMode == 1 && isCalpulser == false && isSoftTrigger == false) { analyzeEvent = true; } // analyze only RF-triggered, non-calpulser events
@@ -432,6 +435,7 @@ int main(int argc, char **argv)
 				hasDigitizerError = !(qualCut->isGoodEvent(realAtriEvPtr));
 			else
 				hasDigitizerError=false;
+
 			xLabel = "Time (ns)"; yLabel = "Voltage (mV)";
 			vector<TGraph*> grWaveformsRaw = makeGraphsFromRF(realAtriEvPtr, nGraphs, xLabel, yLabel, titlesForGraphs);
 			ss.str("");
@@ -533,16 +537,18 @@ int main(int argc, char **argv)
 			}
 		
 			polarizationRatio = getPolarizationRatio(grWaveformsRaw, polarizations);
-	
+
 			//first apply the filter with *no* dropped channels
 			vector<vector<vector<vector<int> > > > faces = setupFaces(station_num);
 			for (int thresholdBin = 0; thresholdBin < thresholdSteps; thresholdBin++){
 				double threshold = thresholdMin + thresholdStep*(double)thresholdBin;
+				// if(thresholdBin==0) printf("     4-String Threshold is %.2f \n", threshold);
 		
 				vector<double> rms_faces_V = getRms_Faces_Thresh_N(vvHitTimes, vvRMS_10overRMS, threshold, 0, faces, ant_loc);
 				vector<double> rms_faces_H = getRms_Faces_Thresh_N(vvHitTimes, vvRMS_10overRMS, threshold, 1, faces, ant_loc);
 		
 				for (int i = 0; i < numFaces; i++){
+					// if(thresholdBin==0) printf("          4-string face %d value is  is %.4f \n", i, rms_faces_V[i]);
 					rms_pol_thresh_face_V[thresholdBin][i] = rms_faces_V[i];
 					rms_pol_thresh_face_H[thresholdBin][i] = rms_faces_H[i];
 				}
@@ -553,12 +559,14 @@ int main(int argc, char **argv)
 			vector<vector<vector<vector<int> > > > faces_drop = setupFaces(station_num, dropBadChans);
 			for (int thresholdBin = 0; thresholdBin < thresholdSteps; thresholdBin++){
 				double threshold = thresholdMin + thresholdStep*(double)thresholdBin;
+				// if(thresholdBin==0) printf("     3-String Threshold is %.2f \n", threshold);
 		
 				vector<double> rms_faces_V_alternate = getRms_Faces_Thresh_N(vvHitTimes, vvRMS_10overRMS, threshold, 0, faces_drop, ant_loc);
 				vector<double> rms_faces_H_alternate = getRms_Faces_Thresh_N(vvHitTimes, vvRMS_10overRMS, threshold, 1, faces_drop, ant_loc);
 		
 				for (int i = 0; i < numFaces_new_V; i++){
 					rms_pol_thresh_face_alternate_V[thresholdBin][i] = rms_faces_V_alternate[i];
+					// if(thresholdBin==0) printf("          3-string face %d value is %.4f \n", i, rms_faces_V_alternate[i]);
 				}
 				for (int i = 0; i < numFaces_new_H; i++){
 					rms_pol_thresh_face_alternate_H[thresholdBin][i] = rms_faces_H_alternate[i];
