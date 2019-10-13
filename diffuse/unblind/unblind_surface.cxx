@@ -52,6 +52,7 @@ AraAntPol::AraAntPol_t Hpol = AraAntPol::kHorizontal;
 using namespace std;
 
 void configure(TH1D *gr);
+int PlotThisEvent(int station, int config, int runNum, int event, int problempol);
 
 int main(int argc, char **argv)
 {
@@ -157,6 +158,23 @@ int main(int argc, char **argv)
 		events_vs_time[i]->GetXaxis()->SetTimeDisplay(1); //turn on a time axis
 		events_vs_time[i]->GetXaxis()->SetTimeFormat("%y/%m");
 		events_vs_time[i]->GetXaxis()->SetTimeOffset(0.,"GMT");
+	}
+
+	TH1D *num_events_per_run[3];
+	for(int i=0; i<3; i++){
+		if(i==0){
+			ss.str("");
+			ss<<"VPol";
+		}
+		else if(i==1){
+			ss.str("");
+			ss<<"HPol";
+		}
+		else if(i==2){
+			ss.str("");
+			ss<<"V+H";
+		}
+		num_events_per_run[i] = new TH1D(ss.str().c_str(), ss.str().c_str(),9000,0,9000);
 	}
 
 	TChain dataVTree("VTree");
@@ -654,7 +672,7 @@ int main(int argc, char **argv)
 				currentRunNum=runNum;
 				isThisABadRun = isBadRun(station,runNum, BadRunList);
 				if(!isThisABadRun){
-					isThisABadRun = isBadRun(station,runNum, BadSurfaceRunList);
+					// isThisABadRun = isBadRun(station,runNum, BadSurfaceRunList);
 				}
 				if(isThisABadRun){
 					printf(RED"*"RESET);
@@ -672,6 +690,7 @@ int main(int argc, char **argv)
 			if(isBadLivetime(station,unixTime)){
 				continue;
 			}
+			bool passes_this_pol[2] = {false};
 			for(int pol=0; pol<2; pol++){
 				if(!WFRMS[pol] 
 					&& !isNewBox 
@@ -696,12 +715,14 @@ int main(int argc, char **argv)
 
 						if(this_pass_R_cut){
 
-							events_vs_time[pol]->Fill(unixTime);
-							h2SNRvsCorr[pol]->Fill(which_corr_to_use,snr_val[pol],weight);
 
-							if(pol==0){
-								phi_dist->Fill(phi_300[pol]);
-							}
+							passes_this_pol[pol]=true;
+							// events_vs_time[pol]->Fill(unixTime);
+							// h2SNRvsCorr[pol]->Fill(which_corr_to_use,snr_val[pol],weight);
+
+							// if(pol==0){
+							// 	phi_dist->Fill(phi_300[pol]);
+							// }
 
 							// if(runNum==2090 || runNum==2091){
 							// 	zoom_burst->Fill(phi_300[pol], theta_300[pol]);
@@ -712,15 +733,85 @@ int main(int argc, char **argv)
 							// fclose(fout);//close sigmavsfreq.txt file
 
 							// printf(BLUE"\n Run %d, Event %d, pol %d, unixTime %d, reco theta %d, phi %d, Refilt status %d, corr is %.4f \n"RESET, runNum, eventNumber, pol, unixTime, theta_300[pol], phi_300[pol], Refilt[pol], corr_val[pol]);
-							// PlotThisEvent(station, config, runNum, eventNumber, pol);
+
+							// FILE *fout = fopen(title_txt, "a");
+							// fprintf(fout,"Run %4d, Event %6d, Pol %1d, unixTime %d, theta %3d, phi %3d, coor %.4f, refilt %d, surfv %d, surfh %d, surftopppol %d \n",runNum, eventNumber, pol, unixTime, theta_300[pol], phi_300[pol], corr_val[pol], Refilt[pol], isSurf[0], isSurf[1], isSurfEvent_top[pol]);
+							// fclose(fout);//close sigmavsfreq.txt file
+							
+							// if(runNum==2779 
+							// 	|| runNum==2869 
+							// 	|| runNum==2871 
+							// 	|| runNum==2937 
+							// 	|| runNum==3202 
+							// 	|| runNum==3206 
+							// 	|| runNum==3325 
+							// 	|| runNum==3392 
+							// 	|| runNum==1455
+							// 	|| runNum==1571
+							// 	// || runNum==2035
+							// 	|| runNum==2165
+							// 	|| runNum==5505
+							// 	|| runNum==5897
+							// 	|| runNum==6610
+							// 	|| runNum==6674
+							// 	|| runNum==6675
+							// 	|| runNum==6861
+							// 	|| runNum==7170
+							// 	|| runNum==8052
+							// 	|| runNum==8085
+							// 	){
+							// 	PlotThisEvent(station, config, runNum, eventNumber, pol);
+							// }
 						}
 
 					}// not failing CW power cut?
 				}// passes rest of analysis (not WFRMS, box, surface)
 			}// loop over polarizations
+			if(passes_this_pol[0]){
+				num_events_per_run[0]->Fill(runNum);
+			}
+			if(passes_this_pol[1]){
+				num_events_per_run[1]->Fill(runNum);
+			}
+			if(passes_this_pol[0] || passes_this_pol[1]){
+				num_events_per_run[2]->Fill(runNum);
+			}
 		}// loop over events
 	}
 	std::cout<<endl;
+
+	TCanvas *cEventsPerRun = new TCanvas("","",3.1*850,3.1*850);
+	cEventsPerRun->Divide(1,3);
+	for(int i=0; i<3; i++){
+		cEventsPerRun->cd(i+1);
+		num_events_per_run[i]->Draw("");
+		num_events_per_run[i]->GetXaxis()->SetTitle("Run Number");
+		num_events_per_run[i]->GetYaxis()->SetTitle("Number of Events");
+		gPad->SetLogy();
+		num_events_per_run[i]->GetYaxis()->SetRangeUser(0.1,1e3);
+	}
+	char thistitle_eventsperrun[300];
+	sprintf(thistitle_eventsperrun, "%s/unblind/surface/%d.%d.%d_A%d_c%d_NumEventsPerRun_%dSample.png",plotPath,year_now,month_now,day_now,station,config, full_or_partial);
+	cEventsPerRun->SaveAs(thistitle_eventsperrun);
+	delete cEventsPerRun;
+
+
+	// print this data to a file
+	char events_per_run_title[200];
+	sprintf(events_per_run_title,"%s/unblind/surface/A%d_c%d_%dSample_NumSurfaceEventsPerRun.txt", plotPath,station,config,full_or_partial);
+	FILE *fout = fopen(events_per_run_title, "a");
+	for(int bin=1; bin<num_events_per_run[0]->GetNbinsX(); bin++){
+		int binContent[3]={0};
+		for(int style=0; style<3; style++){
+			binContent[style] = num_events_per_run[style]->GetBinContent(bin);
+		}
+		if(binContent[2]>0){
+			printf("Run %4d: %3d, %3d, %3d, %3d \n", bin-1, binContent[0], binContent[1], binContent[2], binContent[0]+binContent[1]);
+			fprintf(fout,"%d,%d,%d,%d,%d\n", bin-1, binContent[0], binContent[1], binContent[2],binContent[0]+binContent[1]);
+		}
+	}
+	fclose(fout);//close sigmavsfreq.txt file
+
 
 	// TCanvas *cZoomBurst = new TCanvas("","",1.1*850,850);
 	// 	zoom_burst->Draw("colz");
@@ -736,114 +827,448 @@ int main(int argc, char **argv)
 	// delete cZoomBurst;
 
 	
-	if(full_or_partial==100 && isOrg==0){
+	// if(full_or_partial==100 && isOrg==0){
 
-		TCanvas *cPhiDist = new TCanvas("","",1.1*850,850);
-		phi_dist->Draw("");
-			phi_dist->GetXaxis()->SetTitle("Phi [deg]");
-			phi_dist->GetYaxis()->SetTitle("Number of Events");
-			gPad->SetLogy();
-		char thistitle[300];
-		sprintf(thistitle, "%s/unblind/surface/reduced_surface/%d.%d.%d_A%d_c%d_%dEvents_PhiDist_%dSample.png",plotPath,year_now,month_now,day_now,station,config,int(numTotal),full_or_partial);
-		cPhiDist->SaveAs(thistitle);
-		delete cPhiDist;
+	// 	TCanvas *cPhiDist = new TCanvas("","",1.1*850,850);
+	// 	phi_dist->Draw("");
+	// 		phi_dist->GetXaxis()->SetTitle("Phi [deg]");
+	// 		phi_dist->GetYaxis()->SetTitle("Number of Events");
+	// 		gPad->SetLogy();
+	// 	char thistitle[300];
+	// 	sprintf(thistitle, "%s/unblind/surface/reduced_surface/%d.%d.%d_A%d_c%d_%dEvents_PhiDist_%dSample.png",plotPath,year_now,month_now,day_now,station,config,int(numTotal),full_or_partial);
+	// 	cPhiDist->SaveAs(thistitle);
+	// 	delete cPhiDist;
+	// }
+
+	// TCanvas *cSurfaceRate = new TCanvas("","",2.1*850,2.1*850);
+	// cSurfaceRate->Divide(1,2);
+	// for(int i=0; i<2; i++){
+	// 	cSurfaceRate->cd(i+1);
+	// 	// num_samps[i]->GetYaxis()->SetRangeUser(0.1,2e7);
+	// 	// num_samps[i]->GetXaxis()->SetRangeUser(0,750);
+
+	// 	// gPad->SetTopMargin(0.1);
+	// 	// gPad->SetRightMargin(0.03);
+	// 	// gPad->SetLeftMargin(0.05);
+	// 	// gPad->SetBottomMargin(0.11);
+
+	// 	configure(events_vs_time[i]);
+
+	// 	events_vs_time[i]->Draw("");
+	// 	events_vs_time[i]->GetXaxis()->SetTitle("UnixTime [YY/MM]");
+	// 	events_vs_time[i]->GetYaxis()->SetTitle("Number of Events");
+	// 	gPad->SetLogy();
+	// }
+	// char thistitle[300];
+	// sprintf(thistitle, "%s/unblind/surface/%d.%d.%d_A%d_c%d_%dEvents_SurfaceRate_%dSample.png",plotPath,year_now,month_now,day_now,station,config,int(numTotal),full_or_partial);
+	// if(full_or_partial==100 && isOrg==0){
+	// 	sprintf(thistitle, "%s/unblind/surface/reduced_surface/%d.%d.%d_A%d_c%d_%dEvents_SurfaceRate_%dSample.png",plotPath,year_now,month_now,day_now,station,config,int(numTotal),full_or_partial);
+	// }
+	// cSurfaceRate->SaveAs(thistitle);
+	// delete cSurfaceRate;
+
+
+	// vector<TGraph*> cut_lines;
+	// for(int pol=0; pol<2; pol++){
+	// 	vector <double> x_vals_for_line;
+	// 	vector <double> y_vals_for_line;
+	// 	double rcut_slope;
+	// 	double rcut_intercept;
+	// 	getRCutValues(station, config, pol, rcut_slope, rcut_intercept);
+	// 	for(double x=0; x<0.020; x+=0.00001){
+	// 		double y_val = (rcut_slope * x ) + rcut_intercept;
+	// 		x_vals_for_line.push_back(x);
+	// 		y_vals_for_line.push_back(y_val);
+	// 	}
+	// 	cut_lines.push_back(new TGraph(x_vals_for_line.size(), &x_vals_for_line[0], &y_vals_for_line[0]));
+	// }
+
+	// // now to actually draw the safety cut lines
+	// double vert_cuts[2] = {side_cut_corr[0], side_cut_corr[1]};
+	// vector<TGraph*> vert_lines;
+	// for(int pol=0; pol<2; pol++){
+	// 	vector <double> x_vals_for_line;
+	// 	vector <double> y_vals_for_line;
+	// 	for(double y=0; y<30; y+=1.){
+	// 		y_vals_for_line.push_back(y);
+	// 		x_vals_for_line.push_back(vert_cuts[pol]);
+	// 	}
+	// 	vert_lines.push_back(new TGraph(x_vals_for_line.size(), &x_vals_for_line[0], &y_vals_for_line[0]));
+	// }
+
+	// double horz_cuts[2] = {side_cut_snr[0], side_cut_snr[1]};
+	// vector<TGraph*> horz_lines;
+	// for(int pol=0; pol<2; pol++){
+	// 	vector <double> x_vals_for_line;
+	// 	vector <double> y_vals_for_line;
+	// 	for(double x=0; x<0.05; x+=0.01){
+	// 		y_vals_for_line.push_back(horz_cuts[pol]);
+	// 		x_vals_for_line.push_back(x);
+	// 	}
+	// 	horz_lines.push_back(new TGraph(x_vals_for_line.size(), &x_vals_for_line[0], &y_vals_for_line[0]));
+	// }
+
+	// // okay, now save out the 2D histogram
+	// TCanvas *cSNRvsCorr = new TCanvas("","",2.1*850, 850);
+	// cSNRvsCorr->Divide(2,1);
+	// for(int pol=0; pol<2; pol++){
+	// 	cSNRvsCorr->cd(pol+1);
+	// 	h2SNRvsCorr[pol]->Draw("colz");
+	// 	h2SNRvsCorr[pol]->GetYaxis()->SetTitle("3rd Highest VPeak/RMS");
+	// 	h2SNRvsCorr[pol]->GetXaxis()->SetTitle("Peak Corr");
+	// 	gPad->SetLogz();
+	// 	cut_lines[pol]->Draw("same");
+	// 	cut_lines[pol]->SetLineColor(kRed);
+	// 	vert_lines[pol]->Draw("same");
+	// 	vert_lines[pol]->SetLineColor(kBlue);
+	// 	horz_lines[pol]->Draw("same");
+	// 	horz_lines[pol]->SetLineColor(kBlue);
+	// }
+	// char title[300];
+	// if(full_or_partial==100 && isOrg==1)
+	//   sprintf(title, "%s/unblind/surface/%d.%d.%d_A%d_c%d_%dEvents_UnblindSurface_SNRvsCorr_100Sample.png",plotPath,year_now,month_now,day_now,station,config,numTotal);
+	// else if(full_or_partial==100 && isOrg==0)
+	//   sprintf(title, "%s/unblind/surface/reduced_surface/%d.%d.%d_A%d_c%d_%dEvents_UnblindSurface_SNRvsCorr_100Sample.png",plotPath,year_now,month_now,day_now,station,config,numTotal);
+	// else if(full_or_partial==10 && isOrg==0)
+	//   sprintf(title, "%s/unblind/surface/%d.%d.%d_A%d_c%d_%dEvents_UnblindSurface_SNRvsCorr_10Sample_New.png",plotPath,year_now,month_now,day_now,station,config,numTotal);
+	// else if(full_or_partial==10 && isOrg==1)
+	//   sprintf(title, "%s/unblind/surface/%d.%d.%d_A%d_c%d_%dEvents_UnblindSurface_SNRvsCorr_10Sample_Org.png",plotPath,year_now,month_now,day_now,station,config,numTotal);
+	// cSNRvsCorr->SaveAs(title);
+	// delete cSNRvsCorr;
+}
+
+int PlotThisEvent(int station, int config, int runNum, int event, int problempol){
+	time_t time_now = time(0); //get the time now                                                                                                                                                                  
+	tm *time = localtime(&time_now);
+	int year_now = time -> tm_year + 1900;
+	int month_now = time -> tm_mon + 1;
+	int day_now = time -> tm_mday;
+
+	char *DataDirPath(getenv("DATA_DIR_100"));
+	if (DataDirPath == NULL) std::cout << "Warning! $DATA_DIR is not set!" << endl;
+	char *PedDirPath(getenv("PED_DIR"));
+	if (PedDirPath == NULL) std::cout << "Warning! $DATA_DIR is not set!" << endl;
+	char *plotPath(getenv("PLOT_PATH"));
+	if (plotPath == NULL) std::cout << "Warning! $PLOT_PATH is not set!" << endl;
+
+	char run_file_name[400];
+	sprintf(run_file_name,"%s/RawData/A%d/all_runs/event%d.root",DataDirPath,station,runNum);
+	TFile *mapFile = TFile::Open(run_file_name);
+	if(!mapFile){
+		cout<<"Can't open data file for map!"<<endl;
+		return -1;
+	}
+	TTree *eventTree = (TTree*) mapFile-> Get("eventTree");
+	if(!eventTree){
+		cout<<"Can't find eventTree for map"<<endl;
+		return -1;
 	}
 
-	TCanvas *cSurfaceRate = new TCanvas("","",2.1*850,2.1*850);
-	cSurfaceRate->Divide(1,2);
-	for(int i=0; i<2; i++){
-		cSurfaceRate->cd(i+1);
-		// num_samps[i]->GetYaxis()->SetRangeUser(0.1,2e7);
-		// num_samps[i]->GetXaxis()->SetRangeUser(0,750);
+	RawAtriStationEvent *rawPtr =0;
+	eventTree->SetBranchAddress("event",&rawPtr);
+	eventTree->GetEvent(event);
 
-		// gPad->SetTopMargin(0.1);
-		// gPad->SetRightMargin(0.03);
-		// gPad->SetLeftMargin(0.05);
-		// gPad->SetBottomMargin(0.11);
+	int stationID = rawPtr->stationId;
+	char ped_file_name[400];
+	sprintf(ped_file_name,"%s/run_specific_peds/A%d/all_peds/event%d_specificPeds.dat",PedDirPath,station,runNum);
+	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
+	calibrator->setAtriPedFile(ped_file_name,stationID); //because someone had a brain (!!), this will error handle itself if the pedestal doesn't exist
 
-		configure(events_vs_time[i]);
+	AraQualCuts *qualCut = AraQualCuts::Instance();
+	UsefulAtriStationEvent *realAtriEvPtr = new UsefulAtriStationEvent(rawPtr,AraCalType::kLatestCalib);
+	printf("Run %d, Event %d \n", runNum, realAtriEvPtr->eventNumber);
+	printf("	Is Quality Event? %d \n", qualCut->isGoodEvent(realAtriEvPtr));
 
-		events_vs_time[i]->Draw("");
-		events_vs_time[i]->GetXaxis()->SetTitle("UnixTime [YY/MM]");
-		events_vs_time[i]->GetYaxis()->SetTitle("Number of Events");
+	int unixTime = (int)rawPtr->unixTime;
+	int unixTimeUs =(int)rawPtr->unixTimeUs;
+	int timeStamp = (int)rawPtr->timeStamp;
+	printf("	Unixtime is %d \n", unixTime);
+	printf("	Unixtime microsecond is %d \n", unixTimeUs);
+	printf("	timeStamp is %d \n", timeStamp);
+
+	stringstream ss1;
+	string xLabel, yLabel;
+	xLabel = "Time (ns)"; yLabel = "Voltage (mV)";
+	vector<string> titlesForGraphs;
+	for (int i = 0; i < 16; i++){
+		ss1.str("");
+		ss1 << "Channel " << i;
+		titlesForGraphs.push_back(ss1.str());
+	}
+
+	vector <TGraph*> waveforms = makeGraphsFromRF(realAtriEvPtr,16,xLabel,yLabel,titlesForGraphs);
+	vector<TGraph*> grWaveformsInt = makeInterpolatedGraphs(waveforms, 0.5, xLabel, yLabel, titlesForGraphs);
+	vector<TGraph*> grWaveformsPadded = makePaddedGraphs(grWaveformsInt, 0, xLabel, yLabel, titlesForGraphs);
+	xLabel = "Frequency (Hz)"; yLabel = "Power Spectral Density (mV/Hz)";
+	vector<TGraph*> grWaveformsPowerSpectrum = makePowerSpectrumGraphs(grWaveformsPadded, xLabel, yLabel, titlesForGraphs);
+
+	// get the run summary information, if it exists yet
+	// and remember, because it's the users job to pass the location of the filter files
+	// this should work for simulated events just fine
+	char filter_file_name[400];
+	// gonna try all of them cuz we lazy af lol
+	sprintf(filter_file_name,"%s/processed_station_%d_run_%d_filter.root","/fs/project/PAS0654/ARA_DATA/A23/100pct_try2/ProcessedFile/A2/2015",station,runNum);
+	bool hasFilterFile = false;
+	TFile *filterFile = TFile::Open(filter_file_name);
+	if(!filterFile){
+		sprintf(filter_file_name,"%s/processed_station_%d_run_%d_filter.root","/fs/project/PAS0654/ARA_DATA/A23/100pct_try2/ProcessedFile/A2/2013",station,runNum);
+	}
+	filterFile = TFile::Open(filter_file_name);
+	if(!filterFile){
+		sprintf(filter_file_name,"%s/processed_station_%d_run_%d_filter.root","/fs/project/PAS0654/ARA_DATA/A23/100pct_try2/ProcessedFile/A2/2014",station,runNum);
+	}
+	filterFile = TFile::Open(filter_file_name);
+	if(!filterFile){
+		sprintf(filter_file_name,"%s/processed_station_%d_run_%d_filter.root","/fs/project/PAS0654/ARA_DATA/A23/100pct_try2/ProcessedFile/A2/2016",station,runNum);
+	}
+	filterFile = TFile::Open(filter_file_name);
+	if(!filterFile){
+		return -1;
+	}
+
+	TTree *filterTree;
+	double VPeakOverRMS[16];
+	if(filterFile){
+		printf("Successfully found filter file information \n");
+		hasFilterFile=true;
+		filterTree = (TTree*) filterFile->Get("OutputTree");
+		if(!filterTree) {
+			std::cout << "Can't find filterTree\n";
+			return -1;
+		}
+		filterTree->SetBranchAddress("VPeakOverRMS", &VPeakOverRMS);
+		filterFile->cd();
+	}
+
+
+	filterTree->GetEvent(event);
+
+	vector<double> chan_SNRs;
+	if(hasFilterFile){
+		for(int i=0; i<16; i++){
+			chan_SNRs.push_back(VPeakOverRMS[i]);
+		}
+	}
+
+	vector <int> chan_list_V;
+	vector <int> chan_list_H;
+	for(int chan=0; chan<=7; chan++){
+		chan_list_V.push_back(chan);
+		chan_list_H.push_back(chan+8);
+	}
+	
+	if(station==2){
+		//for station 2, we need to exclude channel 15 from the analysis
+		chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 15), chan_list_H.end());
+	}
+	else if(station==3){
+		// // for station 3 years 2014, 2015, 2016, we need to drop string 4 (channels 3, 7, 11, 15) altogether above some run
+		// if( 
+		// 	(!isSimulation && runNum>getA3BadRunBoundary())
+		// 	||
+		// 	(isSimulation && yearConfig>2)
+
+		// ){			// drop string four
+		// 	chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 3), chan_list_V.end());
+		// 	chan_list_V.erase(remove(chan_list_V.begin(), chan_list_V.end(), 7), chan_list_V.end());
+		// 	chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 11), chan_list_H.end());
+		// 	chan_list_H.erase(remove(chan_list_H.begin(), chan_list_H.end(), 15), chan_list_H.end());
+		// }
+	}
+
+	Settings *settings = new Settings();
+	string setupfile = "setup.txt";
+	settings->ReadFile(setupfile);
+	cout << "Read " << setupfile << " file!" << endl;
+	settings->NOFZ=1;
+	Detector *detector = 0;
+
+	RayTraceCorrelator *theCorrelator = new RayTraceCorrelator(station, 300, settings, 1, RTTestMode);
+
+	int solNum = 0;
+	TH2D *map_V_raytrace = theCorrelator->getInterferometricMap_RT_select_NewNormalization_SNRweighted(settings, detector, realAtriEvPtr, Vpol, isSimulation, chan_list_V, chan_SNRs, solNum);
+	TH2D *map_H_raytrace = theCorrelator->getInterferometricMap_RT_select_NewNormalization_SNRweighted(settings, detector, realAtriEvPtr, Hpol, isSimulation, chan_list_H, chan_SNRs, solNum);
+
+	int new_theta;
+	int new_phi;
+	double new_corr;
+
+	getCorrMapPeak(map_V_raytrace,new_theta, new_phi, new_corr);
+	char title_for_map[300];
+	sprintf(title_for_map,"VMap: peak theta %d, phi %d, corr %.4f",new_theta, new_phi,new_corr);
+	map_V_raytrace->SetTitle(title_for_map);
+
+	int new_theta_H;
+	int new_phi_H;
+	double new_corr_H;
+
+	getCorrMapPeak(map_H_raytrace,new_theta_H, new_phi_H, new_corr_H);
+	char title_for_map_H[300];
+	sprintf(title_for_map_H,"HMap: peak theta %d, phi %d, corr %.4f",new_theta_H, new_phi_H,new_corr_H);
+	map_H_raytrace->SetTitle(title_for_map_H);
+
+	bool print_maps = true;
+	if(print_maps){
+		gStyle->SetOptStat(0);
+		TCanvas *cMaps = new TCanvas("","",2*1100,850);
+		// TCanvas *cMaps = new TCanvas("","",1100,1.1*850);
+		cMaps->Divide(2,1);
+			cMaps->cd(1);
+			map_V_raytrace->Draw("colz");
+			gPad->SetRightMargin(0.15);
+			cMaps->cd(2);
+			map_H_raytrace->Draw("colz");
+			gPad->SetRightMargin(0.15);
+		char save_temp_title[400];
+		sprintf(save_temp_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/unblind/surface/trouble_events/surface_%d.%d.%d_Run%d_Ev%d_Maps.png",year_now,month_now,day_now,runNum,event);
+		cMaps->SaveAs(save_temp_title);
+		delete cMaps;
+	}
+
+	filterFile->Close();
+
+	// chan_list_V.clear();
+	// chan_list_V.push_back(0);
+	// // chan_list_V.push_back(2);
+	// chan_list_V.push_back(4);
+	// chan_list_V.push_back(5);
+	// chan_list_V.push_back(6);
+	// chan_list_V.push_back(7);
+
+	// TH2D *map_V_raytrace_onlystrong = theCorrelator->getInterferometricMap_RT_select_NewNormalization_SNRweighted(settings, detector, realAtriEvPtr, Vpol, isSimulation, chan_list_V, chan_SNRs, solNum);
+
+
+	// int strong_theta;
+	// int strong_phi;
+	// double strong_corr;
+	// getCorrMapPeak(map_V_raytrace_onlystrong,strong_theta, strong_phi, strong_corr);
+	// char title_for_strongmap[300];
+	// sprintf(title_for_strongmap,"high-SNR only theta %d, phi %d, corr %.4f",strong_theta, strong_phi,strong_corr);
+	// map_V_raytrace_onlystrong->SetTitle(title_for_strongmap);
+
+	// if(print_maps){
+	// 	gStyle->SetOptStat(0);
+	// 	// TCanvas *cMaps = new TCanvas("","",2*1100,2*850);
+	// 	TCanvas *cMaps = new TCanvas("","",1.1-1100,850);
+	// 	// cMaps->Divide(2,2);
+	// 		// cMaps->cd(1);
+	// 		map_V_raytrace_onlystrong->Draw("colz");
+	// 		gPad->SetRightMargin(0.15);
+	// 		// cMaps->cd(2);
+	// 		// map_H_raytrace->Draw("colz");
+	// 	char save_temp_title[400];
+	// 	sprintf(save_temp_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/trouble_events/sideregion_%d.%d.%d_Run%d_Ev%d_VMap_OnlyStrong.png",year_now,month_now,day_now,runNum,event);
+	// 	cMaps->SaveAs(save_temp_title);
+	// 	delete cMaps;
+	// }
+
+	// delete map_V_raytrace_onlystrong;
+
+
+	// bool doContributingMaps=true;
+	// if(doContributingMaps){
+	// 	stringstream ss1;
+	// 	vector<string> titlesForGraphs;
+	// 	vector <TH2D*> individuals;
+
+	// 	double SNR_scaling=0.;
+
+	// 	for(int i=0; i<7; i++){
+	// 		for(int j=i+1; j<8; j++){
+	// 			ss1.str("");
+	// 			ss1<<"Pair "<<i<<" and "<<j;
+	// 			titlesForGraphs.push_back(ss1.str());
+	// 			TH2D *map = theCorrelator->getInterferometricMap_RT_NewNormalization_PairSelect(settings, detector, realAtriEvPtr, Vpol, isSimulation, i, j, solNum);
+				
+	// 			// now do the SNR scaling
+	// 			double this_snr_product = chan_SNRs[i] * chan_SNRs[j];
+	// 			// printf("Weighting term for %d, %d is %.3f \n", i, j, this_snr_product);
+	// 			map->Scale(this_snr_product);
+
+	// 			SNR_scaling+=this_snr_product;
+
+	// 			individuals.push_back(map);
+	// 		}
+	// 	}
+
+	// 	for(int i=0; i<individuals.size(); i++){
+	// 		individuals[i]->Scale(1./SNR_scaling);
+	// 	}
+
+	// 	// compute the average myself manually
+	// 	TH2D *average = (TH2D*) individuals[0]->Clone();
+	// 	for(int i=0; i<individuals.size(); i++){
+	// 		average->Add(individuals[i]);
+	// 	}
+	// 	// average->Scale(1./28);
+	// 	average->SetTitle("Summed Maps");
+
+	// 	vector<double> mins;
+	// 	vector<double> maxs;
+	// 	for(int i=0; i<individuals.size(); i++){
+	// 		mins.push_back(individuals[i]->GetMinimum());
+	// 		maxs.push_back(individuals[i]->GetMaximum());
+	// 	}
+	// 	std::sort(mins.begin(), mins.end()); //sort smallest to largest
+	// 	std::sort(maxs.begin(), maxs.end()); //sort smallest to largest
+	// 	std::reverse(maxs.begin(), maxs.end()); //reverse order to get largest to smallest
+
+	// 	TCanvas *cMaps2 = new TCanvas("","",8*850,4*850);
+	// 	cMaps2->Divide(7,5);
+	// 	for(int i=0; i<individuals.size(); i++){
+	// 		cMaps2->cd(i+1);
+	// 		individuals[i]->Draw("colz");
+	// 		individuals[i]->GetZaxis()->SetRangeUser(mins[0],maxs[0]);
+	// 		individuals[i]->SetTitle(titlesForGraphs[i].c_str());
+	// 		gStyle->SetTitleFontSize(0.07);
+	// 	}
+	// 	cMaps2->cd(35);
+	// 		average->Draw("colz");
+	// 	char save_temp_title[400];
+	// 	sprintf(save_temp_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/unblind/surface/surface_%d.%d.%d_Run%d_Ev%d_AllMaps.png",year_now,month_now,day_now,runNum,event);
+	// 	cMaps2->SaveAs(save_temp_title);
+	// 	delete cMaps2;
+	// }
+
+	char save_temp_title[300];
+	sprintf(save_temp_title,"%s/unblind/surface/trouble_events/surface_%d.%d.%d_Run%d_Ev%d_ProblemPol%d_Waveforms.png",plotPath,year_now,month_now,day_now,runNum,event,problempol);
+	TCanvas *cWave = new TCanvas("","",4*1100,4*850);
+	cWave->Divide(4,4);
+	for(int i=0; i<16; i++){
+		cWave->cd(i+1);
+		// dummy[i]->Draw("AL");
+		// dummy[i]->SetLineColor(kWhite);
+		// dummy[i]->GetXaxis()->SetRangeUser(300.,500.);
+
+		waveforms[i]->Draw("AL");
+		waveforms[i]->SetLineWidth(3);
+		// waveforms[i]->GetXaxis()->SetRangeUser(300.,500.);
+	}
+	cWave->SaveAs(save_temp_title);
+	delete cWave;
+
+	sprintf(save_temp_title,"%s/unblind/surface/trouble_events/surface_%d.%d.%d_Run%d_Ev%d_ProblemPol%d_Spectra.png",plotPath,year_now,month_now,day_now,runNum,event,problempol);
+	TCanvas *cSpec = new TCanvas("","",4*1100,4*850);
+	cSpec->Divide(4,4);
+	for(int i=0; i<16; i++){
+		cSpec->cd(i+1);
+		grWaveformsPowerSpectrum[i]->Draw("AL");
+		grWaveformsPowerSpectrum[i]->SetLineWidth(3);
 		gPad->SetLogy();
 	}
-	char thistitle[300];
-	sprintf(thistitle, "%s/unblind/surface/%d.%d.%d_A%d_c%d_%dEvents_SurfaceRate_%dSample.png",plotPath,year_now,month_now,day_now,station,config,int(numTotal),full_or_partial);
-	if(full_or_partial==100 && isOrg==0){
-		sprintf(thistitle, "%s/unblind/surface/reduced_surface/%d.%d.%d_A%d_c%d_%dEvents_SurfaceRate_%dSample.png",plotPath,year_now,month_now,day_now,station,config,int(numTotal),full_or_partial);
+	cSpec->SaveAs(save_temp_title);
+	delete cSpec;
+	for(int i=0; i<16; i++){
+		delete waveforms[i];
+		delete grWaveformsInt[i];
+		delete grWaveformsPadded[i];
+		delete grWaveformsPowerSpectrum[i];
 	}
-	cSurfaceRate->SaveAs(thistitle);
-	delete cSurfaceRate;
+	delete realAtriEvPtr;
+	mapFile->Close();
+	delete mapFile;
+	return 0;
 
-
-	vector<TGraph*> cut_lines;
-	for(int pol=0; pol<2; pol++){
-		vector <double> x_vals_for_line;
-		vector <double> y_vals_for_line;
-		double rcut_slope;
-		double rcut_intercept;
-		getRCutValues(station, config, pol, rcut_slope, rcut_intercept);
-		for(double x=0; x<0.020; x+=0.00001){
-			double y_val = (rcut_slope * x ) + rcut_intercept;
-			x_vals_for_line.push_back(x);
-			y_vals_for_line.push_back(y_val);
-		}
-		cut_lines.push_back(new TGraph(x_vals_for_line.size(), &x_vals_for_line[0], &y_vals_for_line[0]));
-	}
-
-	// now to actually draw the safety cut lines
-	double vert_cuts[2] = {side_cut_corr[0], side_cut_corr[1]};
-	vector<TGraph*> vert_lines;
-	for(int pol=0; pol<2; pol++){
-		vector <double> x_vals_for_line;
-		vector <double> y_vals_for_line;
-		for(double y=0; y<30; y+=1.){
-			y_vals_for_line.push_back(y);
-			x_vals_for_line.push_back(vert_cuts[pol]);
-		}
-		vert_lines.push_back(new TGraph(x_vals_for_line.size(), &x_vals_for_line[0], &y_vals_for_line[0]));
-	}
-
-	double horz_cuts[2] = {side_cut_snr[0], side_cut_snr[1]};
-	vector<TGraph*> horz_lines;
-	for(int pol=0; pol<2; pol++){
-		vector <double> x_vals_for_line;
-		vector <double> y_vals_for_line;
-		for(double x=0; x<0.05; x+=0.01){
-			y_vals_for_line.push_back(horz_cuts[pol]);
-			x_vals_for_line.push_back(x);
-		}
-		horz_lines.push_back(new TGraph(x_vals_for_line.size(), &x_vals_for_line[0], &y_vals_for_line[0]));
-	}
-
-	// okay, now save out the 2D histogram
-	TCanvas *cSNRvsCorr = new TCanvas("","",2.1*850, 850);
-	cSNRvsCorr->Divide(2,1);
-	for(int pol=0; pol<2; pol++){
-		cSNRvsCorr->cd(pol+1);
-		h2SNRvsCorr[pol]->Draw("colz");
-		h2SNRvsCorr[pol]->GetYaxis()->SetTitle("3rd Highest VPeak/RMS");
-		h2SNRvsCorr[pol]->GetXaxis()->SetTitle("Peak Corr");
-		gPad->SetLogz();
-		cut_lines[pol]->Draw("same");
-		cut_lines[pol]->SetLineColor(kRed);
-		vert_lines[pol]->Draw("same");
-		vert_lines[pol]->SetLineColor(kBlue);
-		horz_lines[pol]->Draw("same");
-		horz_lines[pol]->SetLineColor(kBlue);
-	}
-	char title[300];
-	if(full_or_partial==100 && isOrg==1)
-	  sprintf(title, "%s/unblind/surface/%d.%d.%d_A%d_c%d_%dEvents_UnblindSurface_SNRvsCorr_100Sample.png",plotPath,year_now,month_now,day_now,station,config,numTotal);
-	else if(full_or_partial==100 && isOrg==0)
-	  sprintf(title, "%s/unblind/surface/reduced_surface/%d.%d.%d_A%d_c%d_%dEvents_UnblindSurface_SNRvsCorr_100Sample.png",plotPath,year_now,month_now,day_now,station,config,numTotal);
-	else if(full_or_partial==10 && isOrg==0)
-	  sprintf(title, "%s/unblind/surface/%d.%d.%d_A%d_c%d_%dEvents_UnblindSurface_SNRvsCorr_10Sample_New.png",plotPath,year_now,month_now,day_now,station,config,numTotal);
-	else if(full_or_partial==10 && isOrg==1)
-	  sprintf(title, "%s/unblind/surface/%d.%d.%d_A%d_c%d_%dEvents_UnblindSurface_SNRvsCorr_10Sample_Org.png",plotPath,year_now,month_now,day_now,station,config,numTotal);
-	cSNRvsCorr->SaveAs(title);
-	delete cSNRvsCorr;
 }
 
 
