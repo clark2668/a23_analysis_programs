@@ -116,7 +116,7 @@ int main(int argc, char **argv)
 
 		int runNum;	
 		bool isKnownBadRun;
-		inTree->SetBranchAddress("run",&runNum);
+		inTree->SetBranchAddress("runNum",&runNum);
 		inTree->SetBranchAddress("isKnownBadRun", &isKnownBadRun);
 
 		int numEntries = inTree->GetEntries();
@@ -131,7 +131,6 @@ int main(int argc, char **argv)
 		}
 
 		//now to loop over events
-		numEntries=1;
 		for(int event=0; event<numEntries; event++){
 			inTree->GetEvent(event);
 			num_total++;
@@ -140,7 +139,6 @@ int main(int argc, char **argv)
 			}
 			for(int chan=0; chan<16; chan++){
 				h2_rms_vs_time[chan]->Fill(unixTime,deepChannelRMS[chan]);
-				cout<<"Chan "<<chan<<" rms is "<<deepChannelRMS[chan]<<endl;
 			}
 		}
 		fpIn->Close();
