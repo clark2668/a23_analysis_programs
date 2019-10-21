@@ -106,6 +106,8 @@ int main(int argc, char **argv)
 		hRMS_stragglers[i] = new TH1D(ss1.str().c_str(),"",401,0,401);
 	}
 	int num_total=0;
+	int num_actual_total=0;
+	int num_soft=0;
 
 	vector<int> BadRunList=BuildBadRunList(station);
 	int numBadEventsTotal=0;
@@ -156,9 +158,12 @@ int main(int argc, char **argv)
 		inTree->GetEvent(0);
 
 		//now to loop over events
+		cout<<"Num entries is "<<numEntries<<endl;
 		for(int event=0; event<numEntries; event++){
-			// cout<<"On event"<<endl;
 			inTree->GetEvent(event);
+			num_actual_total++;
+			if(isSoft)
+				num_soft++;
 			// if(isSoft || eventNumber<5 || runNum==480 || runNum==479 || runNum==485 || runNum==486 || runNum==484 || isBadRun(station,runNum,BadRunList)) continue;
 			if(isSoft || eventNumber<5) continue;
 			// if(isSoft || isShort ) continue;
@@ -261,10 +266,10 @@ int main(int argc, char **argv)
 			// if(runNum==2466 && event==2232) TroubleEvent=true;
 			// if(runNum==2466 && event==2232) TroubleEvent=true;
 			// if(runNum==2472 && event==41) TroubleEvent=true;
-			if(runNum==3663 && event==6){
-				TroubleEvent=true;
-				cout<<"Hi, trouble event here"<<endl;
-			}
+			// if(runNum==3663 && event==6){
+			// 	TroubleEvent=true;
+			// 	cout<<"Hi, trouble event here"<<endl;
+			// }
 
 
 			// what about A2
@@ -321,6 +326,7 @@ int main(int argc, char **argv)
 			printThisEvent=false;
 			if((numBad>1 || numReallBad>0) && isCal)
 				printThisEvent=true;
+			printThisEvent==false;
 			if(printThisEvent){
 				PlotThisEvent(station,runNum,event);
 			}
@@ -328,6 +334,8 @@ int main(int argc, char **argv)
 		fpIn->Close();
 		delete fpIn;
 	} //end loop over input files
+
+	printf("Num soft over num actual total %d/%d = %.3f \n", num_soft, num_actual_total, double(num_soft)/double(num_actual_total));
 
 	printf("Num bad total is %d out of %d = %2.5f\n", numBadEventsTotal, num_total, double(numBadEventsTotal)/double(num_total));
 
