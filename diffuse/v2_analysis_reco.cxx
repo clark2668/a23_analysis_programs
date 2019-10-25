@@ -449,7 +449,7 @@ int main(int argc, char **argv)
 			getCorrMapPeak_wStats(map_H_raytrace, peakTheta_single[1], peakPhi_single[1], peakCorr_single[1], minCorr_single[1], meanCorr_single[1], rmsCorr_single[1], peakSigma_single[1]);
 
 			//cout<<"For event "<<event<<" the v corr is "<<peakCorr_single[0]<<endl;
-
+			// cout<<"Event "<<event<<" software flag "<<isSoftTrigger<<" and cal flag "<<isCalpulser<<endl;
 			bool print_maps = false;
 			if(print_maps){
 				gStyle->SetOptStat(0);
