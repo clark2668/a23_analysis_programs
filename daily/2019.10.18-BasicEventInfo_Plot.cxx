@@ -95,7 +95,7 @@ int main(int argc, char **argv)
 	for(int i=0; i<16; i++){
 		stringstream ss1;
 		ss1<<"Channel "<<i;
-		h2_rms_vs_time[i] = new TH2D(ss1.str().c_str(),ss1.str().c_str(),numBins, start_bin, stop_bin, 1000,0,1000);
+		h2_rms_vs_time[i] = new TH2D(ss1.str().c_str(),ss1.str().c_str(),numBins, start_bin, stop_bin, 500,0,500);
 		if(date_or_run_mode==0){
 			h2_rms_vs_time[i]->GetXaxis()->SetTimeDisplay(1); //turn on a time axis
 			h2_rms_vs_time[i]->GetXaxis()->SetTimeFormat("%y/%m");
@@ -169,7 +169,8 @@ int main(int argc, char **argv)
 		// check this again as the bad run list evolves
 		bool secondBadRunCheck = isBadRun(station,runNum,BadRunList);
 
-		if(isKnownBadRun || secondBadRunCheck){
+		// if(isKnownBadRun || secondBadRunCheck){
+		if(isKnownBadRun){
 			fpIn->Close();
 			delete fpIn;
 			continue;
@@ -233,6 +234,9 @@ int main(int argc, char **argv)
 		low_edge=1800;
 		high_edge=3200;
 	}
+
+	low_edge=1880;
+	high_edge=1960;
 
 	TCanvas *c = new TCanvas("","",8*850,4*850);
 	c->Divide(4,4);
@@ -318,16 +322,16 @@ int main(int argc, char **argv)
 
 	char title_txt[200];
 	sprintf(title_txt,"%s/basic_info/soft_fraction_A%d_c%d.txt",plotPath,station,config);
-	FILE *fout = fopen(title_txt, "a");
+	// FILE *fout = fopen(title_txt, "a");
 	for(int bin=1; bin<h1_soft_fraction->GetNbinsX(); bin++){
 		double fraction = h1_soft_fraction->GetBinContent(bin);
 		h1_dist_soft_frac->Fill(fraction*100.);
 		if(fraction>.19){
 			// printf("Run %4d, Rate %.2f \n", bin-1, fraction);
-			fprintf(fout,"Run %4d, Rate %.2f \n",bin-1, fraction);
+			// fprintf(fout,"Run %4d, Rate %.2f \n",bin-1, fraction);
 		}
 	}
-	fclose(fout);//close file
+	// fclose(fout);//close file
 
 	TCanvas *cDistSoftFrac = new TCanvas("","",1100,850);
 	h1_dist_soft_frac->Draw("");
