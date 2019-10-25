@@ -139,7 +139,6 @@ int main(int argc, char **argv)
 		trees[1]= new TTree("HTree","HTree");
 		trees[2]= new TTree("AllTree","AllTree");
 
-
 		// need "org" and "new" variables so we know what's happening before and after filtering
 		// the way I'm doing this is so, so dumb. Brian, don't ever do it this way again
 
@@ -367,6 +366,14 @@ int main(int argc, char **argv)
 		NewCWTree->SetBranchAddress("badSigmas_back",&badSigmas_back);
 		NewCWTree->SetBranchAddress("badFreqs_baseline",&badFreqs_baseline);
 
+		// start out with a problem threshold of 1.5 for A2 and most of A3
+		// if the run has untagged cal pulses though, lift the threshold to 2.0
+		double threshCW=1.5;
+		bool doesRunHaveUntagedCalPulses = hasUntaggedCalpul(ToolsDirPath, station, config, runNum);
+		if(station==3 && doesRunHaveUntagedCalPulses){
+			threshCW=2.0;
+		}
+
 		int numEntries = inputTree_filter->GetEntries();
 		Long64_t starEvery=numEntries/200;
 		if(starEvery==0) starEvery++;
@@ -419,7 +426,10 @@ int main(int argc, char **argv)
 			}
 
 			bool isShort=false;
-			bool isSurf[2]={false};
+			bool isSurf[2];
+			isSurf[0]=false;
+			isSurf[1]=false;
+			// bool isSurf[2]={false};
 			bool isCP5=false;
 			bool isCP6=false;
 			bool failWavefrontRMS[2];
@@ -536,15 +546,6 @@ int main(int argc, char **argv)
 				if(badFreqListLocal_baseline.size()>0) isCutonCW_baseline[pol]=true;
 			}
 
-
-			// start out with a problem threshold of 1.5 for A2 and most of A3
-			// if the run has untagged cal pulses though, lift the threshold to 2.0
-			double threshCW=1.5;
-			bool doesRunHaveUntagedCalPulses = hasUntaggedCalpul(ToolsDirPath, station, config, runNum);
-			if(station==3 && doesRunHaveUntagedCalPulses){
-				threshCW=2.0;
-			}
-
 			vector<double> badFreqList_fwd;
 			vector<double> badSigmaList_fwd;
 			for(int pol=0; pol<badFreqs_fwd->size(); pol++){
@@ -599,11 +600,16 @@ int main(int argc, char **argv)
 			if(dropBadChans){
 				int num_faces_for_V_loop;
 				int num_faces_for_H_loop;
+				
+				bool needToSwitchToAltWFRMSArrays=false;
+				// we need an actual flag for if we need to switch to the _alternate_ arrays
+
 				if(station==2){
 					rms_faces_V.resize(numFaces);
 					num_faces_for_V_loop=numFaces;
 					rms_faces_H.resize(numFaces_A2_drop);
 					num_faces_for_H_loop=numFaces_A2_drop;
+					needToSwitchToAltWFRMSArrays=true;
 				}
 				else if(station==3){
 					if(
@@ -615,6 +621,7 @@ int main(int argc, char **argv)
 						num_faces_for_V_loop=numFaces_A3_drop;
 						rms_faces_H.resize(numFaces_A3_drop);
 						num_faces_for_H_loop=numFaces_A3_drop;
+						needToSwitchToAltWFRMSArrays=true;
 					}
 					else{ //it's 2013-, keep string four
 						rms_faces_V.resize(numFaces);
@@ -623,12 +630,23 @@ int main(int argc, char **argv)
 						num_faces_for_H_loop=numFaces;
 					}
 				}
-				//now we loop over the faces
-				for(int i=0; i<num_faces_for_V_loop; i++){
-					rms_faces_V[i] = rms_pol_thresh_face_alternate_V[thresholdBin_pol[0]][i];
+				if(needToSwitchToAltWFRMSArrays){
+					//now we loop over the faces in the *alternate* arrays
+					for(int i=0; i<num_faces_for_V_loop; i++){
+						rms_faces_V[i] = rms_pol_thresh_face_alternate_V[thresholdBin_pol[0]][i];
+					}
+					for(int i=0; i<num_faces_for_H_loop; i++){
+						rms_faces_H[i] = rms_pol_thresh_face_alternate_H[thresholdBin_pol[1]][i];
+					}
 				}
-				for(int i=0; i<num_faces_for_H_loop; i++){
-					rms_faces_H[i] = rms_pol_thresh_face_alternate_H[thresholdBin_pol[1]][i];
+				else{
+					//now we loop over the faces in the not alternate arrays
+					for(int i=0; i<num_faces_for_V_loop; i++){
+						rms_faces_V[i] = rms_pol_thresh_face_V[thresholdBin_pol[0]][i];
+					}
+					for(int i=0; i<num_faces_for_H_loop; i++){
+						rms_faces_H[i] = rms_pol_thresh_face_H[thresholdBin_pol[1]][i];
+					}
 				}
 			}
 			else{
@@ -735,7 +753,9 @@ int main(int argc, char **argv)
 						}
 					else{
 						// sprintf(run_file_name,"%s/RawData/A%d/by_config/c%d/event%d.root",DataDirPath,station,config,runNum);
-						sprintf(run_file_name,"%s/RawData/A%d/by_config/c%d/event%d.root",DataDirPath_Project,station,config,runNum);
+						// FIX ME: you should never hard code this, but I'm hacking it in...
+						sprintf(run_file_name,"/fs/scratch/PAS0654/ara/10pct/RawData/A%d/by_config/c%d/event%d.root",station,config,runNum);
+						// sprintf(run_file_name,"%s/RawData/A%d/by_config/c%d/event%d.root",DataDirPath_Project,station,config,runNum);
 					}
 					TFile *mapFile = TFile::Open(run_file_name,"READ");
 					if(!mapFile){
@@ -1206,11 +1226,16 @@ int main(int argc, char **argv)
 						if(dropBadChans){
 							int num_faces_for_V_loop;
 							int num_faces_for_H_loop;
+
+							bool needToSwitchToAltWFRMSArrays_local=false;
+							// we need an actual flag for if we need to switch to the _alternate_ arrays
+
 							if(station==2){
 								rms_faces_V_new.resize(numFaces);
 								num_faces_for_V_loop=numFaces;
 								rms_faces_H_new.resize(numFaces_A2_drop);
 								num_faces_for_H_loop=numFaces_A2_drop;
+								needToSwitchToAltWFRMSArrays_local=true;
 							}
 							else if(station==3){
 								if(
@@ -1222,6 +1247,7 @@ int main(int argc, char **argv)
 									num_faces_for_V_loop=numFaces_A3_drop;
 									rms_faces_H_new.resize(numFaces_A3_drop);
 									num_faces_for_H_loop=numFaces_A3_drop;
+									needToSwitchToAltWFRMSArrays_local=true;
 								}
 								else{ //it's 2013-, keep string four
 									rms_faces_V_new.resize(numFaces);
@@ -1231,12 +1257,23 @@ int main(int argc, char **argv)
 								}
 							}
 
-							//now we loop over the faces
-							for(int i=0; i<num_faces_for_V_loop; i++){
-								rms_faces_V_new[i] = rms_pol_thresh_face_new_V_drop[thresholdBin_pol_new[0]][i];
+							if(needToSwitchToAltWFRMSArrays_local){
+								//now we loop over the faces
+								for(int i=0; i<num_faces_for_V_loop; i++){
+									rms_faces_V_new[i] = rms_pol_thresh_face_new_V_drop[thresholdBin_pol_new[0]][i];
+								}
+								for(int i=0; i<num_faces_for_H_loop; i++){
+									rms_faces_H_new[i] = rms_pol_thresh_face_new_H_drop[thresholdBin_pol_new[1]][i];
+								}
 							}
-							for(int i=0; i<num_faces_for_H_loop; i++){
-								rms_faces_H_new[i] = rms_pol_thresh_face_new_H_drop[thresholdBin_pol_new[1]][i];
+							else{
+								//now we loop over the faces
+								for(int i=0; i<num_faces_for_V_loop; i++){
+									rms_faces_V_new[i] = rms_pol_thresh_face_new_V[thresholdBin_pol_new[0]][i];
+								}
+								for(int i=0; i<num_faces_for_H_loop; i++){
+									rms_faces_H_new[i] = rms_pol_thresh_face_new_H[thresholdBin_pol_new[1]][i];
+								}
 							}
 						}
 						else{
