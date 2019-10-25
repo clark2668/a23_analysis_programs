@@ -60,32 +60,32 @@ int main(int argc, char **argv)
 	double max=0.05;
 	
 	TH2D *PeakCorr_vs_SNR_all[2];
-	PeakCorr_vs_SNR_all[0]=new TH2D("","V",30,0,30,100,0,max);
-	PeakCorr_vs_SNR_all[1]=new TH2D("","H",30,0,30,100,0,max);
+	PeakCorr_vs_SNR_all[0]=new TH2D("","V",300,0,30,100,0,max);
+	PeakCorr_vs_SNR_all[1]=new TH2D("","H",300,0,30,100,0,max);
 
 	TH2D *PeakCorr_vs_SNR_cutCal[2];
-	PeakCorr_vs_SNR_cutCal[0]=new TH2D("","V",30,0,30,100,0,max);
-	PeakCorr_vs_SNR_cutCal[1]=new TH2D("","H",30,0,30,100,0,max);
+	PeakCorr_vs_SNR_cutCal[0]=new TH2D("","V",300,0,30,100,0,max);
+	PeakCorr_vs_SNR_cutCal[1]=new TH2D("","H",300,0,30,100,0,max);
 
 	TH2D *PeakCorr_vs_SNR_cutCal_cutSoft[2];
-	PeakCorr_vs_SNR_cutCal_cutSoft[0]=new TH2D("","V",30,0,30,100,0,max);
-	PeakCorr_vs_SNR_cutCal_cutSoft[1]=new TH2D("","H",30,0,30,100,0,max);
+	PeakCorr_vs_SNR_cutCal_cutSoft[0]=new TH2D("","V",300,0,30,100,0,max);
+	PeakCorr_vs_SNR_cutCal_cutSoft[1]=new TH2D("","H",300,0,30,100,0,max);
 
 	TH2D *PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[2];
-	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[0]=new TH2D("","V",30,0,30,100,0,max);
-	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[1]=new TH2D("","H",30,0,30,100,0,max);
+	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[0]=new TH2D("","V",300,0,30,100,0,max);
+	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[1]=new TH2D("","H",300,0,30,100,0,max);
 
 	TH2D *PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[2];
-	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[0]=new TH2D("","V",30,0,30,100,0,max);
-	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[1]=new TH2D("","H",30,0,30,100,0,max);
+	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[0]=new TH2D("","V",300,0,30,100,0,max);
+	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[1]=new TH2D("","H",300,0,30,100,0,max);
 
 	TH2D *PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[2];
-	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[0]=new TH2D("","V",30,0,30,100,0,max);
-	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[1]=new TH2D("","H",30,0,30,100,0,max);
+	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[0]=new TH2D("","V",300,0,30,100,0,max);
+	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[1]=new TH2D("","H",300,0,30,100,0,max);
 
 	TH2D *PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[2];
-	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[0]=new TH2D("","V",30,0,30,100,0,max);
-	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[1]=new TH2D("","H",30,0,30,100,0,max);
+	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[0]=new TH2D("","V",300,0,30,100,0,max);
+	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[1]=new TH2D("","H",300,0,30,100,0,max);
 
 	TH1D *all_events[2];
 	TH1D *pass_soft_short_cal[2];
@@ -767,7 +767,9 @@ int main(int argc, char **argv)
 		int surf=0;
 		int cw=0;
 
-		gStyle->SetOptStat(1111111);
+		// gStyle->SetOptStat(1111111);
+		gStyle->SetOptStat(1);
+		gStyle->SetOptStat(0);
 
 		//save out the Corr vs SNR plot for all 
 		sprintf(graph_title[0],"VPol: cal %d, soft %d ,short %d , wrms  %d , box %d , surf %d, cw %d",cal,soft,Short,wrms,box,surf,cw);
