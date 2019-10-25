@@ -21,6 +21,7 @@
 #include "TCanvas.h"
 #include "TStyle.h"
 #include "TMath.h"
+#include "TLegend.h"
 
 //AraRoot includes
 #include "tools_PlottingFns.h"
@@ -28,6 +29,7 @@
 #include "tools_inputParameters.h"
 #include "tools_outputObjects.h"
 #include "tools_Cuts.h"
+#include "tools_CommandLine.h"
 
 using namespace std;
 
@@ -61,7 +63,7 @@ int main(int argc, char **argv)
 	// double wavefrontRMScut[]={-1.5, -1.5}; //event wavefrontRMS < this value
 
 	int thresholdBin_pol[]={selected_bin, selected_bin}; //bin 3 = 2.3, bin 5 = 2.5 //what is the faceRMS inclusion threshold?
-	double wavefrontRMScut[]={selected_cut, selected_cut-0.1}; //event wavefrontRMS < this value
+	double wavefrontRMScut[]={selected_cut, selected_cut}; //event wavefrontRMS < this value
 
 	TH2D *wfrms_plots[2];
 	wfrms_plots[0] = new TH2D("Vpol","Vpol_org",200,-5,5,30,0,30);
@@ -74,6 +76,22 @@ int main(int argc, char **argv)
 	TH2D *wfrms_plots_rf[2];
 	wfrms_plots_rf[0] = new TH2D("Vpol_rf","Vpol_rf",200,-5,5,30,0,30);
 	wfrms_plots_rf[1] = new TH2D("Hpol_rf","Hpol_rf",200,-5,5,30,0,30);
+
+	TH1D *h1_best_face[2];
+	h1_best_face[0] = new TH1D("vpol_best_face","vpol_best_face",12,0,12);
+	h1_best_face[1] = new TH1D("hpol_best_face","hpol_best_face",12,0,12);
+
+	TH1D *h1_best_face_thresh05[2];
+	h1_best_face_thresh05[0] = new TH1D("vpol_best_face","vpol_best_face",12,0,12);
+	h1_best_face_thresh05[1] = new TH1D("hpol_best_face","hpol_best_face",12,0,12);
+
+	TH1D *h1_best_face_thresh1[2];
+	h1_best_face_thresh1[0] = new TH1D("vpol_best_face","vpol_best_face",12,0,12);
+	h1_best_face_thresh1[1] = new TH1D("hpol_best_face","hpol_best_face",12,0,12);
+
+	TH1D *h1_best_face_thresh15[2];
+	h1_best_face_thresh15[0] = new TH1D("vpol_best_face","vpol_best_face",12,0,12);
+	h1_best_face_thresh15[1] = new TH1D("hpol_best_face","hpol_best_face",12,0,12);
 
 	TH2D *dummy[2];
 	dummy[0] = new TH2D("","",100,-5,5,2,0,100.);
@@ -121,7 +139,7 @@ int main(int argc, char **argv)
 		
 		//next, we need to load the filter tree
 		ss.str("");
-		ss << "OutputTree";
+		ss << "OutputTree_filter";
 		TTree *inputTree_filter = (TTree*) inputFile->Get(ss.str().c_str());
 		if(!inputTree_filter){
 			cout<<"Can't open filter tree"<<endl;
@@ -166,7 +184,7 @@ int main(int argc, char **argv)
 		if(starEvery==0) starEvery++;
 
 		//now to loop over events
-		// numEntries=2;
+		// numEntries=15;
 		for(int event=0; event<numEntries; event++){
 			inputTree_filter->GetEvent(event);
 
@@ -207,6 +225,7 @@ int main(int argc, char **argv)
 					num_faces_for_V_loop=numFaces_A3_drop;
 					rms_faces_H.resize(numFaces_A3_drop);
 					num_faces_for_H_loop=numFaces_A3_drop;
+					// printf(RED"Run is beyond bad boundary!\n");
 				}
 				else{ //it's 2013-, keep string four
 					rms_faces_V.resize(numFaces);
@@ -215,13 +234,81 @@ int main(int argc, char **argv)
 					num_faces_for_H_loop=numFaces;
 				}
 			}
-			//now we loop over the faces
+
 			for(int i=0; i<num_faces_for_V_loop; i++){
-				rms_faces_V[i] = rms_pol_thresh_face_alternate_V[thresholdBin_pol[0]][i];
+				if (num_faces_for_V_loop==12){
+					rms_faces_V[i] = rms_pol_thresh_face_V[thresholdBin_pol[0]][i];
+				}
+ 				else{
+ 					rms_faces_V[i] = rms_pol_thresh_face_alternate_V[thresholdBin_pol[0]][i];
+ 				}
 			}
 			for(int i=0; i<num_faces_for_H_loop; i++){
-				rms_faces_H[i] = rms_pol_thresh_face_alternate_H[thresholdBin_pol[1]][i];
+				if (num_faces_for_H_loop==12){
+					rms_faces_H[i] = rms_pol_thresh_face_H[thresholdBin_pol[1]][i];
+				}
+				else{
+					rms_faces_H[i] = rms_pol_thresh_face_alternate_H[thresholdBin_pol[1]][i];
+				}
 			}
+
+			// printf("Num faces for V loop is %d \n", num_faces_for_V_loop);
+			// printf("Num faces for H loop is %d \n", num_faces_for_H_loop);
+
+			// //now we loop over the faces
+			// for(int i=0; i<num_faces_for_V_loop; i++){
+			// 	rms_faces_V[i] = rms_pol_thresh_face_alternate_V[thresholdBin_pol[0]][i];
+			// }
+			// for(int i=0; i<num_faces_for_H_loop; i++){
+			// 	rms_faces_H[i] = rms_pol_thresh_face_alternate_H[thresholdBin_pol[1]][i];
+			// }
+
+			int bestFace[2]={40,40};
+			double bestWFRMS[2]={3.e3,3.e3};
+			// cout<<"bestFace values are "<<bestFace[0]<<" and "<<bestFace[1]<<endl;
+
+			// printf("Event %d \n", event);
+			for(int i=0; i<num_faces_for_V_loop; i++){
+				// printf("     V face %d RMS is %.4f \n", i, rms_faces_V[i]);
+				if(rms_faces_V[i]<bestWFRMS[0]){
+					bestWFRMS[0]=rms_faces_V[i];
+					int faceToUse = i;
+					if(config>2){
+						if(faceToUse==0){
+							faceToUse=1;
+						}
+						else if(faceToUse==1){
+							faceToUse=3;
+						}
+						else if(faceToUse==2){
+							faceToUse=7;
+						}
+					}
+					bestFace[0]=faceToUse;
+				}
+			}
+			// printf("     Best V face is %d and best RMS is %.4f \n", bestWFRMS[0], bestFace[0]);
+
+			for(int i=0; i<num_faces_for_H_loop; i++){
+				// printf("     H face %d RMS is %.4f \n", i, rms_faces_H[i]);
+				if(rms_faces_H[i]<bestWFRMS[1]){
+					bestWFRMS[1]=rms_faces_H[i];
+					int faceToUse=i;
+					if(config>2){
+						if(faceToUse==0){
+							faceToUse=1;
+						}
+						else if(faceToUse==1){
+							faceToUse=3;
+						}
+						else if(faceToUse==2){
+							faceToUse=7;
+						}
+					}
+					bestFace[1]=faceToUse;
+				}
+			}
+			// printf("     Best H face is %d and best RMS is %.4f \n", bestWFRMS[1], bestFace[1]);
 
 			//now to sort them smallest to largest; lowest RMS is best
 			sort(rms_faces_V.begin(), rms_faces_V.end());
@@ -230,6 +317,7 @@ int main(int argc, char **argv)
 			double bestFaceRMS[2];
 			bestFaceRMS[0]=rms_faces_V[0];
 			bestFaceRMS[1]=rms_faces_H[0];
+
 
 			// bool trig_pol[2];
 			// trig_pol[0]=false;
@@ -295,12 +383,35 @@ int main(int argc, char **argv)
 						if(TMath::Log10(bestFaceRMS[pol]) < wavefrontRMScut[pol]){
 							num_passing[pol]+=(weight);
 							thisPasses[pol]=true;
-							if(isSim)
+							if(isSim){
 								passed_events[pol]->Fill(SNRs[pol],weight);
+							}
+						}
+						if(TMath::Log10(bestFaceRMS[pol]) < 3){
+							// store info about the best face
+							h1_best_face[pol]->Fill(bestFace[pol]);
+							// cout<<"Event "<<event<<" best face is "<<bestFace[pol]<<endl;
+						}
+
+						if(TMath::Log10(bestFaceRMS[pol]) < -0.5){
+							// store info about the best face
+							h1_best_face_thresh05[pol]->Fill(bestFace[pol]);
+						}
+
+						if(TMath::Log10(bestFaceRMS[pol]) < -1){
+							// store info about the best face
+							h1_best_face_thresh1[pol]->Fill(bestFace[pol]);
+						}
+
+
+						if(TMath::Log10(bestFaceRMS[pol]) < -1.5){
+							// store info about the best face
+							h1_best_face_thresh15[pol]->Fill(bestFace[pol]);
 						}
 						// if(TMath::Log10(bestFaceRMS_alt[pol]) < wavefrontRMScut[pol] && !trig_pol[pol]){
 						// 	cout<<"Passes WFRMS but didn't trigger in pol "<<pol<<" with weight "<<weight<<endl;
 						// }
+
 					}
 				}
 			}//loop over polarization
@@ -347,21 +458,22 @@ int main(int argc, char **argv)
 		projections_rf[pol] = wfrms_plots_rf[pol]->ProjectionX();
 	}
 
+
 	/*
 		Now, make plot of passing rate as function of WFRMS
 	*/
 	char title_txt[200];
 	sprintf(title_txt,"%s/filter_cut/filter_rates_A%d_c%d_V%d_H%d.txt",plotPath,station,config,selected_bin,selected_bin);
-	FILE *fout = fopen(title_txt, "a");
+	// FILE *fout = fopen(title_txt, "a");
 
 	TGraph *passing_rate[2];	
 	for(int pol=0; pol<2; pol++){
 		if(pol==0){
-			fprintf(fout, "WFRMS, V_rate\n");
+			// fprintf(fout, "WFRMS, V_rate\n");
 		}
 		if(pol==1){
-			fprintf(fout, "--------------------------------------\n");
-			fprintf(fout, "WFRMS, H_rate\n");
+			// fprintf(fout, "--------------------------------------\n");
+			// fprintf(fout, "WFRMS, H_rate\n");
 		}
 		// now compute the passing rate
 		passing_rate[pol] = new TGraph();
@@ -377,10 +489,10 @@ int main(int argc, char **argv)
 		for(int binX=0; binX<passing_rate[pol]->GetN(); binX++){
 			double thisWFRMS = passing_rate[pol]->GetX()[binX];
 			double thisRate = passing_rate[pol]->GetY()[binX];
-			fprintf(fout, "%1.2f, %0.5f\n", thisWFRMS, thisRate);
+			// fprintf(fout, "%1.2f, %0.5f\n", thisWFRMS, thisRate);
 		}
 	}
-	fclose(fout);//close sigmavsfreq.txt file
+	// fclose(fout);//close sigmavsfreq.txt file
 
 
 	// for(int pol=0; pol<2; pol++){
@@ -412,7 +524,7 @@ int main(int argc, char **argv)
 		sprintf(title, "%s/filter_cut/%d.%d.%d_sim_A%d_c%d_%dEvents_Filter_AllEvents_Vpol%.1f_Hpol%.1f.png",plotPath,year_now, month_now, day_now,station,config,int(num_total),0.1*double(thresholdBin_pol[0]) + 2.0,0.1*double(thresholdBin_pol[1])+2.0);
 	else
 		sprintf(title, "%s/filter_cut/%d.%d.%d_data_A%d_c%d_%dEvents_Filter_AllEvents_Vpol%.1f_Hpol%.1f.png",plotPath,year_now, month_now, day_now,station,config,int(num_total),0.1*double(thresholdBin_pol[0]) + 2.0,0.1*double(thresholdBin_pol[1])+2.0);
-	c->SaveAs(title);
+	// c->SaveAs(title);
 	delete c;
 
 	TCanvas *c2 = new TCanvas("","",2.1*850,3.1*850);
@@ -448,8 +560,66 @@ int main(int argc, char **argv)
 		sprintf(title, "%s/filter_cut/%d.%d.%d_sim_A%d_c%d_%dEvents_Filter_RFEvents_Vpol%.1f_Hpol%.1f.png",plotPath,year_now, month_now, day_now,station,config,int(num_total),0.1*double(thresholdBin_pol[0]) + 2.0,0.1*double(thresholdBin_pol[1])+2.0);
 	else
 		sprintf(title, "%s/filter_cut/%d.%d.%d_data_A%d_c%d_%dEvents_Filter_RFEvents_Vpol%.1f_Hpol%.1f.png",plotPath,year_now, month_now, day_now,station,config,int(num_total),0.1*double(thresholdBin_pol[0]) + 2.0,0.1*double(thresholdBin_pol[1])+2.0);
-	c2->SaveAs(title);
+	// c2->SaveAs(title);
 	delete c2;
+
+	for(int i=0; i<2; i++){
+		h1_best_face[i]->Scale(1/h1_best_face[i]->Integral());
+		h1_best_face_thresh05[i]->Scale(1/h1_best_face_thresh05[i]->Integral());
+		h1_best_face_thresh1[i]->Scale(1/h1_best_face_thresh1[i]->Integral());
+		h1_best_face_thresh15[i]->Scale(1/h1_best_face_thresh15[i]->Integral());
+	}
+
+	TCanvas *c3 = new TCanvas("","",2*850,850);
+	c3->Divide(2,1);
+	for(int i=0; i<2; i++){
+		c3->cd(i+1);
+		h1_best_face[i]->Draw("");
+		h1_best_face[i]->GetXaxis()->SetTitle("Face with best log10(WFRMS)");
+		h1_best_face[i]->GetYaxis()->SetTitle("Fraction of Events");
+		h1_best_face[i]->GetYaxis()->SetTitleOffset(1.6);
+		// h1_best_face[i]->GetYaxis()->SetRangeUser(1e-1,2e3);
+		h1_best_face[i]->GetYaxis()->SetRangeUser(0,0.4);
+		
+		if(config>2){
+			h1_best_face[i]->GetYaxis()->SetRangeUser(0,1);
+		}
+
+		h1_best_face[i]->GetXaxis()->SetNdivisions(12,0,0,false);
+		h1_best_face[i]->SetLineColor(kBlack);
+		h1_best_face[i]->SetLineWidth(2);
+
+		h1_best_face_thresh05[i]->Draw("same");
+		h1_best_face_thresh05[i]->SetLineColor(kRed);
+		h1_best_face_thresh05[i]->SetLineWidth(2);
+
+	
+		h1_best_face_thresh1[i]->Draw("same");
+		h1_best_face_thresh1[i]->SetLineColor(kBlue);
+		h1_best_face_thresh1[i]->SetLineWidth(2);
+
+		h1_best_face_thresh15[i]->Draw("same");
+		h1_best_face_thresh15[i]->SetLineColor(kGreen);
+		h1_best_face_thresh15[i]->SetLineWidth(2);
+
+		if(i+1==1){
+			TLegend *leg = new TLegend(0.48,0.8,0.9,0.9);
+			leg->AddEntry(h1_best_face[i],"log10(WFRMS)<3","l");
+			leg->AddEntry(h1_best_face_thresh05[i],"log10(WFRMS)<-0.5","l");
+			leg->AddEntry(h1_best_face_thresh1[i],"log10(WFRMS)<-1","l");
+			leg->AddEntry(h1_best_face_thresh15[i],"log10(WFRMS)<-1.5","l");
+			leg->Draw("same");
+		}
+		// gPad->SetLogy();
+	}
+	if(isSim)
+		sprintf(title, "%s/filter_cut/%d.%d.%d_sim_A%d_c%d_%dEvents_Filter_DistBestFaces_Vpol%.1f_Hpol%.1f.png",plotPath,year_now, month_now, day_now,station,config,int(num_total),0.1*double(thresholdBin_pol[0]) + 2.0,0.1*double(thresholdBin_pol[1])+2.0);
+	else
+		sprintf(title, "%s/filter_cut/%d.%d.%d_data_A%d_c%d_%dEvents_Filter_DistBestFaces_Vpol%.1f_Hpol%.1f.png",plotPath,year_now, month_now, day_now,station,config,int(num_total),0.1*double(thresholdBin_pol[0]) + 2.0,0.1*double(thresholdBin_pol[1])+2.0);
+	c3->SaveAs(title);
+	delete c3;
+
+
 	for(int i=0; i<2; i++){
 		delete wfrms_plots[i];
 		delete wfrms_plots_cal[i];
@@ -458,6 +628,9 @@ int main(int argc, char **argv)
 		delete projections_rf[i];
 		delete projections_cal[i];
 	}
+
+
+
 
 	if(isSim){
 		for(int pol=0; pol<2; pol++){
