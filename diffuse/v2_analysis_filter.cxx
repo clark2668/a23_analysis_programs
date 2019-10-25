@@ -280,6 +280,11 @@ int main(int argc, char **argv)
 	OutputTree->Branch("rms_pol_thresh_face_V", &rms_pol_thresh_face_V, "rms_pol_thresh_face_V[15][12]/D");
 	OutputTree->Branch("rms_pol_thresh_face_H", &rms_pol_thresh_face_H, "rms_pol_thresh_face_H[15][12]/D");
 
+	double SNR_for_WFRMS[16][2];
+	double hitTimes_for_WFRMS[16][2];
+	OutputTree->Branch("SNR_for_WFRMS", &SNR_for_WFRMS, "SNR_for_WFRMS[16][2]/D");
+	OutputTree->Branch("hitTimes_for_WFRMS", &hitTimes_for_WFRMS, "hitTimes_for_WFRMS[16][2]/D");	
+
 
 	int dropBadChans=1;
 	int numFaces_new_V;
@@ -533,6 +538,10 @@ int main(int argc, char **argv)
 				vvRMS_10overRMS[i].resize(vvPeakIntPowers[i].size());
 				for (int j = 0; j < vvPeakIntPowers[i].size(); j++){
 					vvRMS_10overRMS[i][j] = sqrt(vvPeakIntPowers[i][j]/numBinsToIntegrate)/waveformRMS[i];
+					
+					// additionally store the WFRMS SNRs and hitTimes (cuz why not, we're already storing everything else...)
+					SNR_for_WFRMS[i][j] = vvRMS_10overRMS[i][j];
+					hitTimes_for_WFRMS[i][j] = vvHitTimes[i][j];
 				}
 			}
 		
