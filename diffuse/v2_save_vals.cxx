@@ -753,9 +753,7 @@ int main(int argc, char **argv)
 						}
 					else{
 						// sprintf(run_file_name,"%s/RawData/A%d/by_config/c%d/event%d.root",DataDirPath,station,config,runNum);
-						// FIX ME: you should never hard code this, but I'm hacking it in...
-						sprintf(run_file_name,"/fs/scratch/PAS0654/ara/10pct/RawData/A%d/by_config/c%d/event%d.root",station,config,runNum);
-						// sprintf(run_file_name,"%s/RawData/A%d/by_config/c%d/event%d.root",DataDirPath_Project,station,config,runNum);
+						sprintf(run_file_name,"%s/RawData/A%d/by_config/c%d/event%d.root",DataDirPath_Project,station,config,runNum);
 					}
 					TFile *mapFile = TFile::Open(run_file_name,"READ");
 					if(!mapFile){
