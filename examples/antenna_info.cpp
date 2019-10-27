@@ -55,9 +55,10 @@ int main(int argc, char **argv)
 		double Z = araGeom->getStationInfo(station)->getAntennaInfo(i)->antLocation[2]; //antenna Z location
 		double delay = araGeom->getStationInfo(station)->getCableDelay(i); //the associated cable delay
 		string holeName(araGeom->getStationInfo(station)->getAntennaInfo(i)->holeName);
-		printf("Hole name for ant %d is %s \n", i, holeName.c_str());
-		if(holeName=="BH4")
-			printf("	A-ha! BH4 \n");
+		printf("Chan %d: X, Y, Z is %.2f, %.2f, %.2f \n", i, X, Y, Z);
+		//printf("Hole name for ant %d is %s \n", i, holeName.c_str());
+		//if(holeName=="BH4")
+		//printf("	A-ha! BH4 \n");
 	}
 
 	/*
