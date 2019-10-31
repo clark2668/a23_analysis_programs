@@ -91,6 +91,7 @@ int main(int argc, char **argv)
 	int station_num=atoi(argv[2]);
 	calpulserRunMode=0;
 	int yearConfig=atoi(argv[3]);
+
 	
 	AraQualCuts *qualCut = AraQualCuts::Instance(); //we also need a qual cuts tool
 		
@@ -184,16 +185,31 @@ int main(int argc, char **argv)
 		eventTree->SetBranchAddress("event",&rawAtriEvPtr);
 		eventTree->SetBranchAddress("run",&runNum);
 		printf("Data; load raw event tree \n");
-
 	}
 	
 	Long64_t numEntries=eventTree->GetEntries();
 	Long64_t starEvery=numEntries/80;
 	if(starEvery==0) starEvery++;
-	//numEntries=150;
+	// numEntries=300;
+	// int numThermal=0;
+	// int numGood=0;
 
 	eventTree->GetEntry(0); //just to get runNum
 	printf("Reco Run Number %d \n", runNum);
+
+	/*
+		Adjust filter parameters
+		in A2, we were happy with snr in 0,0 and -1.3, -1.4 in V and H
+		in A3, we want to do something a little more complicated and just thresholds
+		by configuration
+	*/
+
+	int thisConfiguration = yearConfig;
+	if(!isSimulation){
+		thisConfiguration = getConfig(station_num, runNum);
+	}
+	getWFRMSCutValues(station_num, thisConfiguration, thresholdBin_pol[0], thresholdBin_pol[1], wavefrontRMScut[0], wavefrontRMScut[1]);
+	printf("Wavefront RMS cut values are vBin %d and hBin %d, vCut %.2f, hCut %.2f \n", thresholdBin_pol[0], thresholdBin_pol[1], wavefrontRMScut[0], wavefrontRMScut[1]);
 
 	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
 	if (argc==8){
@@ -437,6 +453,9 @@ int main(int argc, char **argv)
 			vector <double> rms_faces_V;
 			vector <double> rms_faces_H;
 
+			bool needToSwitchToAltWFRMSArrays=false;
+			// we need an actual flag for if we need to switch to the _alternate_ arrays
+
 			int num_faces_for_V_loop;
 			int num_faces_for_H_loop;
 			if(station_num==2){
@@ -444,31 +463,45 @@ int main(int argc, char **argv)
 				num_faces_for_V_loop=numFaces;
 				rms_faces_H.resize(numFaces_A2_drop);
 				num_faces_for_H_loop=numFaces_A2_drop;
+				needToSwitchToAltWFRMSArrays=true;
 			}
-			// else if(station_num==3){
-			// 	if(
-			// 		(!isSimulation && runNum>getA3BadRunBoundary())
-			// 		||
-			// 		(isSimulation && config>2)
-			// 	){ //it's 2014+, drop string four
-			// 		rms_faces_V.resize(numFaces_A3_drop);
-			// 		num_faces_for_V_loop=numFaces_A3_drop;
-			// 		rms_faces_H.resize(numFaces_A3_drop);
-			// 		num_faces_for_H_loop=numFaces_A3_drop;
-			// 	}
-			// 	else{ //it's 2013-, keep string four
-			// 		rms_faces_V.resize(numFaces);
-			// 		num_faces_for_V_loop=numFaces;
-			// 		rms_faces_H.resize(numFaces);
-			// 		num_faces_for_H_loop=numFaces;
-			// 	}
-			// }
-			//now we loop over the faces
-			for(int i=0; i<num_faces_for_V_loop; i++){
-				rms_faces_V[i] = rms_pol_thresh_face_alternate_V[thresholdBin_pol[0]][i];
+			else if(station_num==3){
+				if(
+					(!isSimulation && runNum>getA3BadRunBoundary())
+					||
+					(isSimulation && yearConfig>2)
+				){ //it's 2014+, drop string four
+					rms_faces_V.resize(numFaces_A3_drop);
+					num_faces_for_V_loop=numFaces_A3_drop;
+					rms_faces_H.resize(numFaces_A3_drop);
+					num_faces_for_H_loop=numFaces_A3_drop;
+					needToSwitchToAltWFRMSArrays=true;
+				}
+				else{ //it's 2013-, keep string four
+					rms_faces_V.resize(numFaces);
+					num_faces_for_V_loop=numFaces;
+					rms_faces_H.resize(numFaces);
+					num_faces_for_H_loop=numFaces;
+				}
 			}
-			for(int i=0; i<num_faces_for_H_loop; i++){
-				rms_faces_H[i] = rms_pol_thresh_face_alternate_H[thresholdBin_pol[1]][i];
+
+			if(needToSwitchToAltWFRMSArrays){
+				//now we loop over the faces in the *alternate* arrays
+				for(int i=0; i<num_faces_for_V_loop; i++){
+					rms_faces_V[i] = rms_pol_thresh_face_alternate_V[thresholdBin_pol[0]][i];
+				}
+				for(int i=0; i<num_faces_for_H_loop; i++){
+					rms_faces_H[i] = rms_pol_thresh_face_alternate_H[thresholdBin_pol[1]][i];
+				}
+			}
+			else{
+				//now we loop over the faces in the not alternate arrays
+				for(int i=0; i<num_faces_for_V_loop; i++){
+					rms_faces_V[i] = rms_pol_thresh_face_V[thresholdBin_pol[0]][i];
+				}
+				for(int i=0; i<num_faces_for_H_loop; i++){
+					rms_faces_H[i] = rms_pol_thresh_face_H[thresholdBin_pol[1]][i];
+				}
 			}
 
 			//now to sort them smallest to largest; lowest RMS is best
@@ -486,9 +519,22 @@ int main(int argc, char **argv)
 				passesWavefrontRMS[1]=false;
 			}
 
+ 			if(isCalpulser || isSoftTrigger){
+ 				OutputTree->Fill(); //fill this anyway with garbage
+				OutputFilterTreeCopy->Fill(); // just for synchronization
+				if (isSimulation == false) {
+					delete realAtriEvPtr;
+				}
+				continue; //don't do any further processing on this event
+ 			}
+
+ 			// numThermal++;
+
+			// printf("Event %5d WFRMS are %.2f, %.2f \n", event, TMath::Log10(bestFaceRMS[0]), TMath::Log10(bestFaceRMS[1]));
 			// if it doesn't pass WFRMS filter in one of the two pols, no need to do reconstruction!
+			// printf("Event %d, Cal Status is %d, Soft Status is %d. WFRMS are %.2f, %.2f \n", eventNumber, isCalpulser, isSoftTrigger, TMath::Log10(bestFaceRMS[0]), TMath::Log10(bestFaceRMS[1]));			
 			if(!passesWavefrontRMS[0] && !passesWavefrontRMS[1]){
-				// printf("No need to reco this event! WFRMS are %.2f, %.2f \n", TMath::Log10(bestFaceRMS[0]), TMath::Log10(bestFaceRMS[1]));
+				// printf("     No need to reco event event %d! Cal %d, Soft %d WFRMS are %.2f, %.2f \n", eventNumber, isCalpulser, isSoftTrigger, TMath::Log10(bestFaceRMS[0]), TMath::Log10(bestFaceRMS[1]));
 				OutputTree->Fill(); //fill this anyway with garbage
 				OutputFilterTreeCopy->Fill(); // just for synchronization
 				if (isSimulation == false) {
@@ -496,7 +542,9 @@ int main(int argc, char **argv)
 				}
 				continue; //don't do any further processing on this event
 			}
-			// printf("Event %d good for reco! Cal Status is %d. WFRMS are %.2f, %.2f \n", event, isCalpulser, TMath::Log10(bestFaceRMS[0]), TMath::Log10(bestFaceRMS[1]));
+			// printf("Event %d good for reco! Cal %d, Soft %d, WFRMS are %.2f, %.2f \n", eventNumber, isCalpulser, isSoftTrigger, TMath::Log10(bestFaceRMS[0]), TMath::Log10(bestFaceRMS[1]));
+			// numGood++;
+			// continue;
 
 			//otherwise, we need to do recosntructions on both polarizations and for both radii (sigh)
 
@@ -565,6 +613,9 @@ int main(int argc, char **argv)
 		}
 	}
 	
+	// cout<<"Total thermal was "<<numThermal<<endl;
+	// cout<<"Total num good was "<<numGood<<endl;
+
 	OutputFile->Write();
 	OutputFile->Close();
 	filterFile->Close();
