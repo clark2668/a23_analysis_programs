@@ -197,6 +197,12 @@ int main(int argc, char **argv)
 		std::cout << "Can't find filter tree\n";
 		return -1;
 	}
+	// check for number of events mis-match (shouldn't happen, but you never now)
+	int numEntriesFilter = filterTree->GetEntries();
+	if(numEntries!=numEntriesFilter){
+		std::cout<<"There is a mismatch between the number of entries in the data file and the filter file. Abort!"<<endl;
+		return -1;
+	}
 	filterTree->SetBranchAddress("VPeakOverRMS", &VPeakOverRMS);
 	filterTree->SetBranchAddress("rms_pol_thresh_face_V", &rms_pol_thresh_face_V);
 	filterTree->SetBranchAddress("rms_pol_thresh_face_H", &rms_pol_thresh_face_H);
