@@ -46,8 +46,8 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	int thresholdBin_pol[]={0,0}; //bin 3 = 2.3, bin 5 = 2.5 //what is the faceRMS inclusion threshold?
-	double wavefrontRMScut[]={-1.3, -1.4}; //event wavefrontRMS < this value
+	int thresholdBin_pol[]={0,0};
+	double wavefrontRMScut[]={2., 2.};
 
 	/*
 	arguments
@@ -67,6 +67,7 @@ int main(int argc, char **argv)
 	int station_num=atoi(argv[2]);
 	int yearConfig=atoi(argv[3]);
 	int drop_bad_chans=atoi(argv[4]);
+	drop_bad_chans=1; //always drop bad channels...
 
 	//open the file
 	TFile *fp = TFile::Open(argv[8]);
@@ -80,7 +81,21 @@ int main(int argc, char **argv)
 		return -1;
 	}
 	int runNum = getrunNum(argv[8]);
-	printf("Run Number %d \n", runNum);
+	printf("Filter Run Number %d \n", runNum);
+
+	/*
+		Adjust filter cut settings
+		in A2, we were happy with snr in 0,0 and -1.3, -1.4 in V and H
+		in A3, we want to do something a little more complicated and just thresholds
+		by configuration
+	*/
+
+	int thisConfiguration = yearConfig;
+	if(!isSimulation){
+		thisConfiguration = getConfig(station_num, runNum);
+	}
+	getWFRMSCutValues(station_num, thisConfiguration, thresholdBin_pol[0], thresholdBin_pol[1], wavefrontRMScut[0], wavefrontRMScut[1]);
+	// printf("Wavefront RMS cut values for config %d are vBin %d and hBin %d, vCut %.2f, hCut %.2f \n", thisConfiguration, thresholdBin_pol[0], thresholdBin_pol[1], wavefrontRMScut[0], wavefrontRMScut[1]);
 
 	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();	
 	if(argc==10){
@@ -236,7 +251,9 @@ int main(int argc, char **argv)
 	tempFile->cd();
 	TTree *tempTree = new TTree("tempTree","tempTree");
 	bool hasError=0;
+	bool isCalPulser=0;
 	tempTree->Branch("hasError",&hasError);
+	tempTree->Branch("isCalPulser", &isCalPulser);
 	vector<TGraph*> temp_phs;
 	temp_phs.resize(16);
 	stringstream ss;
@@ -244,28 +261,31 @@ int main(int argc, char **argv)
 		ss.str(""); ss<<"temp_phs_"<<i;
 		tempTree->Branch(ss.str().c_str(),&temp_phs[i]);
 	}
-	//numEntries=100;
 	for(int event=0; event<numEntries; event++){
 		eventTree->GetEntry(event);
 		if (isSimulation == false){
 			realAtriEvPtr = new UsefulAtriStationEvent(rawAtriEvPtr, AraCalType::kLatestCalib);
 			hasError = !(qualCut->isGoodEvent(realAtriEvPtr));
+			isCalPulser=rawAtriEvPtr->isCalpulserEvent();
 			if(realAtriEvPtr->eventNumber<5){
 				hasError=true;
 			}
-			// vector<TGraph*> spareElecChanGraphs;
-			// spareElecChanGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(6));
-			// spareElecChanGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(14));
-			// spareElecChanGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(22));
-			// spareElecChanGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(30));
-			// bool hasBadSpareChanIssue = hasSpareChannelIssue(spareElecChanGraphs);
-			// deleteGraphVector(spareElecChanGraphs);
-			// if(hasBadSpareChanIssue){
-			// 	hasError=true;
-			// }
+			if(station_num==3){ // for some reason, only activate this for A3 (oops)
+				vector<TGraph*> spareElecChanGraphs;
+				spareElecChanGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(6));
+				spareElecChanGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(14));
+				spareElecChanGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(22));
+				spareElecChanGraphs.push_back(realAtriEvPtr->getGraphFromElecChan(30));
+				bool hasBadSpareChanIssue = hasSpareChannelIssue(spareElecChanGraphs);
+				deleteGraphVector(spareElecChanGraphs);
+				if(hasBadSpareChanIssue){
+					hasError=true;
+				}
+			}
 		}
 		else if(isSimulation){
 			hasError=false;
+			isCalPulser=false;
 		}
 
 		stringstream ss;
@@ -322,18 +342,24 @@ int main(int argc, char **argv)
 		// so it shouldn't be taken as an exclusive way to reject the event
 		passesWavefrontRMS[0] = true;
 		passesWavefrontRMS[1] = true;
-		// assigning these to 10 should make them stand out
+		// assigning these to 100 should make them stand out
 		// because the value for actually fails the filter is 3
-		bestFaceRMS[0]=10; 
-		bestFaceRMS[1]=10;
+		bestFaceRMS[0]=100; 
+		bestFaceRMS[1]=100;
     
 		if(event%starEvery==0) { std::cerr << "*"; }
 
 		// here we need to check if it passes the WFRMS filter
 		filterTree->GetEntry(event);
+		tempTree->GetEntry(event);
 
 		vector <double> rms_faces_V;
 		vector <double> rms_faces_H;
+
+		// upgrade in Oct 2019 to deal string dropping in A3 correctly
+		bool needToSwitchToAltWFRMSArrays=false;
+		// we need an actual flag for if we need to switch to the _alternate_ arrays
+
 
 		int num_faces_for_V_loop;
 		int num_faces_for_H_loop;
@@ -342,14 +368,45 @@ int main(int argc, char **argv)
 			num_faces_for_V_loop=numFaces;
 			rms_faces_H.resize(numFaces_A2_drop);
 			num_faces_for_H_loop=numFaces_A2_drop;
+			needToSwitchToAltWFRMSArrays=true;
 		}
-
-		//now we loop over the faces
-		for(int i=0; i<num_faces_for_V_loop; i++){
-			rms_faces_V[i] = rms_pol_thresh_face_alternate_V[thresholdBin_pol[0]][i];
+		else if(station_num==3){
+			if(
+				(!isSimulation && runNum>getA3BadRunBoundary())
+				||
+				(isSimulation && yearConfig>2)
+			){ //it's 2014+, drop string four
+				rms_faces_V.resize(numFaces_A3_drop);
+				num_faces_for_V_loop=numFaces_A3_drop;
+				rms_faces_H.resize(numFaces_A3_drop);
+				num_faces_for_H_loop=numFaces_A3_drop;
+				needToSwitchToAltWFRMSArrays=true;
+			}
+			else{ //it's 2013-, keep string four
+				rms_faces_V.resize(numFaces);
+				num_faces_for_V_loop=numFaces;
+				rms_faces_H.resize(numFaces);
+				num_faces_for_H_loop=numFaces;
+			}
 		}
-		for(int i=0; i<num_faces_for_H_loop; i++){
-			rms_faces_H[i] = rms_pol_thresh_face_alternate_H[thresholdBin_pol[1]][i];
+		
+		if(needToSwitchToAltWFRMSArrays){
+			//now we loop over the faces in the *alternate* arrays
+			for(int i=0; i<num_faces_for_V_loop; i++){
+				rms_faces_V[i] = rms_pol_thresh_face_alternate_V[thresholdBin_pol[0]][i];
+			}
+			for(int i=0; i<num_faces_for_H_loop; i++){
+				rms_faces_H[i] = rms_pol_thresh_face_alternate_H[thresholdBin_pol[1]][i];
+			}
+		}
+		else{
+			//now we loop over the faces in the not alternate arrays
+			for(int i=0; i<num_faces_for_V_loop; i++){
+				rms_faces_V[i] = rms_pol_thresh_face_V[thresholdBin_pol[0]][i];
+			}
+			for(int i=0; i<num_faces_for_H_loop; i++){
+				rms_faces_H[i] = rms_pol_thresh_face_H[thresholdBin_pol[1]][i];
+			}
 		}
 
 		//now to sort them smallest to largest; lowest RMS is best
@@ -367,21 +424,30 @@ int main(int argc, char **argv)
 			passesWavefrontRMS[1]=false;
 		}
 
+		// printf("Event %d: CalPul %d, Soft %d, WFRMS are %.2f, %.2f \n", event, isCalPulser, isSoftTrigger, TMath::Log10(bestFaceRMS[0]), TMath::Log10(bestFaceRMS[1]));
+
 		// if it doesn't pass WFRMS filter in one of the two pols, no need to do reconstruction!
-		if(!passesWavefrontRMS[0] && !passesWavefrontRMS[1]){
-			// printf("No need to reco this event! WFRMS are %.2f, %.2f \n", TMath::Log10(bestFaceRMS[0]), TMath::Log10(bestFaceRMS[1]));
+		if(isCalPulser || isSoftTrigger){
+			// printf("No need to reco event %d this event! WFRMS are %.2f, %.2f \n",event, TMath::Log10(bestFaceRMS[0]), TMath::Log10(bestFaceRMS[1]));
 			NewCWTree->Fill(); //fill this anyway with garbage
 			continue; //don't do any further processing on this event
 		}
 
-		//printf("Event %d good for CWID! WFRMS are %.2f, %.2f \n", event, TMath::Log10(bestFaceRMS[0]), TMath::Log10(bestFaceRMS[1]));
+		// if it doesn't pass WFRMS filter in one of the two pols, no need to do reconstruction!
+		if(!passesWavefrontRMS[0] && !passesWavefrontRMS[1]){
+			// printf("No need to reco event %d this event! WFRMS are %.2f, %.2f \n",event, TMath::Log10(bestFaceRMS[0]), TMath::Log10(bestFaceRMS[1]));
+			NewCWTree->Fill(); //fill this anyway with garbage
+			continue; //don't do any further processing on this event
+		}
 
+		// printf("Event %d good for CWID! CalPul %d, Soft %d, WFRMS are %.2f, %.2f \n", event, isCalPulser, isSoftTrigger, TMath::Log10(bestFaceRMS[0]), TMath::Log10(bestFaceRMS[1]));
 
 		eventTree->GetEntry(event); //get the event
 
 		if (isSimulation == false){
 			realAtriEvPtr = new UsefulAtriStationEvent(rawAtriEvPtr, AraCalType::kLatestCalib);
 		}
+		bool isSoftTrigger = rawAtriEvPtr->isSoftwareTrigger();
 
 		stringstream ss;
 		string xLabel, yLabel;
@@ -394,9 +460,14 @@ int main(int argc, char **argv)
 		}
 
 		vector<TGraph*> grWaveformsRaw = makeGraphsFromRF(realAtriEvPtr, 16, xLabel, yLabel, titlesForGraphs);
-		tempTree->GetEntry(event);
-	
-		if(!hasError){
+
+		// if(!hasError){
+		// for station 3, skip cal pulsers
+		// so only proceed if it doen't have an error
+		// and if it's not (A3 and a cal pulser)
+		// this is done for backwards compatibility with A2, which did not exclude cal pulsers
+		// from phase variance search
+		if(!hasError && !(isCalPulser && station_num==3)){
 
 			//before we do the phase variance, we should check for baseline violations	
 			vector<double> baseline_CW_cut_V = CWCut_TB(grWaveformsRaw, average, 0, 6., 5.5, station_num, 3, chan_exclusion_list, runNum, event,false);
@@ -486,7 +557,7 @@ int main(int argc, char **argv)
 				// printf("			I've found %d good events \n",found_events_forward);
 				if(found_events_forward==14) break; //after you've collected 15 events (0->14), we're good to go.
 				tempTree->GetEntry(event_next);
-				if(!hasError){
+				if(!hasError && !(isCalPulser && station_num==3)){
 					found_events_forward++;
 					vector<TGraph*> this_event_phases;
 					for(int chan=0; chan<16; chan++){
@@ -578,7 +649,7 @@ int main(int argc, char **argv)
 				// printf("			Trying to move backwards to event %d \n",event_next);
 				if(found_events_backwards==0) break;
 				tempTree->GetEntry(event_next);
-				if(!hasError){
+				if(!hasError && !(isCalPulser && station_num==3)){
 					found_events_backwards--;
 					vector<TGraph*> this_event_phases;
 					for(int chan=0; chan<16; chan++){
