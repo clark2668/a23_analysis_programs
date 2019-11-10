@@ -130,7 +130,8 @@ int main(int argc, char **argv)
 		char outfile_name[300];
 		sprintf(outfile_name,"%s/cutvals_snrbins_%d_%d_wfrmsvals_%.1f_%.1f_run_%d.root",output_location.c_str(),thresholdBin_pol[0], thresholdBin_pol[1], (wavefrontRMScut[0]),(wavefrontRMScut[1]),runNum);
 		if(dropBadChans){
-			sprintf(outfile_name,"%s/cutvals_drop_FiltSurface_snrbins_%d_%d_wfrmsvals_%.1f_%.1f_run_%d.root",output_location.c_str(),thresholdBin_pol[0], thresholdBin_pol[1], (wavefrontRMScut[0]), (wavefrontRMScut[1]),runNum);
+			sprintf(outfile_name,"%s/cutvals_drop_FiltSurface_CWThresh2.0_snrbins_%d_%d_wfrmsvals_%.1f_%.1f_run_%d.root",output_location.c_str(),thresholdBin_pol[0], thresholdBin_pol[1], (wavefrontRMScut[0]), (wavefrontRMScut[1]),runNum);
+			// sprintf(outfile_name,"%s/cutvals_drop_FiltSurface_snrbins_%d_%d_wfrmsvals_%.1f_%.1f_run_%d.root",output_location.c_str(),thresholdBin_pol[0], thresholdBin_pol[1], (wavefrontRMScut[0]), (wavefrontRMScut[1]),runNum);
 			// sprintf(outfile_name,"%s/cutvals_drop_snrbins_%s%d_%s%d_wfrmsvals_%.1f_%.1f_run_%d.root",output_location.c_str(),thresholdBin_pol[0], thresholdBin_pol[1], wavefrontRMScut[0]<0?'-':'',(wavefrontRMScut[0]), wavefrontRMScut[0]<0?'-':'',(wavefrontRMScut[1]),runNum);
 		}
 		TFile *fpOut = new TFile(outfile_name,"recreate");
@@ -239,6 +240,7 @@ int main(int argc, char **argv)
 		int hasBadSpareChanIssue2_out;
 		int isFirstFiveEvent_out;
 		int eventNumber_out;
+		int runNum_out;
 
 		trees[2]->Branch("bad",&isBadEvent_out);
 		trees[2]->Branch("weight",&outweight);
@@ -247,6 +249,7 @@ int main(int argc, char **argv)
 		trees[2]->Branch("hasBadSpareChanIssue2",&hasBadSpareChanIssue2_out);
 		trees[2]->Branch("isFirstFiveEvent",&isFirstFiveEvent_out);
 		trees[2]->Branch("eventNumber",&eventNumber_out);
+		trees[2]->Branch("runNum",&runNum_out);
 		if(isSimulation)
 			trees[2]->Branch("Trig_Pass", &Trig_Pass_out, "Trig_Pass_out[16]/I");
 		
@@ -334,6 +337,8 @@ int main(int argc, char **argv)
 			}
 		}
 
+		runNum_out=runNum;
+	
 		char summary_file_name[400];
 		if(isSimulation){
 			if(year_or_energy<25)
@@ -369,8 +374,7 @@ int main(int argc, char **argv)
 		// start out with a problem threshold of 1.5 for A2 and most of A3
 		// if the run has untagged cal pulses though, lift the threshold to 2.0
 		double threshCW=1.5;
-		bool doesRunHaveUntagedCalPulses = hasUntaggedCalpul(ToolsDirPath, station, config, runNum);
-		if(station==3 && doesRunHaveUntagedCalPulses){
+		if(station==3){
 			threshCW=2.0;
 		}
 
