@@ -1165,70 +1165,70 @@ int PlotThisEvent(int station, int config, int runNum, int event, int problempol
 	// delete map_V_raytrace_onlystrong;
 
 
-	// bool doContributingMaps=true;
-	// if(doContributingMaps){
-	// 	stringstream ss1;
-	// 	vector<string> titlesForGraphs;
-	// 	vector <TH2D*> individuals;
+	bool doContributingMaps=true;
+	if(doContributingMaps){
+		stringstream ss1;
+		vector<string> titlesForGraphs;
+		vector <TH2D*> individuals;
 
-	// 	double SNR_scaling=0.;
+		double SNR_scaling=0.;
 
-	// 	for(int i=0; i<7; i++){
-	// 		for(int j=i+1; j<8; j++){
-	// 			ss1.str("");
-	// 			ss1<<"Pair "<<i<<" and "<<j;
-	// 			titlesForGraphs.push_back(ss1.str());
-	// 			TH2D *map = theCorrelator->getInterferometricMap_RT_NewNormalization_PairSelect(settings, detector, realAtriEvPtr, Vpol, isSimulation, i, j, solNum);
+		for(int i=0; i<7; i++){
+			for(int j=i+1; j<8; j++){
+				ss1.str("");
+				ss1<<"Pair "<<i<<" and "<<j;
+				titlesForGraphs.push_back(ss1.str());
+				TH2D *map = theCorrelator->getInterferometricMap_RT_NewNormalization_PairSelect(settings, detector, realAtriEvPtr, Vpol, isSimulation, i, j, solNum);
 				
-	// 			// now do the SNR scaling
-	// 			double this_snr_product = chan_SNRs[i] * chan_SNRs[j];
-	// 			// printf("Weighting term for %d, %d is %.3f \n", i, j, this_snr_product);
-	// 			map->Scale(this_snr_product);
+				// now do the SNR scaling
+				double this_snr_product = chan_SNRs[i] * chan_SNRs[j];
+				// printf("Weighting term for %d, %d is %.3f \n", i, j, this_snr_product);
+				map->Scale(this_snr_product);
 
-	// 			SNR_scaling+=this_snr_product;
+				SNR_scaling+=this_snr_product;
 
-	// 			individuals.push_back(map);
-	// 		}
-	// 	}
+				individuals.push_back(map);
+			}
+		}
 
-	// 	for(int i=0; i<individuals.size(); i++){
-	// 		individuals[i]->Scale(1./SNR_scaling);
-	// 	}
+		for(int i=0; i<individuals.size(); i++){
+			individuals[i]->Scale(1./SNR_scaling);
+		}
 
-	// 	// compute the average myself manually
-	// 	TH2D *average = (TH2D*) individuals[0]->Clone();
-	// 	for(int i=0; i<individuals.size(); i++){
-	// 		average->Add(individuals[i]);
-	// 	}
-	// 	// average->Scale(1./28);
-	// 	average->SetTitle("Summed Maps");
+		// compute the average myself manually
+		TH2D *average = (TH2D*) individuals[0]->Clone();
+		for(int i=0; i<individuals.size(); i++){
+			average->Add(individuals[i]);
+		}
+		// average->Scale(1./28);
+		average->SetTitle("Summed Maps");
 
-	// 	vector<double> mins;
-	// 	vector<double> maxs;
-	// 	for(int i=0; i<individuals.size(); i++){
-	// 		mins.push_back(individuals[i]->GetMinimum());
-	// 		maxs.push_back(individuals[i]->GetMaximum());
-	// 	}
-	// 	std::sort(mins.begin(), mins.end()); //sort smallest to largest
-	// 	std::sort(maxs.begin(), maxs.end()); //sort smallest to largest
-	// 	std::reverse(maxs.begin(), maxs.end()); //reverse order to get largest to smallest
+		vector<double> mins;
+		vector<double> maxs;
+		for(int i=0; i<individuals.size(); i++){
+			mins.push_back(individuals[i]->GetMinimum());
+			maxs.push_back(individuals[i]->GetMaximum());
+		}
+		std::sort(mins.begin(), mins.end()); //sort smallest to largest
+		std::sort(maxs.begin(), maxs.end()); //sort smallest to largest
+		std::reverse(maxs.begin(), maxs.end()); //reverse order to get largest to smallest
 
-	// 	TCanvas *cMaps2 = new TCanvas("","",8*850,4*850);
-	// 	cMaps2->Divide(7,5);
-	// 	for(int i=0; i<individuals.size(); i++){
-	// 		cMaps2->cd(i+1);
-	// 		individuals[i]->Draw("colz");
-	// 		individuals[i]->GetZaxis()->SetRangeUser(mins[0],maxs[0]);
-	// 		individuals[i]->SetTitle(titlesForGraphs[i].c_str());
-	// 		gStyle->SetTitleFontSize(0.07);
-	// 	}
-	// 	cMaps2->cd(35);
-	// 		average->Draw("colz");
-	// 	char save_temp_title[400];
-	// 	sprintf(save_temp_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/unblind/surface/surface_%d.%d.%d_Run%d_Ev%d_AllMaps.png",year_now,month_now,day_now,runNum,event);
-	// 	cMaps2->SaveAs(save_temp_title);
-	// 	delete cMaps2;
-	// }
+		TCanvas *cMaps2 = new TCanvas("","",8*850,4*850);
+		cMaps2->Divide(7,5);
+		for(int i=0; i<individuals.size(); i++){
+			cMaps2->cd(i+1);
+			individuals[i]->Draw("colz");
+			individuals[i]->GetZaxis()->SetRangeUser(mins[0],maxs[0]);
+			individuals[i]->SetTitle(titlesForGraphs[i].c_str());
+			gStyle->SetTitleFontSize(0.07);
+		}
+		cMaps2->cd(35);
+			average->Draw("colz");
+		char save_temp_title[400];
+		sprintf(save_temp_title,"/users/PAS0654/osu0673/A23_analysis_new2/results/unblind/surface/surface_%d.%d.%d_Run%d_Ev%d_AllMaps.png",year_now,month_now,day_now,runNum,event);
+		cMaps2->SaveAs(save_temp_title);
+		delete cMaps2;
+	}
 
 	char save_temp_title[300];
 	sprintf(save_temp_title,"%s/unblind/surface/trouble_events/surface_%d.%d.%d_Run%d_Ev%d_ProblemPol%d_Waveforms.png",plotPath,year_now,month_now,day_now,runNum,event,problempol);
