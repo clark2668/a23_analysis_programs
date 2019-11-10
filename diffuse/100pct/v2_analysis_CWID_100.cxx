@@ -120,6 +120,7 @@ int main(int argc, char **argv)
 	Long64_t starEvery=numEntries/80;
 	if(starEvery==0) starEvery++;
 	printf("Num events is %d \n", numEntries);
+	//numEntries=500;
 	cout<<"This file has a starEvery of "<<starEvery<<endl;
 
 	//first, let's get the baselines loaded in
@@ -199,8 +200,9 @@ int main(int argc, char **argv)
 	}
 	// check for number of events mis-match (shouldn't happen, but you never now)
 	int numEntriesFilter = filterTree->GetEntries();
+	//numEntriesFilter=500;
 	if(numEntries!=numEntriesFilter){
-		std::cout<<"There is a mismatch between the number of entries in the data file and the filter file. Abort!"<<endl;
+		printf("There is a mismatch between the number of entries in the data (%d) and the number in the fitler file (%d). Abort!\n", numEntries, numEntriesFilter);
 		return -1;
 	}
 	filterTree->SetBranchAddress("VPeakOverRMS", &VPeakOverRMS);
