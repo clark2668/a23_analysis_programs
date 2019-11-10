@@ -529,7 +529,7 @@ int main(int argc, char **argv)
 				threshCW = 1.5;
 			}
 			else if(station==3){
-				threshCW = 1.0;
+				threshCW = 2.0;
 			}
 			vector<double> badFreqList_fwd;
 			vector<double> badSigmaList_fwd;
