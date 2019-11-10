@@ -56,20 +56,27 @@ int main(int argc, char **argv)
 		std::cout << "Can't find eventTree\n";
 		return -1;
 	}
-	RawAtriStationEvent *rawAtriEvPtr=0;
-	eventTree->SetBranchAddress("event",&rawAtriEvPtr);
+	// RawAtriStationEvent *rawAtriEvPtr=0;
+	// eventTree->SetBranchAddress("event",&rawAtriEvPtr);
+	UsefulAtriStationEvent *ev;
+	eventTree->SetBranchAddress("UsefulAtriStationEvent",&ev);
+	double weight;
+	eventTree->SetBranchAddress("weight",&weight);
 	int run;
-	eventTree->SetBranchAddress("run",&run);
-	eventTree->GetEntry(0);
+	// eventTree->SetBranchAddress("run",&run);
+
+	// for simulation only (stupid, stupid)
+	run=getrunNum(argv[2]);
+	// eventTree->GetEntry(0);
 	printf("Starting Run %d \n", run);
 
-	char ped_file_name[400];
-	sprintf(ped_file_name,"/fs/scratch/PAS0654/ara/peds/run_specific_peds/A%d/all_peds/event%d_specificPeds.dat",station,run);
-	AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
-	calibrator->setAtriPedFile(ped_file_name,station); //because someone had a brain (!!), this will error handle itself if the pedestal doesn't exist
+	// char ped_file_name[400];
+	// sprintf(ped_file_name,"/fs/project/PAS0654/ARA_DATA/A23/peds/run_specific_peds/A%d/all_peds/event%d_specificPeds.dat",station,run);
+	// AraEventCalibrator *calibrator = AraEventCalibrator::Instance();
+	// calibrator->setAtriPedFile(ped_file_name,station); //because someone had a brain (!!), this will error handle itself if the pedestal doesn't exist
 
-	AraQualCuts *qualCut = AraQualCuts::Instance(); //we also need a qual cuts tool
-	vector<int> BadRunList=BuildBadRunList(station);
+	// AraQualCuts *qualCut = AraQualCuts::Instance(); //we also need a qual cuts tool
+	// vector<int> BadRunList=BuildBadRunList(station);
 
 	char outfile_name[400];
 	sprintf(outfile_name,"%s/diagnostic_info_run%d.root",argv[3],run);
@@ -118,25 +125,39 @@ int main(int argc, char **argv)
 	outTree->Branch("runNum",&runNum,"runNum/I");
 	outTree->Branch("isKnownBadRun", &isKnownBadRun, "isKnownBadRun/O");
 
+	double weight_out;
+	outTree->Branch("weight_out",&weight_out,"weight_out/D");
+
 	runNum=run;
-	isKnownBadRun = isBadRun(station,runNum,BadRunList);
+	// isKnownBadRun = isBadRun(station,runNum,BadRunList);
+	isKnownBadRun=false;
 
 	Long64_t numEntries=eventTree->GetEntries();
 	int start=0;
 	for(Long64_t event=start;event<numEntries;event++) {
 		// cout<<"Event is "<<event<<endl;
 		eventTree->GetEntry(event);
-		isCal = rawAtriEvPtr->isCalpulserEvent();
-		isSoft = rawAtriEvPtr->isSoftwareTrigger();
-		unixTime = (int)rawAtriEvPtr->unixTime;
-		unixTimeUs= (int)rawAtriEvPtr->unixTimeUs;
-		timeStamp = (int)rawAtriEvPtr->timeStamp;
-		eventNumber = (int)rawAtriEvPtr->eventNumber;
-		isKnownBadLivetime = isBadLivetime(station,unixTime);
+		
+		isCal=false;
+		isSoft=false;
+		unixTime=0;
+		unixTimeUs=0;
+		timeStamp=0;
+		weight_out=weight;
+
+		// isCal = rawAtriEvPtr->isCalpulserEvent();
+		// isSoft = rawAtriEvPtr->isSoftwareTrigger();
+		// unixTime = (int)rawAtriEvPtr->unixTime;
+		// unixTimeUs= (int)rawAtriEvPtr->unixTimeUs;
+		// timeStamp = (int)rawAtriEvPtr->timeStamp;
+		// eventNumber = (int)rawAtriEvPtr->eventNumber;
+		eventNumber=event;
+		// isKnownBadLivetime = isBadLivetime(station,unixTime);
 
 		// get info on the deep (rf) channels
-		UsefulAtriStationEvent *ev = new UsefulAtriStationEvent(rawAtriEvPtr,AraCalType::kLatestCalib);
-		hasDigitizerError = !(qualCut->isGoodEvent(ev));
+		// UsefulAtriStationEvent *ev = new UsefulAtriStationEvent(rawAtriEvPtr,AraCalType::kLatestCalib);
+		// hasDigitizerError = !(qualCut->isGoodEvent(ev));
+		hasDigitizerError=false;
 
 		vector<TGraph*> rfChanGraphs;
 		for(int i=0; i<16; i++){
@@ -151,16 +172,18 @@ int main(int argc, char **argv)
 			}
 		}
 
-		vector<TGraph*> spareElecChanGraphs;
-		spareElecChanGraphs.push_back(ev->getGraphFromElecChan(6));
-		spareElecChanGraphs.push_back(ev->getGraphFromElecChan(14));
-		spareElecChanGraphs.push_back(ev->getGraphFromElecChan(22));
-		spareElecChanGraphs.push_back(ev->getGraphFromElecChan(30));
-		for(int i=0; i<4; i++){
-			spareChannelRMS[i]=spareElecChanGraphs[i]->GetRMS(2);
-		}
-		hasSpareChannelIssuev1 = hasSpareChannelIssue(spareElecChanGraphs);
-		hasSpareChannelIssuev2 = hasSpareChannelIssue_v2(spareElecChanGraphs, station);
+		// vector<TGraph*> spareElecChanGraphs;
+		// spareElecChanGraphs.push_back(ev->getGraphFromElecChan(6));
+		// spareElecChanGraphs.push_back(ev->getGraphFromElecChan(14));
+		// spareElecChanGraphs.push_back(ev->getGraphFromElecChan(22));
+		// spareElecChanGraphs.push_back(ev->getGraphFromElecChan(30));
+		// for(int i=0; i<4; i++){
+		// 	spareChannelRMS[i]=spareElecChanGraphs[i]->GetRMS(2);
+		// }
+		// hasSpareChannelIssuev1 = hasSpareChannelIssue(spareElecChanGraphs);
+		// hasSpareChannelIssuev2 = hasSpareChannelIssue_v2(spareElecChanGraphs, station);
+		hasSpareChannelIssuev1=false;
+		hasSpareChannelIssuev2=false;
 
 
 		for(int chan=0; chan<16; chan++){
@@ -179,15 +202,16 @@ int main(int argc, char **argv)
 		}
 		std::sort(powerPerString_local.begin(), powerPerString_local.end()); //sort smallest to largest
 		powerRatio=powerPerString_local[3]/powerPerString_local[0];
+		cout<<"power ratio is "<<powerRatio<<endl;
 
 		// fill output
 		outTree->Fill();
 
 		// clean-up
-		deleteGraphVector(spareElecChanGraphs);
+		// deleteGraphVector(spareElecChanGraphs);
 		deleteGraphVector(rfChanGraphs);
 
-		delete ev;
+		// delete ev;
 	} //loop over events
 	
 	fpOut->Write();
