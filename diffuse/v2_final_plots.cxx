@@ -60,32 +60,32 @@ int main(int argc, char **argv)
 	double max=0.05;
 	
 	TH2D *PeakCorr_vs_SNR_all[2];
-	PeakCorr_vs_SNR_all[0]=new TH2D("","V",300,0,30,100,0,max);
-	PeakCorr_vs_SNR_all[1]=new TH2D("","H",300,0,30,100,0,max);
+	PeakCorr_vs_SNR_all[0]=new TH2D("","V",100,0,max,300,0,30);
+	PeakCorr_vs_SNR_all[1]=new TH2D("","H",100,0,max,300,0,30);
 
 	TH2D *PeakCorr_vs_SNR_cutCal[2];
-	PeakCorr_vs_SNR_cutCal[0]=new TH2D("","V",300,0,30,100,0,max);
-	PeakCorr_vs_SNR_cutCal[1]=new TH2D("","H",300,0,30,100,0,max);
+	PeakCorr_vs_SNR_cutCal[0]=new TH2D("","V",100,0,max,300,0,30);
+	PeakCorr_vs_SNR_cutCal[1]=new TH2D("","H",100,0,max,300,0,30);
 
 	TH2D *PeakCorr_vs_SNR_cutCal_cutSoft[2];
-	PeakCorr_vs_SNR_cutCal_cutSoft[0]=new TH2D("","V",300,0,30,100,0,max);
-	PeakCorr_vs_SNR_cutCal_cutSoft[1]=new TH2D("","H",300,0,30,100,0,max);
+	PeakCorr_vs_SNR_cutCal_cutSoft[0]=new TH2D("","V",100,0,max,300,0,30);
+	PeakCorr_vs_SNR_cutCal_cutSoft[1]=new TH2D("","H",100,0,max,300,0,30);
 
 	TH2D *PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[2];
-	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[0]=new TH2D("","V",300,0,30,100,0,max);
-	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[1]=new TH2D("","H",300,0,30,100,0,max);
+	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[0]=new TH2D("","V",100,0,max,300,0,30);
+	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[1]=new TH2D("","H",100,0,max,300,0,30);
 
 	TH2D *PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[2];
-	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[0]=new TH2D("","V",300,0,30,100,0,max);
-	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[1]=new TH2D("","H",300,0,30,100,0,max);
+	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[0]=new TH2D("","V",100,0,max,300,0,30);
+	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[1]=new TH2D("","H",100,0,max,300,0,30);
 
 	TH2D *PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[2];
-	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[0]=new TH2D("","V",300,0,30,100,0,max);
-	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[1]=new TH2D("","H",300,0,30,100,0,max);
+	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[0]=new TH2D("","V",100,0,max,300,0,30);
+	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[1]=new TH2D("","H",100,0,max,300,0,30);
 
 	TH2D *PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[2];
-	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[0]=new TH2D("","V",300,0,30,100,0,max);
-	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[1]=new TH2D("","H",300,0,30,100,0,max);
+	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[0]=new TH2D("","V",100,0,max,300,0,30);
+	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[1]=new TH2D("","H",100,0,max,300,0,30);
 
 	TH1D *all_events[2];
 	TH1D *pass_soft_short_cal[2];
@@ -112,10 +112,6 @@ int main(int argc, char **argv)
 		eff_soft_short_cal_wfrms_box[i] = new TH1D("","",30,0,30);
 		eff_soft_short_cal_wfrms_box_surf[i] = new TH1D("","",30,0,30);
 	}
-
-	TH2D *special[2];
-	special[0]=new TH2D("","V",90,0,30,500,0,1);
-	special[1]=new TH2D("","H",90,0,30,500,0,1);
 
 	TH1D *fracs_power_cut[2];
 	fracs_power_cut[0]=new TH1D("","V",100,0,1);
@@ -573,22 +569,22 @@ int main(int argc, char **argv)
 					// if(pol==0)
 					// 	printf("Event %d, pol %d: cal %d, soft %d, short %d, WFRMS %d, box %d, surf 0 %d (%3d), surf 1 %d (%3d), surf top %d, refilt %d\n", event, pol, isCal, isSoft, isShort, WFRMS_new[pol], isNewBox, isSurfEvent_new_out[0], theta_300_new[0], isSurfEvent_new_out[1], theta_300_new[1], isSurfEvent_top[pol], Refilt[pol]);
 
-					PeakCorr_vs_SNR_all[pol]->Fill(snr_val_new[pol],corr_val_new[pol],weight);
+					PeakCorr_vs_SNR_all[pol]->Fill(corr_val_new[pol],snr_val_new[pol],weight);
 					
 					if(!isCal){ //cut cal pulsers
-						PeakCorr_vs_SNR_cutCal[pol]->Fill(snr_val_new[pol],corr_val_new[pol],weight);
+						PeakCorr_vs_SNR_cutCal[pol]->Fill(corr_val_new[pol],snr_val_new[pol],weight);
 						
 						if(!isSoft){ //cut software triggers 
-							PeakCorr_vs_SNR_cutCal_cutSoft[pol]->Fill(snr_val_new[pol],corr_val_new[pol],weight);
+							PeakCorr_vs_SNR_cutCal_cutSoft[pol]->Fill(corr_val_new[pol],snr_val_new[pol],weight);
 							
 							if(!isShort){ //cut short
-								PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[pol]->Fill(snr_val_new[pol],corr_val_new[pol],weight);
+								PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[pol]->Fill(corr_val_new[pol],snr_val_new[pol],weight);
 								
 								if(!WFRMS_new[pol]){ //cut WRMS
-									PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[pol]->Fill(snr_val_new[pol],corr_val_new[pol],weight);
+									PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[pol]->Fill(corr_val_new[pol],snr_val_new[pol],weight);
 									
 									if(!isNewBox){ //cut cal box
-										PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[pol]->Fill(snr_val_new[pol],corr_val_new[pol],weight);
+										PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[pol]->Fill(corr_val_new[pol],snr_val_new[pol],weight);
 
 										// if((!isSurf[pol]) && !isSurfEvent_top[pol]){
 										if((!isSurfEvent_new_out[0] && !isSurfEvent_new_out[1]) && !isSurfEvent_top[pol]){
@@ -606,7 +602,7 @@ int main(int argc, char **argv)
 												// if(frac[2]>0.06)
 												// 	printf("This event had lots of power cut!\n");
 												// if(frac[2]<=0.06){
-												// 	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val_new[pol],corr_val_new[pol],weight);
+												// 	PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(corr_val_new[pol],snr_val_new[pol],weight);
 												// }
 
 												/*
@@ -617,10 +613,10 @@ int main(int argc, char **argv)
 
 											} //refiltered?
 											else{
-												PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(snr_val_new[pol],corr_val_new[pol],weight);
+												PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->Fill(corr_val_new[pol],snr_val_new[pol],weight);
 
 												// if(pol==0)
-												  // printf("Event %d, pol %d: SNR %.3f, Corr %.5f\n",event,pol,snr_val_new[pol],corr_val_new[pol]);
+												  // printf("Event %d, pol %d: SNR %.3f, Corr %.5f\n",event,pol,corr_val_new[pol],snr_val_new[pol]);
 												/*
 												if(corr_val_new[pol]>0.04){
 													printf("Run %d, event %d, unixTime %d and qual flag is %d but original error is %d \n", runNum, event, unixTime, isBadEvent, original_error);
@@ -786,9 +782,9 @@ int main(int argc, char **argv)
 			gPad->SetLogz();
 		}
 		if(isSim)
-			sprintf(title, "%s/New_%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, int(num_total),cal,soft,Short,wrms,box,surf);
+			sprintf(title, "%s/%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, int(num_total),cal,soft,Short,wrms,box,surf);
 		else
-			sprintf(title, "%s/New_%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,int(num_total),cal,soft,Short,wrms,box,surf);
+			sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,int(num_total),cal,soft,Short,wrms,box,surf);
 		c2->SaveAs(title);
 		delete c2;
 		delete PeakCorr_vs_SNR_all[0]; delete PeakCorr_vs_SNR_all[1];
@@ -808,8 +804,8 @@ int main(int argc, char **argv)
 			gPad->SetLogz();
 		}
 		if(isSim)
-			sprintf(title, "%s/New_%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, int(num_total),cal,soft,Short,wrms,box,surf);		else
-			sprintf(title, "%s/New_%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,int(num_total),cal,soft,Short,wrms,box,surf);
+			sprintf(title, "%s/%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, int(num_total),cal,soft,Short,wrms,box,surf);		else
+			sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,int(num_total),cal,soft,Short,wrms,box,surf);
 		c3->SaveAs(title);
 		delete c3;
 		delete PeakCorr_vs_SNR_cutCal[0]; delete PeakCorr_vs_SNR_cutCal[1];
@@ -829,9 +825,9 @@ int main(int argc, char **argv)
 			gPad->SetLogz();
 		}
 		if(isSim)
-			sprintf(title, "%s/New_%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, int(num_total),cal,soft,Short,wrms,box,surf);
+			sprintf(title, "%s/%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, int(num_total),cal,soft,Short,wrms,box,surf);
 		else
-			sprintf(title, "%s/New_%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,int(num_total),cal,soft,Short,wrms,box,surf);
+			sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,int(num_total),cal,soft,Short,wrms,box,surf);
 		c4->SaveAs(title);
 		delete c4;
 		delete PeakCorr_vs_SNR_cutCal_cutSoft[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft[1];
@@ -851,9 +847,9 @@ int main(int argc, char **argv)
 			gPad->SetLogz();
 		}
 		if(isSim)
-			sprintf(title, "%s/New_%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, int(num_total),cal,soft,Short,wrms,box,surf);
+			sprintf(title, "%s/%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, int(num_total),cal,soft,Short,wrms,box,surf);
 		else
-			sprintf(title, "%s/New_%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,int(num_total),cal,soft,Short,wrms,box,surf);
+			sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,int(num_total),cal,soft,Short,wrms,box,surf);
 		c5->SaveAs(title);
 		delete c5;
 		delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort[1];
@@ -873,9 +869,9 @@ int main(int argc, char **argv)
 			gPad->SetLogz();
 		}
 		if(isSim)
-			sprintf(title, "%s/New_%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, int(num_total),cal,soft,Short,wrms,box,surf);
+			sprintf(title, "%s/%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, int(num_total),cal,soft,Short,wrms,box,surf);
 		else
-			sprintf(title, "%s/New_%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,int(num_total),cal,soft,Short,wrms,box,surf);
+			sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,int(num_total),cal,soft,Short,wrms,box,surf);
 		c6->SaveAs(title);
 		delete c6;
 		delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS[1];
@@ -895,9 +891,9 @@ int main(int argc, char **argv)
 			gPad->SetLogz();
 		}
 		if(isSim)
-			sprintf(title, "%s/New_%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, int(num_total),cal,soft,Short,wrms,box,surf);
+			sprintf(title, "%s/%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, int(num_total),cal,soft,Short,wrms,box,surf);
 		else
-			sprintf(title, "%s/New_%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,int(num_total),cal,soft,Short,wrms,box,surf);
+			sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,int(num_total),cal,soft,Short,wrms,box,surf);
 		c7->SaveAs(title);
 		delete c7;
 		delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox[1];
@@ -920,9 +916,9 @@ int main(int argc, char **argv)
 			// PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[pol]->GetYaxis()->SetRangeUser(0,0.5);
 		}
 		if(isSim)
-			sprintf(title, "%s/New_%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, int(num_total),cal,soft,Short,wrms,box,surf);
+			sprintf(title, "%s/%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, int(num_total),cal,soft,Short,wrms,box,surf);
 		else
-			sprintf(title, "%s/New_%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,int(num_total),cal,soft,Short,wrms,box,surf);
+			sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_Correlation_vs_SNR_cal%dF_soft%d_short%d_wrms%d_newbox%d_surf%d.png",plotPath,year_now, month_now, day_now,station,config,int(num_total),cal,soft,Short,wrms,box,surf);
 		c8->SaveAs(title);
 		delete c8;
 		delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[0]; delete PeakCorr_vs_SNR_cutCal_cutSoft_cutShort_cutWRMS_cutBox_cutSurf[1];
@@ -934,9 +930,9 @@ int main(int argc, char **argv)
 			fracs_power_cut[pol]->Draw("");
 		}
 		if(isSim)
-			sprintf(title, "%s/New_%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_FracPowerCut.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, int(num_total));
+			sprintf(title, "%s/%d.%d.%d_A%d_c%d_E%2.1f_%dEvents_FracPowerCut.png",plotPath,year_now, month_now, day_now,station,config,year_or_energy, int(num_total));
 		else
-			sprintf(title, "%s/New_%d.%d.%d_A%d_c%d_%dEvents_FracPowerCut.png",plotPath,year_now, month_now, day_now,station,config,int(num_total));
+			sprintf(title, "%s/%d.%d.%d_A%d_c%d_%dEvents_FracPowerCut.png",plotPath,year_now, month_now, day_now,station,config,int(num_total));
 		c9->SaveAs(title);
 		delete c9;
 		delete fracs_power_cut[0]; delete fracs_power_cut[1];
