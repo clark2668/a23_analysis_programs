@@ -30,6 +30,9 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
+	char *toolsPath(getenv("TOOLS_DIR"));
+	if (toolsPath == NULL) std::cout << "Warning! $TOOLS_DIR is not set!" << endl;
+
 	int station=atoi(argv[1]);
 	int config=atoi(argv[2]);
 	vector<int> BadRunList=BuildBadRunList(station);
@@ -54,6 +57,9 @@ int main(int argc, char **argv)
 		cout<<"On run "<<runNum<<endl;
 
 		bool thisIsBadRun = isBadRun(station,runNum,BadRunList);
+		if(!thisIsBadRun){
+			thisIsBadRun = isSoftwareDominatedRun(toolsPath, station, runNum);
+		}
 
 		eventTree->GetEvent(0); // get first event
 		int numEntries=eventTree->GetEntries(); 	
