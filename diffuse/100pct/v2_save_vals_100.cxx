@@ -227,6 +227,7 @@ int main(int argc, char **argv)
 		int hasBadSpareChanIssue2_out;
 		int isFirstFiveEvent_out;
 		int eventNumber_out;
+		int runNum_out;
 
 		trees[2]->Branch("bad",&isBadEvent_out);
 		trees[2]->Branch("weight",&outweight);
@@ -235,6 +236,7 @@ int main(int argc, char **argv)
 		trees[2]->Branch("hasBadSpareChanIssue2",&hasBadSpareChanIssue2_out);
 		trees[2]->Branch("isFirstFiveEvent",&isFirstFiveEvent_out);
 		trees[2]->Branch("eventNumber",&eventNumber_out);
+		trees[2]->Branch("runNum",&runNum_out);
 		if(isSimulation)
 			trees[2]->Branch("Trig_Pass", &Trig_Pass_out, "Trig_Pass_out[16]/I");
 
@@ -334,6 +336,8 @@ int main(int argc, char **argv)
 
 		int recoBinSelect = 19; //300 m map
 		int recoBinCalpulser = 6; //41 m map
+
+		runNum_out=runNum; //get the run number in here formally finally
 
 		// now to open the CW file
 		// which should work just the same as it did before (yay)
