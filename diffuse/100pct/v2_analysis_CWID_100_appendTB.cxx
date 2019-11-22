@@ -127,7 +127,7 @@ int main(int argc, char **argv)
 	Long64_t starEvery=numEntries/80;
 	if(starEvery==0) starEvery++;
 	printf("Num events is %d \n", numEntries);
-	//numEntries=500;
+	numEntries=500;
 	cout<<"This file has a starEvery of "<<starEvery<<endl;
 
 	//first, let's get the baselines loaded in
@@ -237,8 +237,9 @@ int main(int argc, char **argv)
 	char run_file_name[400];
 	sprintf(run_file_name,"%s/CWID_station_%d_run_%d.root",output_location.c_str(),station_num, runNum);
 	TFile *outFile = TFile::Open(run_file_name,"update");
-	TTree *NewCWTree = new TTree("NewCWTree","NewCWTree");
+	TTree *NewCWTree = (TTree*)outFile->Get("NewCWTree");
 	int numEntries_org_file = NewCWTree->GetEntries();
+	numEntries_org_file=500;
 	if(numEntries_org_file!=numEntries){
 		cout<<"Warning! Not the same number of events in both. Halt!"<<endl;
 		outFile->Close();
@@ -257,14 +258,18 @@ int main(int argc, char **argv)
 
 	//now, to loop over events!
 	for(Long64_t event=0;event<numEntries;event++){
-		// cout<<"On event "<<event<<endl;
+		cout<<"On event "<<event<<endl;
 
 		badFreqs_baseline.clear();
     
 		if(event%starEvery==0) { std::cerr << "*"; }
 
+
+		cout<<"About to get event "<<event<<endl;
 		NewCWTree->GetEntry(event);
+		cout<<"Now, about to get it from the event tree"<<endl;
 		eventTree->GetEntry(event); //get the event
+		cout<<"I got event "<<event<<endl;
 
 		bool isCalPulser;
 		bool isSoftTrigger;
@@ -290,6 +295,8 @@ int main(int argc, char **argv)
 			newBranch->Fill(); //fill this anyway with garbage
 			continue; //don't do any further processing on this event
 		}
+
+		cout<<"Got here"<<endl;
 
 		// printf("Event %d good for CWID! CalPul %d, Soft %d, WFRMS are %.2f, %.2f \n", event, isCalPulser, isSoftTrigger, TMath::Log10(bestFaceRMS[0]), TMath::Log10(bestFaceRMS[1]));
 
