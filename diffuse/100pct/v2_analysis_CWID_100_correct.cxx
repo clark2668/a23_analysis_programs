@@ -49,6 +49,12 @@ int main(int argc, char **argv)
 	int thresholdBin_pol[]={0,0};
 	double wavefrontRMScut[]={2., 2.};
 
+	char *toolsPath(getenv("TOOLS_DIR"));
+	if (toolsPath == NULL) {
+		std::cout << "Warning! $TOOLS_DIR is not set!" << endl;
+		return -1;
+	}
+
 	/*
 	arguments
 	0: exec
@@ -81,6 +87,7 @@ int main(int argc, char **argv)
 		return -1;
 	}
 	int runNum = getrunNum(argv[8]);
+	int config = getConfig(station_num, runNum);
 	printf("Filter Run Number %d \n", runNum);
 
 	/*
