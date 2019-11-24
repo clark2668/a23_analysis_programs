@@ -2,6 +2,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 ////	save_info_vs_intercept_A3.cxx 
 ////	A23 diffuse, make plots of the final cut parameter space
+////	updated for use in A3, including a lower start for intercept_min of 5 instead of 10
 ////	
 ////
 ////	Nov 2018
@@ -17,6 +18,7 @@
 #include <sstream>
 #include <math.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 //ROOT Includes
 #include "TTree.h"
@@ -38,7 +40,7 @@
 
 using namespace std;
 
-int Optimize(int station, int config, int pol_select, double slope, int numBins_in, double intercepts_in[200], double (&background_out)[200], double (&signal_out)[200], double (&fitPar_out)[2], double (&fitParErr_out)[2], double &pval_out, double &cov_out, double &cor_out);
+int Optimize(int station, int config, int pol_select, double slope, int numBins_in, double intercepts_in[250], double (&background_out)[250], double (&signal_out)[250], double (&fitPar_out)[2], double (&fitParErr_out)[2], double &pval_out, double &cov_out, double &cor_out);
 
 int main(int argc, char **argv)
 {
@@ -70,13 +72,13 @@ int main(int argc, char **argv)
 	}
 
 	char outfilename[500];
-	sprintf(outfilename,"%s/A%d_optimize_pol%d_slope%d.root",argv[4],station,pol_select,int(slope));
+	sprintf(outfilename,"%s/A%d_optimize_pol%d_slope%d_debug.root",argv[4],station,pol_select,int(slope));
 	TFile *OutputFile = TFile::Open(outfilename,"RECREATE");
 	TTree *OutputTree = new TTree("OutputTree","OutputTree");
 
-	double intercept[200];
-	double backgrounds[200];
-	double signal[200];
+	double intercept[250];
+	double backgrounds[250];
+	double signal[250];
 	double pVal;
 	double fitPar[2];
 	double fitParErr[2];
@@ -84,17 +86,17 @@ int main(int argc, char **argv)
 	double covariance;
 	double correlation;
 
-	OutputTree->Branch("intercept",&intercept,"intercept[200]/D");
-	OutputTree->Branch("backgrounds",&backgrounds,"backgrounds[200]/D");
-	OutputTree->Branch("signal",&signal,"signal[200]/D");
+	OutputTree->Branch("intercept",&intercept,"intercept[250]/D");
+	OutputTree->Branch("backgrounds",&backgrounds,"backgrounds[250]/D");
+	OutputTree->Branch("signal",&signal,"signal[250]/D");
+	OutputTree->Branch("pVal",&pVal);
 	OutputTree->Branch("fitPar0",&fitPar[0]);
 	OutputTree->Branch("fitPar1",&fitPar[1]);
 	OutputTree->Branch("fitParErr0",&fitParErr[0]);
 	OutputTree->Branch("fitParErr1",&fitParErr[1]);
+	OutputTree->Branch("fitConverge",&fitConverge);
 	OutputTree->Branch("covariance",&covariance);
 	OutputTree->Branch("correlation",&correlation);
-	OutputTree->Branch("fitConverge",&fitConverge);
-	OutputTree->Branch("pVal",&pVal);
 
 	// fill the intercepts array
 
@@ -110,18 +112,18 @@ int main(int argc, char **argv)
 	// }
 
 	// min intercept
-	double min_intercept = 10.;
+	double min_intercept = 5.;
 	double dIntercept = 0.1;
 
 	// loop over all five configurations for this 
 	for(int this_config=1; this_config<6; this_config++){
-	// for(int this_config=3; this_config<4; this_config++){
-		// fill in intercepts array
-		for(int bin=0; bin<200; bin++){
+
+		for(int bin=0; bin<250; bin++){
 			intercept[bin] = (double(bin)*dIntercept)+min_intercept;
 			// printf("Bin %d has intercept %.2f \n",bin,intercept[bin]);
 			backgrounds[bin]=-10.;
-			signal[bin]=-10.;
+			// cout<<"Signal for bin "<<bin<<" is "<<signal[bin]<<endl;
+			signal[bin]=0.;
 		}
 		pVal=-10.;
 		fitPar[0]=-100; fitPar[1]=-100.;
@@ -130,8 +132,10 @@ int main(int argc, char **argv)
 		covariance=-10.;
 		correlation=-10.;
 
-		fitConverge = Optimize(station,this_config, pol_select, slope, 200, intercept, backgrounds, signal, fitPar, fitParErr, pVal, covariance, correlation);
+		fitConverge = Optimize(station,this_config, pol_select, slope, 250, intercept, backgrounds, signal, fitPar, fitParErr, pVal, covariance, correlation);
+		// printf(RED"For config %d, the signal is %.2f \n"RESET, this_config, signal[this_config]);
 		OutputTree->Fill();
+
 	}
 	OutputFile->Write();
 	OutputFile->Close();
@@ -143,7 +147,7 @@ int main(int argc, char **argv)
 	Then, it will compute S over S_up, and select the optimal S/S_up
 */
 
-int Optimize(int station, int config, int pol_select, double slope, int numBins_in, double intercepts_in[200], double (&background_out)[200], double (&signal_out)[200], double (&fitPar_out)[2], double (&fitParErr_out)[2], double &pval_out, double &cov_out, double &cor_out){
+int Optimize(int station, int config, int pol_select, double slope, int numBins_in, double intercepts_in[250], double (&background_out)[250], double (&signal_out)[250], double (&fitPar_out)[2], double (&fitParErr_out)[2], double &pval_out, double &cov_out, double &cor_out){
 
 	if(config<1 || config>5){
 		printf(RED"You asked for config %d, which is silly. Returning a fail.\n"RESET);
@@ -217,6 +221,8 @@ int Optimize(int station, int config, int pol_select, double slope, int numBins_
 	dataFilterTree.Add(the_data);
 	int numDataEvents = dataVTree.GetEntries();
 	printf(BLUE"Num of data entries is %d \n"RESET, numDataEvents);
+
+	// numDataEvents=100;
 
 	double max=0.05;
 	TH2D *h2SNRvsCorr_data[2]; // SNR on Y axis, Corr on X axis, like in the TB
@@ -459,7 +465,7 @@ int Optimize(int station, int config, int pol_select, double slope, int numBins_
 	sprintf(equation,"exp([0]*x+[1])");
 	// sprintf(equation,"gaus");
 	TF1 *fit = new TF1("ExpFit",equation,start_of_fit,end_of_fit);
-	int status = hEventsVsSNR->Fit("ExpFit","LL,R");
+	int status = hEventsVsSNR->Fit("ExpFit","LL,R,Q");
 	if(status!=0){
 		printf("Something went wrong with the fit! Quitting...\n");
 		return -1;
@@ -624,19 +630,21 @@ int Optimize(int station, int config, int pol_select, double slope, int numBins_
 	TChain simHTree("HTree");
 	TChain simAllTree("AllTree");
 	char the_sims[500];
-	// sprintf(the_sims,"/fs/scratch/PAS0654/ara/sim/ValsForCuts/A%d/c%d/E%d/cutvals_drop_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config,224);
-	//sprintf(the_sims,"/fs/project/PAS0654/ARA_DATA/A23/sim/ValsForCuts/A%d/c%d/E%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config,224);
-	// sprintf(the_sims,"/fs/project/PAS0654/ARA_DATA/A23/sim/ValsForCuts_UsedInA2FinalOpt/A%d/c%d/E%d/cutvals_drop_FiltSurface_snrbins_0_0_wfrmsvals_-1.3_-1.4_run_*.root",station,config,224);
-	sprintf(the_sims,"/fs/project/PAS0654/ARA_DATA/A23/sim/ValsForCuts/A%d/c%d/E%d/*.root",station,config,224);
+	// sprintf(the_sims,"/fs/project/PAS0654/ARA_DATA/A23/sim/ValsForCuts/A%d/c%d/E%d/*11*.root",station,config,224);
+	sprintf(the_sims,"/fs/scratch/PAS0654/ara/test_scratch_ValsForCuts/A%d/c%d/E%d/cutvals_drop_FiltSurface_CWThresh2.0_snrbins_0_1_wfrmsvals*run_*.root",station,config,224);
 	simVTree.Add(the_sims);
 	simHTree.Add(the_sims);
 	simAllTree.Add(the_sims);
+
 	int numSimEvents = simVTree.GetEntries();
 	printf(BLUE"Number of sim entries is %d\n"RESET, numSimEvents);
+	// numSimEvents=200;
 
 	TH2D *h2SNRvsCorr_sim[2]; // SNR on Y axis, Corr on X axis, like in the TB
 	h2SNRvsCorr_sim[0]=new TH2D("","V Sim",100,0,max,30,0,30);
 	h2SNRvsCorr_sim[1]=new TH2D("","H Sim",100,0,max,30,0,30);
+
+	double total_weight=0.;
 	
 	// and now get values out
 	{
@@ -695,13 +703,13 @@ int Optimize(int station, int config, int pol_select, double slope, int numBins_
 		simAllTree.SetBranchAddress("isFirstFiveEvent",&isFirstFiveEvent);
 		simAllTree.SetBranchAddress("hasBadSpareChanIssue",&hasBadSpareChanIssue);
 		simAllTree.SetBranchAddress("hasBadSpareChanIssue2",&hasBadSpareChanIssue2);
-		dataAllTree.SetBranchAddress("isSpikey",&isSpikey);
-		dataAllTree.SetBranchAddress("isCliff",&isCliff);
-		dataAllTree.SetBranchAddress("OutofBandIssue",&OutofBandIssue);
-		dataAllTree.SetBranchAddress("bad_v2",&bad_v2);
-		dataAllTree.SetBranchAddress("isRFEvent",&isRFEvent);
-		dataAllTree.SetBranchAddress("isPayloadBlast2",&isPayloadBlast2);
-		dataAllTree.SetBranchAddress("box300",&box300);
+		simAllTree.SetBranchAddress("isSpikey",&isSpikey);
+		simAllTree.SetBranchAddress("isCliff",&isCliff);
+		simAllTree.SetBranchAddress("OutofBandIssue",&OutofBandIssue);
+		simAllTree.SetBranchAddress("bad_v2",&bad_v2);
+		simAllTree.SetBranchAddress("isRFEvent",&isRFEvent);
+		simAllTree.SetBranchAddress("isPayloadBlast2",&isPayloadBlast2);
+		simAllTree.SetBranchAddress("box300",&box300);
 
 		stringstream ss;
 		for(int i=0; i<8; i++){
@@ -720,9 +728,18 @@ int Optimize(int station, int config, int pol_select, double slope, int numBins_
 			simVTree.GetEvent(event);
 			simHTree.GetEvent(event);
 			simAllTree.GetEvent(event);
+
+			total_weight+=weight;
+
+			// cout<<"Got here "<<__LINE__<<" on event "<<event<<endl;
+
+			// cout<<"Got here for event "<<event<<" which has weight "<<weight<<endl;
+
 			for(int pol=0; pol<2; pol++){
 
 				h2SNRvsCorr_sim[pol]->Fill(corr_val[pol], snr_val[pol],weight);
+
+				isRFEvent=true; //screwed this up for simulation, dammit
 
 				// new cuts in A3
 				if(!isRFEvent || isSpikey || isCliff || OutofBandIssue || bad_v2 || isPayloadBlast2){
@@ -773,5 +790,13 @@ int Optimize(int station, int config, int pol_select, double slope, int numBins_
 	delete h2SNRvsCorr_sim[0]; delete h2SNRvsCorr_sim[1];
 	delete h2SNRvsCorr_data[0]; delete h2SNRvsCorr_data[1];
 	delete hEventsVsSNR;
+
+	// cout<<"About to leave, and the first entry of the signal_out array is "<<signal_out[0]<<endl;
+	// cout<<"And the total weight was "<<total_weight<<endl;
+
+	simVTree.Reset();
+	simHTree.Reset();
+	simAllTree.Reset();
+
 	return 1;
 }
