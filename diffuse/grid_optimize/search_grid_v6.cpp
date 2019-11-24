@@ -5,6 +5,7 @@
 ////	And, to boot, we will use proper background ucertainties
 ////	Also now, we will jump by +=2 to make this go faster (sometime in late June or July)
 ////	now, add v6, which will more intelligently handle the difference between A2 and A3 (updated Nov 21 2019)
+////	and bump to 250 bins we scanned over, to make sure we checked a low enough intercept to start (I don't really expect this to matter, but anyway...)
 ////////////////////////////////////////////////////////////////////////////////
 
 //C++
@@ -120,14 +121,14 @@ int main(int argc, char **argv)
 	char inputfilename[500];
 	// sprintf(inputfilename,"/fs/scratch/PAS0654/ara/optimize/A%d_optimize_pol%d_slope%d.root",station,pol_select,int(slope));
 	//sprintf(inputfilename,"/fs/project/PAS0654/ARA_DATA/A23/optimize/A%d_optimize_pol%d_slope%d.root",station,pol_select,int(slope));
-	// sprintf(inputfilename,"/fs/project/PAS0654/ARA_DATA/A23/10pct_redo/optimize/A%d_optimize_pol%d_slope%d.root",station,pol_select,int(slope));
-	sprintf(inputfilename,"/fs/scratch/PAS0654/ara/optimize/A%d_optimize_pol%d_slope%d.root",station,pol_select,int(slope));
+	sprintf(inputfilename,"/fs/project/PAS0654/ARA_DATA/A23/10pct_redo/optimize/A%d_optimize_pol%d_slope%d_debug.root",station,pol_select,int(slope));
+	// sprintf(inputfilename,"/fs/scratch/PAS0654/ara/optimize/A%d_optimize_pol%d_slope%d.root",station,pol_select,int(slope));
 	TFile *InputFIle = TFile::Open(inputfilename,"READ");
 	TTree *InputTree = (TTree*) InputFIle->Get("OutputTree");
 
-	double intercept[200];
-	double backgrounds[200];
-	double signal[200];
+	double intercept[250];
+	double backgrounds[250];
+	double signal[250];
 	double pVal;
 	int fitConverge;
 	double fitPar[2];
@@ -152,8 +153,8 @@ int main(int argc, char **argv)
 
 	cout<<"About to load lots of information, sit tight..."<<endl;
 
-	double backgrounds_all[5][200];
-	double signal_all[5][200];
+	double backgrounds_all[5][250];
+	double signal_all[5][250];
 	double pVal_all[5];
 	int fitConverge_all[5];
 	double fitPar_all[5][2];
@@ -166,7 +167,7 @@ int main(int argc, char **argv)
 
 	for(int config=0; config<5; config++){
 		InputTree->GetEntry(config);
-		for(int bin=0; bin<200; bin++){
+		for(int bin=0; bin<250; bin++){
 			backgrounds_all[config][bin] = backgrounds[bin];
 			signal_all[config][bin] = signal[bin];
 		}
@@ -291,7 +292,7 @@ int main(int argc, char **argv)
 
 	int best_bins[5] = {0};
 	double best_S_over_Sup = -10000.;
-	int numBins = 200;
+	int numBins = 250;
 
 	int start_bins[5] = {0};
 
