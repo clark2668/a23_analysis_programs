@@ -29,7 +29,7 @@ using namespace std;
 
 int main(int argc, char **argv){
 
-	time_t time_now = time(0); //get the time now                                                                                                                                                                  
+	time_t time_now = time(0); //get the time now
 	tm *time = localtime(&time_now);
 	int year_now = time -> tm_year + 1900;
 	int month_now = time -> tm_mon + 1;
@@ -55,7 +55,7 @@ int main(int argc, char **argv){
 	}
 
 	char fileTenName[400];
-	sprintf(fileTenName,"/users/PAS0654/osu0673/A23_analysis_new2/results/unblind/background_fit/A%d_c%d_sample10.root",station,config);
+	sprintf(fileTenName,"/users/PCON0003/cond0068/ARA/AraRoot/analysis/unblind/background_fit/A%d_c%d_sample10.root",station,config);
 	TFile* fileTen = new TFile(fileTenName,"READ");
 	TH1D *h1Ten[2];
 	h1Ten[0] = (TH1D*)fileTen->Get("DiffDistroV");
@@ -66,7 +66,7 @@ int main(int argc, char **argv){
 	h1TenClone[1] = (TH1D*) h1Ten[1]->Clone();
 
 	char fileHundredName[400];
-	sprintf(fileHundredName,"/users/PAS0654/osu0673/A23_analysis_new2/results/unblind/background_fit/A%d_c%d_sample100.root",station,config);
+	sprintf(fileHundredName,"/users/PCON0003/cond0068/ARA/AraRoot/analysis/unblind/background_fit/A%d_c%d_sample100.root",station,config);
 	TFile* fileHundred = new TFile(fileHundredName,"READ");
 	TH1D *h1Hundred[2];
 	h1Hundred[0] = (TH1D*)fileHundred->Get("DiffDistroV");
@@ -140,7 +140,7 @@ int main(int argc, char **argv){
 	}
 
 	// printf("Original amplitude %.2f and scale %.2f \n", fitParams[0][1], fitParams_scale[0][1]);
-	
+
 	// and we record some of the information about the fit
 	// like the name, the number of obsered events, etc.
 	double binWidthIntercept[2];
@@ -174,7 +174,7 @@ int main(int argc, char **argv){
 	sprintf(this_fit_title[1],"fCopyFitH");
 	fitCopy[1] = new TF1(this_fit_title[1], "exp([0]*x+[1])", start_of_fit[1], end_of_fit[1]);
 	fitCopy[1]->SetParameters(fitParams_scale[1][0], fitParams_scale[1][1]);
-	
+
 	vector<TGraph*> cut_lines;
 	double selected_intercepts[2];
 	for(int pol=0; pol<2; pol++){
@@ -214,22 +214,22 @@ int main(int argc, char **argv){
 	TCanvas *c = new TCanvas("","",2*850,850);
 	c->Divide(2,1);
 	c->cd(1);
-		h1Hundred[0]->Draw("");
-			h1Hundred[0]->GetXaxis()->SetRangeUser(15.,25.);
+			h1Hundred[0]->Draw("");
+			h1Hundred[0]->GetXaxis()->SetRangeUser(11.,18.);
 			fitCopy[0]->Draw("same");
 			fitCopy[0]->SetLineColor(kBlue);
 			fitCopy[0]->SetLineStyle(9);
 			h1Hundred[0]->GetXaxis()->SetTitle("y-intercept value");
 			h1Hundred[0]->GetYaxis()->SetTitle("differential number of events cut");
-		h1Ten[0]->Draw("same");
+			h1Ten[0]->Draw("same");
 			h1Ten[0]->SetLineColor(kRed);
 			fit[0]->Draw("same");
 			fit[0]->SetLineStyle(9);
-		lines[0]->Draw("same");
+			lines[0]->Draw("same");
 			lines[0]->SetLineColor(kBlack);
 			lines[0]->SetLineStyle(9);
 			lines[0]->SetLineWidth(2);
-		gPad->SetLogy();
+			gPad->SetLogy();
 		{
 			TLegend *leg = new TLegend(0.48,0.6,0.9,0.9);
 			leg->AddEntry(h1Ten[0],"10% Data","l");

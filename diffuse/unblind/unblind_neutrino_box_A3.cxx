@@ -90,24 +90,6 @@ int main(int argc, char **argv)
 
 	int numTotal=0;
 
-	// char outputFileName[500];
-	// sprintf(outputFileName,"%s/neutrino_box_2d_cut_values_A%d_c%d_sample%d.root",outputLocation.c_str(),station,config,full_or_partial);
-	// TFile *outFile = TFile::Open(outputFileName,"RECREATE");
-	// TTree *outTree = new TTree("outTree","outTree");
-	// int hist_this_pol[2];
-	// double corr_val_out[2];
-	// double snr_val_out[2];
-	// int runNum_out;
-	// int eventNum_out;
-	// outTree->Branch("passes_this_pol_V",&hist_this_pol[0]);
-	// outTree->Branch("passes_this_pol_H",&hist_this_pol[1]);
-	// outTree->Branch("corr_val_V",&corr_val_out[0]);
-	// outTree->Branch("corr_val_H",&corr_val_out[1]);
-	// outTree->Branch("snr_val_V",&snr_val_out[0]);
-	// outTree->Branch("snr_val_H",&snr_val_out[1]);
-	// outTree->Branch("runNum_out",&runNum_out);
-	// outTree->Branch("eventNum_out",&eventNum_out);
-
 	TChain dataVTree("VTree");
 	TChain dataHTree("HTree");
 	TChain dataAllTree("AllTree");
