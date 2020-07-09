@@ -15,6 +15,10 @@
 #include "TMath.h"
 
 #include "AraGeomTool.h"
+#include "tools_PlottingFns.h"
+#include "tools_WaveformFns.h"
+#include "FFTtools.h"
+
 
 using namespace std;
 
@@ -58,11 +62,62 @@ void getRCutValues(int station, int config, int pol, double &slope, double &inte
 			}
 		}
 	}
+	else if(station==3){
+		// these were updated 2019-11-25 with the results of the A3 optimization
+		if(pol==0){
+			// slope=-1240.;
+			slope=-1420.;
+			if(config==1){
+				// intercept=14.6;
+				intercept=15.8;
+			}
+			else if(config==2){
+				// intercept=15.4;
+				intercept=16.5;
+			}
+			else if(config==3){
+				// intercept=17.9;
+				intercept=19.5;
+			}
+			else if(config==4){
+				// intercept=17.9;
+				intercept=19.4;
+			}
+			else if(config==5){
+				// intercept=16.1;
+				intercept=17.5;
+			}
+		}
+		else if(pol==1){
+			// slope=-600.;
+			slope=-680.;
+			if(config==1){
+				// intercept=13.4;
+				intercept=14.1;
+			}
+			else if(config==2){
+				// intercept=14.1;
+				intercept=14.6;
+			}
+			else if(config==3){
+				// intercept=14.0;
+				intercept=14.8;
+			}
+			else if(config==4){
+				// intercept=13.7;
+				intercept=14.3;
+			}
+			else if(config==5){
+				// intercept=12.3;
+				intercept=13.0;
+			}
+		}
+	}
 }
 
 bool passesRCut(int station, int config, int pol, double SNR, double corr){
 	bool passes=false;
-	if(station==2){
+	if(station==2 || station==3){
 		double slope_val;
 		double intercept_val;
 		getRCutValues(station, config, pol, slope_val, intercept_val);
@@ -70,9 +125,6 @@ bool passesRCut(int station, int config, int pol, double SNR, double corr){
 		if (SNR >= ((corr * slope_val ) + intercept_val)){
 			passes=true;
 		}
-	}
-	else if(station==3){
-
 	}
 	return passes;
 }
@@ -631,6 +683,7 @@ int isBadLivetime(int station, int unixTime){
 			(unixTime>=1413897900 && unixTime<=1413899100) || // from run 3439
 			(unixTime>=1413914400 && unixTime<=1413922200) || // from run 3440 big wide weird above ground
 			(unixTime>=1414083600 && unixTime<=1414086300) || // from run 3449 , 2 spikes
+			(unixTime>=1413550800 && unixTime<=1413552600) || // from run 3419, end of the run, before a software dominated run starts
 			(unixTime>=1414674000 && unixTime<=1414675500) || // from run 3478
 			(unixTime>=1415380500 && unixTime<=1415381400) || // from run 3520
 			(unixTime>=1415460600 && unixTime<=1415461500) || // from run 3524
@@ -770,6 +823,49 @@ vector<int> BuildSurfaceRunList(int station){
 		exclude.push_back(6818);
 		exclude.push_back(6705);
 		exclude.push_back(8074);
+
+	}
+	else if(station==3){
+
+		/*
+		Runs shared with Ming-Yuan
+			http://ara.physics.wisc.edu/cgi-bin/DocDB/ShowDocument?docid=2041
+		*/
+		exclude.push_back(977);
+		exclude.push_back(1240);
+		exclude.push_back(3158);
+		exclude.push_back(3431);
+		exclude.push_back(3432);
+		exclude.push_back(3435);
+		exclude.push_back(3437);
+		exclude.push_back(3438);
+		exclude.push_back(3439);
+		exclude.push_back(3440);
+		exclude.push_back(3651);
+		exclude.push_back(3841);
+		exclude.push_back(4472);
+		exclude.push_back(4963);
+		exclude.push_back(4988);
+		exclude.push_back(4989);
+
+
+		/*
+		Runs identified independently
+		*/
+		exclude.push_back(1745);
+		exclude.push_back(3157);
+		exclude.push_back(3652);
+		exclude.push_back(3800);
+		exclude.push_back(6193);
+		exclude.push_back(6319);
+		exclude.push_back(6426);
+
+		/*
+		Runs I am sure we will exclude...
+		*/
+		exclude.push_back(2000);
+		exclude.push_back(2001);
+
 
 	}
 
@@ -932,29 +1028,34 @@ vector<int> BuildBadRunList(int station){
 
 		/*2013*/
 
+			// /*
+			// 	Misc tests: http://ara.icecube.wisc.edu/wiki/index.php/Run_Log_2013
+			// */
+			// for(int i=22; i<=62; i++){ exclude.push_back(i); }
+
+
+
+			// /*
+			// 	ICL rooftop
+			// 	http://ara.icecube.wisc.edu/wiki/index.php/A23_Diffuse_UW
+			// */
+
+			// for(int i=63; i<=70; i++){ exclude.push_back(i); }
+			// for(int i=333; i<=341; i++){ exclude.push_back(i); }
+
+
+			// /*
+			// 	Cal sweep
+			// 	http://ara.icecube.wisc.edu/wiki/index.php/A23_Diffuse_UW
+			// */
+
+			// for(int i=72; i<=297; i++){ exclude.push_back(i); }
+			// for(int i=346; i<=473; i++){ exclude.push_back(i); }
+
 			/*
-				Misc tests: http://ara.icecube.wisc.edu/wiki/index.php/Run_Log_2013
+				Eliminate all early data taking (all runs before 508)
 			*/
-			for(int i=22; i<=62; i++){ exclude.push_back(i); }
-
-
-
-			/*
-				ICL rooftop
-				http://ara.icecube.wisc.edu/wiki/index.php/A23_Diffuse_UW
-			*/
-
-			for(int i=63; i<=70; i++){ exclude.push_back(i); }
-			for(int i=333; i<=341; i++){ exclude.push_back(i); }
-
-
-			/*
-				Cal sweep
-				http://ara.icecube.wisc.edu/wiki/index.php/A23_Diffuse_UW
-			*/
-
-			for(int i=72; i<=297; i++){ exclude.push_back(i); }
-			for(int i=346; i<=473; i++){ exclude.push_back(i); }
+			for(int i=0; i<=508; i++){ exclude.push_back(i); }
 
 
 			/*
@@ -1035,6 +1136,12 @@ vector<int> BuildBadRunList(int station){
 				http://ara.icecube.wisc.edu/wiki/index.php/Run_Log_2014
 			*/
 			for(int i=7126; i<=7253; i++){ exclude.push_back(i); }
+
+			/*
+				More events with no RF/deep triggers
+				seems to precede coming test
+			*/
+			exclude.push_back(7125);
 	}
 	return exclude;
 }
@@ -1064,13 +1171,12 @@ int isBadRun(int station, int run_num, vector<int>BadRunList){
 */
 bool isSoftwareDominatedRun(std::string pathToToolsDir, int station, int run_num){
 	char filename[200];
-	sprintf(filename,"%s/data/A%d_software_dominated_list.csv",pathToToolsDir.c_str(), station);
+	sprintf(filename,"%s/data/A%i_software_dominated_list.txt",pathToToolsDir.c_str(), station);
 	ifstream infile(filename);
 	string line;
 	string str;
 
 	bool isSoftwareDominated=false;
-
 	//  Read the file
 	while (getline(infile, line))
 	{   istringstream ss (line);
@@ -1078,11 +1184,9 @@ bool isSoftwareDominatedRun(std::string pathToToolsDir, int station, int run_num
 
 		while (getline(ss, str, ','))
 		record.push_back(str);
-		// cout << record[0] << endl;
 		int runNum;
 		std::stringstream(record[0]) >> runNum;
 		if (runNum==run_num){
-			// cout << "Untagged" << endl;
 			isSoftwareDominated=true;
 		}
 	}
@@ -1125,4 +1229,298 @@ bool hasUntaggedCalpul(std::string pathToToolsDir, int station, int config, int 
 	}
 
 	return hasUntagged;
+}
+
+Double_t getPeakSqVal(TGraph *gr, int *index){
+  Double_t x,y;
+  gr->GetPoint(0,x,y);
+  Double_t peakVal=y*y;
+  Int_t peakBin=0;
+  Int_t numPoints=gr->GetN();
+  for(int i=1;i<numPoints;i++) {
+     gr->GetPoint(i,x,y);
+     if(peakVal<y*y) {
+        peakVal=y*y;
+        peakBin=i;
+     }
+  }
+  if(index) *index=peakBin;
+  return peakVal;
+ }
+
+//isSpikeyStringEvent
+ bool isSpikeyStringEvent(int stationId, bool dropARA03D4, vector <TGraph*> wf, int config){
+	 double spikeyRatio = 0.;
+	 if (stationId != 3){ //Only A3 has such problem
+		 return false;
+	 }
+	 double maxV[16];
+	 int maxVIdx;
+	 std::fill(&maxV[0], &maxV[16], 0.);
+	 double avgSNR[4];
+	 for(int ch=0; ch<16; ch++){
+		 maxV[ch] = sqrt(getPeakSqVal(wf[ch], &maxVIdx));
+	 }
+	 for (int string=0; string<4; string++){
+		 avgSNR[string] = (maxV[string] + maxV[string+4] + maxV[string+12])/3.; //TH don't seem to see the spike, so exclude
+	 }
+	 if(dropARA03D4) spikeyRatio = 2. * avgSNR[0] / (avgSNR[1] + avgSNR[2]);
+	 else            spikeyRatio = 3. * avgSNR[0] / (avgSNR[1] + avgSNR[2] + avgSNR[3]);
+
+	 bool isSpikey=false;
+	 // We now need to see if the spikey ratio is greater than the cuts imposed by Ming-Yuan Lu.
+	 if(config==1 && spikeyRatio>=2.4055) isSpikey=true;
+	 if(config==2 && spikeyRatio>=2.5267) isSpikey=true;
+	 if(config==3 && spikeyRatio>=3.5007) isSpikey=true;
+	 if(config==4 && spikeyRatio>=3.9877) isSpikey=true;
+	 if(config==5 && spikeyRatio>=3.6174) isSpikey=true;
+
+	 return isSpikey;
+ }
+
+ /* Check for cliff event. Cut created by Ming-Yuan Lu and adapted by Jorge Torres
+ for the OSU A23 analysis.
+
+ /* Check if a cliff string exists. If so, the event is considered a cliff event and discarded.
+ /* A cliff string is defined as either string 1,2,3 where all 4 channels on it shows |median difference| > predefined thresholds
+ */
+ bool isCliffEvent(vector <TGraph*> grInt){
+	 int cliff_threshold_A3_string1=100;
+	 int cliff_threshold_A3_string2=45;
+	 int cliff_threshold_A3_string3=100;
+	 int cliffCount_string1, cliffCount_string2, cliffCount_string3;
+	 int const IRS2SamplePerBlock=64;
+	 bool isCliff;
+	 double firstBlockMedian, lastBlockMedian;
+	 double firstBlockSamples[IRS2SamplePerBlock], lastBlockSamples[IRS2SamplePerBlock];
+	 cliffCount_string1 = cliffCount_string2 = cliffCount_string3 = 0;
+	 int len;
+	 for (int ch=0; ch<16; ch++){
+		 int len = grInt[ch]->GetN();
+		 double * voltValues;
+		 voltValues = grInt[ch]->GetY();
+		 for (int s=0; s<IRS2SamplePerBlock; s++){
+			 firstBlockSamples[s] = voltValues[s];
+			 lastBlockSamples[s]  = voltValues[len-IRS2SamplePerBlock+s];
+		 }
+		 firstBlockMedian = TMath::Median(IRS2SamplePerBlock, firstBlockSamples);
+		 lastBlockMedian  = TMath::Median(IRS2SamplePerBlock, lastBlockSamples);
+		 double medianDiff = fabs(firstBlockMedian - lastBlockMedian);
+
+		 if (ch%4 == 0){ //string 1
+			 if (medianDiff > cliff_threshold_A3_string1){
+				 isCliff = true;
+			 }
+		 } else if (ch%4 == 1) { //string 2
+			 if (medianDiff > cliff_threshold_A3_string2){
+				 isCliff = true;
+			 }
+		 } else if (ch%4 == 2){ //string 3
+			 if (medianDiff > cliff_threshold_A3_string3){
+				 isCliff = true;
+			 }
+		 }
+	 }//end of ch
+
+	 return isCliff;
+ }
+
+ //hasOutofBandIssue: Cut implemented by Jorge Torres.
+ //Inputs: vector of dim=16 containing waveforms for each channels
+ //Outputs: returns a false or true depending on whether the event has more than
+ //10% of power below 120 MHz.
+
+ //Other version implemented by Ming-Yuan Lu. It tags the event as bad if the peak power bin
+ //is out of band.
+ bool hasOutofBandIssue(vector <TGraph*> wform, bool dropDDA4){
+	 double interpolation_step = 0.5;
+	 int counts = 0;
+	 bool isGlitch=false;
+
+	 // for (int i = 0; i < 16; i++){
+		//  TGraph *Waveform_Interpolated = FFTtools::getInterpolatedGraph(wform[i],interpolation_step);
+		//  //	delete gr;
+		//  TGraph *Waveform_Padded = FFTtools::padWaveToLength(Waveform_Interpolated, Waveform_Interpolated->GetN()+6000);
+		//  delete Waveform_Interpolated;
+		//  TGraph *Waveform_Cropped=FFTtools::cropWave(Waveform_Padded,-300.,300.);
+		//  delete Waveform_Padded;
+		//  TGraph* spectra = FFTtools::makePowerSpectrumMilliVoltsNanoSeconds(Waveform_Cropped);
+		//  double outOfBandPower = 0;
+		//  double integral = 0;
+		//  double fracOutPower = 0;
+		//  int num_bins = spectra->GetN();
+		//  int upBin = (int) 50*(spectra->GetX()[num_bins-1]-spectra->GetX()[0])/num_bins;//120 MHz is the freq below which it's out of band
+		//  // printf("number of bins is:%i, xmin is:%f, xmax is:%f\n",num_bins,spectra->GetX()[0],spectra->GetX()[num_bins-1]);
+		//  for(int samp=0; samp<num_bins; samp++){
+	 //     integral+=spectra->GetY()[samp];
+	 //   }
+		//  for(int j = 0; j < upBin+1; j++){
+		// 	 outOfBandPower+= spectra->GetY()[j];
+		//  }
+		//  delete spectra;
+		//  fracOutPower = outOfBandPower/integral;
+		//  // cout << fracOutPower << endl;
+		//  if(fracOutPower>=0.5){
+		// 	 isGlitch=true;
+		// 	 break;
+		//  }
+	 // }
+	 for (int i = 0; i < 16; i++){
+		 TGraph *Waveform_Interpolated = FFTtools::getInterpolatedGraph(wform[i],interpolation_step);
+		 //	delete gr;
+		 TGraph *Waveform_Padded = FFTtools::padWaveToLength(Waveform_Interpolated, Waveform_Interpolated->GetN()+6000);
+		 delete Waveform_Interpolated;
+		 TGraph *Waveform_Cropped=FFTtools::cropWave(Waveform_Padded,-300.,300.);
+		 delete Waveform_Padded;
+		 TGraph* spectra = FFTtools::makePowerSpectrumMilliVoltsNanoSeconds(Waveform_Cropped);
+		 int num_bins = spectra->GetN();
+		 int upBin = (int) 100/((spectra->GetX()[num_bins-1]-spectra->GetX()[0])/num_bins);//120 MHz is the freq below which it's out of band
+		 // printf("number of bins is:%i, xmin is:%f, xmax is:%f\n",num_bins,spectra->GetX()[0],spectra->GetX()[num_bins-1]);
+		 int peakBin = FFTtools::getPeakBin(spectra);
+		 // cout << peakBin << endl;
+		 delete spectra;
+		 delete Waveform_Cropped;
+
+		 if(dropDDA4==true && (i==3 || i==7 || i==11 || i==15)) continue;
+		 if(peakBin<upBin){
+			 // printf("PeakBin is:%i, UpBin is:%i\n",peakBin,upBin);
+			 // cout << i << endl;
+			 // if (peakBin>0) counts+=1;
+			 counts+=1;
+		}
+	 }
+	 if(counts>3) isGlitch=true;
+	 // printf("counts is %i\n",counts);
+	 return isGlitch;
+ }
+
+/*
+	input: antenna_powers (take a vector of the power contained in each channel), and dropBadChans (for if to drop bad channels)
+	output: the ratio
+
+	function: return the ratio of the average antenna power on the string with the most power
+				over the average antenna power on the string with the next most power
+*/
+double returnStringPowerRatio(vector<double> antenna_powers, int station, bool dropBadChans){
+
+ 	// protections against Brian's stupidity
+ 	vector<double> average_string_powers;
+ 	double ratio;
+ 	if(antenna_powers.size()<16){
+ 		ratio=0.;
+ 		return ratio;
+ 	}
+
+ 	if(station==2){
+ 		average_string_powers.push_back((antenna_powers[0]+antenna_powers[4]+antenna_powers[8]+antenna_powers[12])/4.);
+ 		average_string_powers.push_back((antenna_powers[1]+antenna_powers[5]+antenna_powers[9]+antenna_powers[13])/4.);
+ 		average_string_powers.push_back((antenna_powers[2]+antenna_powers[6]+antenna_powers[10]+antenna_powers[14])/4.);
+ 		average_string_powers.push_back((antenna_powers[3]+antenna_powers[7]+antenna_powers[11])/3.);
+ 	}
+
+ 	if(station==3){
+ 		if(!dropBadChans){
+			average_string_powers.push_back((antenna_powers[0]+antenna_powers[4]+antenna_powers[8]+antenna_powers[12])/4.);
+ 			average_string_powers.push_back((antenna_powers[1]+antenna_powers[5]+antenna_powers[9]+antenna_powers[13])/4.);
+ 			average_string_powers.push_back((antenna_powers[2]+antenna_powers[6]+antenna_powers[10]+antenna_powers[14])/4.);
+ 			average_string_powers.push_back((antenna_powers[3]+antenna_powers[7]+antenna_powers[11]+antenna_powers[15])/4.);
+ 		}
+ 		else if(dropBadChans){
+ 			average_string_powers.push_back((antenna_powers[0]+antenna_powers[4]+antenna_powers[8]+antenna_powers[12])/4.);
+ 			average_string_powers.push_back((antenna_powers[1]+antenna_powers[5]+antenna_powers[9]+antenna_powers[13])/4.);
+ 			average_string_powers.push_back((antenna_powers[2]+antenna_powers[6]+antenna_powers[10]+antenna_powers[14])/4.);
+ 			average_string_powers.push_back(0.); // push back a zero for string 4, just to keep the vector the right length
+ 		}
+ 	}
+
+ 	//sort smallest to largest
+ 	if(average_string_powers.size()!=4){
+ 		cout<<"WARNING! This array is too short"<<endl;
+ 	}
+ 	std::sort(average_string_powers.begin(), average_string_powers.end());
+	ratio = average_string_powers[3]/average_string_powers[2];
+	return ratio;
+}
+/*
+	input: waveforms (vector of waveforms; raw, interpolated, don't matter), and station, runNum
+	output: does the event have too much power concentrated in one run or not?
+
+	function: check if the event has too much power concentrated in a single run,
+				like we saw in the A2 unblindinging
+*/
+bool isHighPowerStringEvent(vector<TGraph*> waveforms, int station, int config){
+
+	// protections against Brian's stupidity
+	bool this_isHighPowerEvent=false;
+	if(waveforms.size()<16 || (station!=2 && station!=3)){
+		this_isHighPowerEvent=false;
+		return this_isHighPowerEvent;
+	}
+
+	// compute power in the antennas
+	vector<double> powers_on_antennas;
+	for(int chan=0; chan<16; chan++){
+		Double_t *yVals = waveforms[chan]->GetY();
+		int N = waveforms[chan]->GetN();
+		double thisPower =0.;
+		for(int samp=0; samp<N; samp++){
+			thisPower+=yVals[samp]*yVals[samp];
+		}
+		powers_on_antennas.push_back(thisPower);
+	}
+
+	// figure out if we need to drop bad channels based on the runNum
+	bool dropBadChans=false;
+	if(station==2){
+		dropBadChans=true;
+	}
+	else if(station==3 && config>2){
+		dropBadChans=true;
+	}
+
+	// get the ratio
+	double ratio = returnStringPowerRatio(powers_on_antennas, station, dropBadChans);
+
+	// if the average power in string with highest power is >5x average power in string with next highest power
+	// mark it as a high power event
+	if(ratio>5.)
+		this_isHighPowerEvent=true;
+
+	// return
+	return this_isHighPowerEvent;
+}
+
+
+/*
+	input: waveforms (vector of waveforms; raw, interpolated, don't matter), freqLimit (below what we consider out of band),
+	dropDDA4 (drop string 4?), absPower (vector to be filled)
+	output: vector conataining absolute power per channel
+
+	function: calculates the absolute power concentrated below "freqLimit" MHz.
+*/
+
+int outOfBandAbsPower(vector <TGraph*> wform, bool dropDDA4, double freqLimit, vector <double> & absPower){
+	double interpolation_step = 0.5;
+	for (int i = 0; i < 16; i++){
+		if(dropDDA4==true && (i==3 || i==7 || i==11 || i==15)){
+			absPower.push_back(-1);
+			continue;
+		}
+		TGraph *Waveform_Interpolated = FFTtools::getInterpolatedGraph(wform[i],interpolation_step);
+		TGraph *Waveform_Padded = FFTtools::padWaveToLength(Waveform_Interpolated, Waveform_Interpolated->GetN()+6000);
+		delete Waveform_Interpolated;
+		TGraph *Waveform_Cropped=FFTtools::cropWave(Waveform_Padded,-500.,700.);
+		delete Waveform_Padded;
+		TGraph* spectra = FFTtools::makePowerSpectrumMilliVoltsNanoSeconds(Waveform_Cropped);
+		delete Waveform_Cropped;
+		double outOfBandPower = 0.;
+		int num_bins = spectra->GetN();
+		int upBin = (int) freqLimit/((spectra->GetX()[num_bins-1]-spectra->GetX()[0])/num_bins);//freqLimit is the freq below which it's out of band
+		for(int j = 0; j < upBin+1; j++){
+			outOfBandPower+= spectra->GetY()[j];
+		}
+		delete spectra;
+		absPower.push_back(outOfBandPower);
+	}
+	return 0;
 }

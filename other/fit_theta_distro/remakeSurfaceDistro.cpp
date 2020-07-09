@@ -122,7 +122,7 @@ int main(int argc, char **argv){
 		c->SaveAs(saveTitle);
 	}
 
-	bool doVersion2=true;
+	bool doVersion2=false;
 	if(doVersion2){
 
 		double vslope, hslope;
@@ -137,7 +137,8 @@ int main(int argc, char **argv){
 		// selected_intercepts[1]-=1; // bring these down
 
 		char fileName[400];
-		sprintf(fileName,"/fs/project/PAS0654/ARA_DATA/A23/10pct_redo/other_studies/surface_distro/reco_and_2d_cut_values_A%d_c%d_10sample.root",station,config);
+		sprintf(fileName,"/fs/project/PAS0654/ARA_DATA/A23/10pct_redo/other_studies/surface_distro/reco_and_2d_cut_values_A%d_c*_10sample.root",station);
+		// sprintf(fileName,"/fs/project/PAS0654/ARA_DATA/A23/10pct_redo/other_studies/surface_distro/reco_and_2d_cut_values_A%d_c%d_10sample.root",station,config);
 		TFile *fpIn = TFile::Open(fileName,"READ");
 		TTree *outTree = (TTree*) fpIn->Get("outTree");
 		int hist_this_pol[2];
@@ -235,6 +236,12 @@ int main(int argc, char **argv){
 		fitCopy[1] = new TF1(this_fit_title[1], "gaus", start_of_fit[1]-0.35, end_of_fit[1]);
 		fitCopy[1]->SetParameters(fitParams[1][0], fitParams[1][1], fitParams[1][2]);	
 
+		cout<<"V Integral is "<<1/(2./180.) *fitCopy[0]->Integral(-1.,0.35)<<endl;
+		cout<<"H Integral is "<<1/(2./180.) *fitCopy[1]->Integral(-1.,0.35)<<endl;
+		// int startBin = h1_costheta[0]->GetXaxis()->FindBin(0.66);
+		// int stopBin = h1_costheta[0]->GetXaxis()->FindBin(0.73);
+		// cout<<"Actual data events "<< h1_costheta[0]->Integral(startBin,stopBin)<<endl;
+
 		double bot = 25.;
 		double top = 55.;
 		double bot_coszen = TMath::Sin(TMath::DegToRad()*double(bot));
@@ -268,7 +275,7 @@ int main(int argc, char **argv){
 					h1_costheta[pol]->GetXaxis()->SetRangeUser(0.3,0.8);
 					h1_costheta[pol]->GetXaxis()->SetTitle("sin(#theta)");
 					h1_costheta[pol]->GetYaxis()->SetTitle("Number of Events");
-					// h1_costheta[pol]->GetYaxis()->SetRangeUser(0.01,1e5);
+					h1_costheta[pol]->GetYaxis()->SetRangeUser(0.01,5e5);
 				// h1_costheta_passingRcut[pol]->Draw("same");
 				// 	h1_costheta_passingRcut[pol]->SetLineColor(kRed);
 				fitCopy[pol]->Draw("same");
@@ -283,6 +290,165 @@ int main(int argc, char **argv){
 		delete cDistro;
 
 		fpIn->Close();
+
+	}
+	bool doVersion3=true;
+	if(doVersion3){
+
+		char fileName[400];
+		sprintf(fileName,"/fs/project/PAS0654/ARA_DATA/A23/10pct_redo/other_studies/surface_distro/reco_and_2d_cut_values_A%d_c*_10sample.root",station);
+		TChain outTree("outTree");
+		outTree.Add(fileName);
+
+		int hist_this_pol[2];
+		int theta_val_300[2];
+		int phi_val_300[2];
+		double corr_val_300[2];
+		double snr_val_300[2];
+		int runNum_out;
+		int eventNum_out;
+		int unixTime_out;
+		bool isThisABadRun_out;
+		bool isThisBadLivetime_out;
+		outTree.SetBranchAddress("passes_this_pol_V",&hist_this_pol[0]);
+		outTree.SetBranchAddress("passes_this_pol_H",&hist_this_pol[1]);
+		outTree.SetBranchAddress("theta_val_300_V",&theta_val_300[0]);
+		outTree.SetBranchAddress("theta_val_300_H",&theta_val_300[1]);
+		outTree.SetBranchAddress("phi_val_300_V",&phi_val_300[0]);
+		outTree.SetBranchAddress("phi_val_300_H",&phi_val_300[1]);
+		outTree.SetBranchAddress("corr_val_300_V",&corr_val_300[0]);
+		outTree.SetBranchAddress("corr_val_300_H",&corr_val_300[1]);
+		outTree.SetBranchAddress("snr_val_300_V",&snr_val_300[0]);
+		outTree.SetBranchAddress("snr_val_300_H",&snr_val_300[1]);
+		outTree.SetBranchAddress("runNum_out",&runNum_out);
+		outTree.SetBranchAddress("eventNum_out",&eventNum_out);
+		outTree.SetBranchAddress("unixTime_out",&unixTime_out);
+		outTree.SetBranchAddress("isThisABadRun_out",&isThisABadRun_out);
+		outTree.SetBranchAddress("isThisBadLivetime_out",&isThisBadLivetime_out);
+		int numEntries = outTree.GetEntries();
+
+		TH1D *h1_costheta[2];
+		TH1D *h1_costheta_passingRcut[2];
+		h1_costheta[0] = new TH1D("Vdist_costheta","Vdist_costheta",180,-1,1);
+		h1_costheta[1] = new TH1D("Hdist_costheta","Hdist_costheta",180,-1,1);
+		h1_costheta_passingRcut[0] = new TH1D("Vdist_costheta_reduced","Vdist_costheta_reduced",180,-1,1);
+		h1_costheta_passingRcut[1] = new TH1D("Hdist_costheta_reduced","Hdist_costheta_reduced",180,-1,1);
+
+		for(int i=0; i<numEntries; i++){
+			outTree.GetEvent(i);
+			// if(runNum_out!=2884) continue;
+			if(isThisABadRun_out || isThisBadLivetime_out) continue;
+			for(int pol=0; pol<2; pol++){
+				
+				double thisSinTheta=TMath::Sin(double(theta_val_300[pol])*TMath::DegToRad());
+				h1_costheta[pol]->Fill(thisSinTheta);
+				// if(hist_this_pol[pol]){
+					// if(snr_val_300[pol]>5.5 && hist_this_pol[pol]){
+					// 	h1_costheta_passingRcut[pol]->Fill(thisSinTheta);
+					// }
+					// double this_y_val = (selected_slopes[pol] * corr_val_300[pol] ) + selected_intercepts[pol];
+					// cout<<"Corr is "<<corr_val_300[pol]<<" and snr is "<<snr_val_300[pol]<<" and this_y_val is "<<this_y_val<<endl;
+					// cout<<"Selected slopes is "<<selected_slopes[pol]<<" and selected intercepts is "<<selected_intercepts[pol]<<endl;
+					// cout<<"SNR cut is "<<this_y_val<<" and the SNR is "<<snr_val_300[pol]<<endl;
+					// if(snr_val_300[pol]>=this_y_val){
+					// 	cout<<"Run "<<runNum_out<<" with an SNR of "<<snr_val_300[pol]<<"has bad run flag of "<<isThisABadRun_out<<endl;
+					// 	h1_costheta_passingRcut[pol]->Fill(thisSinTheta);
+					// }
+				// }
+			}
+		}
+
+		double start_of_fit[2];
+		double end_of_fit[2];
+
+		start_of_fit[0] = start_of_fit[1] = 0.66;
+		end_of_fit[0] = end_of_fit[1] = 0.73;
+
+		// now we actually do the exponential fit
+		char equation[150];
+		sprintf(equation,"gaus");
+		char equation_name[2][150];
+		TF1 *fit[2];
+		int status[2];
+		double fitParams[2][3];
+		double fitParamErrors[2][3];
+		for(int pol=0; pol<2; pol++){
+			sprintf(equation_name[pol],"GausFit%d",pol);
+			fit[pol] = new TF1(equation_name[pol],equation,start_of_fit[pol],end_of_fit[pol]);
+			status[pol] = h1_costheta[pol]->Fit(equation_name[pol],"LL,R");
+			fitParams[pol][0] = fit[pol]->GetParameter(0);
+			fitParams[pol][1] = fit[pol]->GetParameter(1);
+			fitParams[pol][2] = fit[pol]->GetParameter(2);
+			// fitParamErrors[pol][0] = fit[pol]->GetParError(0);
+			// fitParamErrors[pol][1] = fit[pol]->GetParError(1);
+			// printf("Pol %d Fit Parameters are %.2f and %.2f \n", pol, fitParams[pol][0], fitParams[pol][1]);
+		}
+
+		TF1 *fitCopy[2];
+
+		char this_fit_title[2][400];
+		sprintf(this_fit_title[0],"fCopyFitV");
+		fitCopy[0] = new TF1(this_fit_title[0], "gaus", start_of_fit[0]-0.35, end_of_fit[0]);
+		fitCopy[0]->SetParameters(fitParams[0][0], fitParams[0][1], fitParams[0][2]);
+
+		sprintf(this_fit_title[1],"fCopyFitH");
+		fitCopy[1] = new TF1(this_fit_title[1], "gaus", start_of_fit[1]-0.35, end_of_fit[1]);
+		fitCopy[1]->SetParameters(fitParams[1][0], fitParams[1][1], fitParams[1][2]);	
+
+		cout<<"V Integral is "<<1/(2./180.) *fitCopy[0]->Integral(-1.,0.30)<<endl;
+		cout<<"H Integral is "<<1/(2./180.) *fitCopy[1]->Integral(-1.,0.30)<<endl;
+		// int startBin = h1_costheta[0]->GetXaxis()->FindBin(0.66);
+		// int stopBin = h1_costheta[0]->GetXaxis()->FindBin(0.73);
+		// cout<<"Actual data events "<< h1_costheta[0]->Integral(startBin,stopBin)<<endl;
+
+		double bot = 25.;
+		double top = 55.;
+		double bot_coszen = TMath::Sin(TMath::DegToRad()*double(bot));
+		double top_coszen = TMath::Sin(TMath::DegToRad()*double(bot));
+
+		double surface = 37.;
+		double surface_sintheta = TMath::Sin(TMath::DegToRad()*double(surface));
+		TLine *line = new TLine(surface_sintheta,1e4, surface_sintheta,1e5);
+
+		char vtitle[400];
+		char htitle[400];
+
+		sprintf(vtitle,"const %.2f, mean %.2f, sigma %.2f",fitParams[0][0], fitParams[0][1], fitParams[0][2]);
+		sprintf(htitle,"const %.2f, mean %.2f, sigma %.2f",fitParams[1][0], fitParams[1][1], fitParams[1][2]);
+
+		h1_costheta[0]->SetTitle(vtitle);
+		h1_costheta[1]->SetTitle(htitle);
+
+		gStyle->SetOptStat(0);
+		TCanvas *cDistro = new TCanvas("","",2*1100,850);
+		cDistro->Divide(2,1);
+		for(int pol=0; pol<2; pol++){
+			// cDistro->cd(pol+1);
+			// 	h1_theta[pol]->Draw("");
+			// 	h1_theta[pol]->GetXaxis()->SetRangeUser(bot,top);
+			// 	h1_theta[pol]->GetXaxis()->SetTitle("#theta [deg]");
+			// 	h1_theta[pol]->GetYaxis()->SetTitle("Number of Events");
+			// 	gPad->SetLogy();
+			cDistro->cd(pol+1);
+				h1_costheta[pol]->Draw("");
+					h1_costheta[pol]->GetXaxis()->SetRangeUser(0.3,0.8);
+					h1_costheta[pol]->GetXaxis()->SetTitle("sin(#theta)");
+					h1_costheta[pol]->GetYaxis()->SetTitle("Number of Events");
+					h1_costheta[pol]->GetYaxis()->SetRangeUser(0.01,5e5);
+				// h1_costheta_passingRcut[pol]->Draw("same");
+				// 	h1_costheta_passingRcut[pol]->SetLineColor(kRed);
+				fitCopy[pol]->Draw("same");
+					fitCopy[pol]->SetLineColor(kRed);
+				// line->Draw("same");
+				// 	line->SetLineColor(kGreen);
+				gPad->SetLogy();
+		}
+		char save_temp_title[400];
+		sprintf(save_temp_title,"./A%d_c%d_SinThetaDistributions.png",station,config);
+		cDistro->SaveAs(save_temp_title);
+		delete cDistro;
+
+		// fpIn->Close();
 
 	}
 }
