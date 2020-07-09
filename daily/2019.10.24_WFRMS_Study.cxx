@@ -52,8 +52,8 @@ int main(int argc, char **argv)
 
 	stringstream ss;
 	
-	if(argc<7){
-		cout<< "Usage\n" << argv[0] << " <isSim?> <station> <config> <vbin> <hbin> <filter filename 1> <filter filename 2 > ... <filter filename x>"<<endl;
+	if(argc<9){
+		cout<< "Usage\n" << argv[0] << " <isSim?> <station> <config> <vbin> <hbin> <vcut> <hcut> <filter filename 1> <filter filename 2 > ... <filter filename x>"<<endl;
 		return 0;
 	}
 	int isSim = atoi(argv[1]);
@@ -61,13 +61,8 @@ int main(int argc, char **argv)
 	int config = atoi(argv[3]);
 
 	//just to have the cut parameters up front and easy to find
-
-	// int thresholdBin_pol[]={3,5}; //bin 3 = 2.3, bin 5 = 2.5 //what is the faceRMS inclusion threshold?
-	// double wavefrontRMScut[]={-1.5, -1.5}; //event wavefrontRMS < this value
-
-	// int thresholdBin_pol[]={0, 0}; //bin 3 = 2.3, bin 5 = 2.5 //what is the faceRMS inclusion threshold?
-	int thresholdBin_pol[] = {atoi(argv[4]), atoi(argv[5])};
-	double wavefrontRMScut[]={2, 2}; //event wavefrontRMS < this value
+	int thresholdBin_pol[] = {atoi(argv[4]), atoi(argv[5])}; //what is the faceRMS inclusion threshold?
+	double wavefrontRMScut[]={atof(argv[6]), atof(argv[7])}; //event wavefrontRMS < this value
 
 	TH1D *h1_face_RMSs_V[12];
 	TH1D *h1_face_RMSs_best_V[12];
@@ -96,6 +91,14 @@ int main(int argc, char **argv)
 	h1_best_face[0] = new TH1D("v_best_face","v_best_face_rms",12,0,12);
 	h1_best_face[1] = new TH1D("h_best_face","h_best_face_rms",12,0,12);
 
+	double num_thermal[2] = {0, 0};
+	double num_passing[] = {0.,0.};
+	double num_passing_either=0.;
+
+	// double num_passing[2][5][11] = {{{0.}}}; // [pol][snr_bin][wfrms_cut]
+	// int numWFRMSlevels=11;
+	// double wfrms_level_cuts[11]={-1.5, -1.4, -1.3, -1.2, -1.1, -1.0, -0.9, -0.8, -0.7, -0.6, -0.5};
+
 	TH1D *h1_SNR_dist[16][2];
 	for(int chan=0; chan<16; chan++){
 		for(int peak=0; peak<2; peak++){
@@ -108,7 +111,7 @@ int main(int argc, char **argv)
 	vector<int> BadRunList=BuildBadRunList(station);
 	int num_total=0;
 
-	for(int file_num=6; file_num<argc; file_num++){
+	for(int file_num=8; file_num<argc; file_num++){
 
 		string chRun = "run";
 		string file = string(argv[file_num]);
@@ -202,6 +205,8 @@ int main(int argc, char **argv)
 			if(isSoftTrigger || isShort || isCalPulser) continue;
 
 			num_total++;
+			num_thermal[0]+=weight;
+			num_thermal[1]+=weight;
 
 			//filter associated parameters
 			double SNRs[2];
@@ -212,30 +217,72 @@ int main(int argc, char **argv)
 
 			vector <double> rms_faces_V;
 			vector <double> rms_faces_H;
+			vector <double> rms_faces_V_scan;
+			vector <double> rms_faces_H_scan;
 
 			int num_faces_for_V_loop;
 			int num_faces_for_H_loop;
 			if(station==2){
 				rms_faces_V.resize(numFaces);
+				rms_faces_V_scan.resize(numFaces);
 				num_faces_for_V_loop=numFaces;
 				rms_faces_H.resize(numFaces_A2_drop);
+				rms_faces_H_scan.resize(numFaces);
 				num_faces_for_H_loop=numFaces_A2_drop;
 			}
 			else if(station==3){
 				if(runNum>getA3BadRunBoundary()){ //it's 2014+, drop string four
 					rms_faces_V.resize(numFaces_A3_drop);
+					rms_faces_V_scan.resize(numFaces_A3_drop);
 					num_faces_for_V_loop=numFaces_A3_drop;
 					rms_faces_H.resize(numFaces_A3_drop);
+					rms_faces_H_scan.resize(numFaces_A3_drop);
 					num_faces_for_H_loop=numFaces_A3_drop;
 					// printf(RED"Run is beyond bad boundary!\n");
 				}
 				else{ //it's 2013-, keep string four
 					rms_faces_V.resize(numFaces);
+					rms_faces_V_scan.resize(numFaces);
 					num_faces_for_V_loop=numFaces;
 					rms_faces_H.resize(numFaces);
+					rms_faces_H_scan.resize(numFaces);
 					num_faces_for_H_loop=numFaces;
 				}
 			}
+
+			// // scan over threshold bins for 2D passing rate plot
+			// for(int binThresh=0; binThresh<5; binThresh++){
+			// 	for(int i=0; i<num_faces_for_V_loop; i++){
+			// 		if (num_faces_for_V_loop==12){
+			// 			rms_faces_V_scan[i] = rms_pol_thresh_face_V[binThresh][i];
+			// 		}
+	 	// 			else{
+	 	// 				rms_faces_V_scan[i] = rms_pol_thresh_face_alternate_V[binThresh][i];
+	 	// 			}
+	 	// 			rms_faces_V_scan[i] = TMath::Log10(rms_faces_V_scan[i]);
+			// 	}
+			// 	for(int i=0; i<num_faces_for_H_loop; i++){
+			// 		if (num_faces_for_H_loop==12){
+			// 			rms_faces_H_scan[i] = rms_pol_thresh_face_H[binThresh][i];
+			// 		}
+			// 		else{
+			// 			rms_faces_H_scan[i] = rms_pol_thresh_face_alternate_H[binThresh][i];
+			// 		}
+			// 		rms_faces_H_scan[i] = TMath::Log10(rms_faces_H_scan[i]);
+			// 	}
+
+			// 	sort(rms_faces_V_scan.begin(), rms_faces_V_scan.end());
+			// 	sort(rms_faces_H_scan.begin(), rms_faces_H_scan.end());
+
+			// 	for(int binWFRMS=0; binWFRMS<numWFRMSlevels; binWFRMS++){
+			// 		if(rms_faces_V_scan[0]<wfrms_level_cuts[binWFRMS]){
+			// 			num_passing[0][binThresh][binWFRMS]++;
+			// 		}
+			// 		if(rms_faces_V_scan[1]<wfrms_level_cuts[binWFRMS]){
+			// 			num_passing[1][binThresh][binWFRMS]++;
+			// 		}
+			// 	}
+			// }
 
 			for(int i=0; i<num_faces_for_V_loop; i++){
 				if (num_faces_for_V_loop==12){
@@ -359,11 +406,37 @@ int main(int argc, char **argv)
 			h1_best_face_RMS[0]->Fill(bestFaceRMS[0]);
 			h1_best_face_RMS[1]->Fill(bestFaceRMS[1]);
 
+			bool thisPasses[] = {false,false};
+			for(int pol=0; pol<2; pol++){
+				if(bestFaceRMS[pol]<wavefrontRMScut[pol]){
+					num_passing[pol]+=weight;
+					thisPasses[pol]=true;
+				}
+			}
+			if(thisPasses[0] || thisPasses[1]){
+				num_passing_either+=weight;
+			}
 		}//loop over events
-		
 		inputFile->Close();
 		delete inputFile;
 	} //end loop over input files
+
+	// turn all of these into rates
+	// for(int pol=0; pol<2; pol++){
+	// 	for(int binSNR=0; binSNR<5; binSNR++){
+	// 		for(int binWFRMS=0; binWFRMS<numWFRMSlevels; binWFRMS++){
+	// 			num_passing[pol][binSNR][binWFRMS]/=num_thermal;
+	// 		}
+	// 	}
+	// }
+
+	for(int pol=0; pol<2; pol++){
+		printf("Pol %d \n", pol);
+		printf("-----------------------\n");
+		printf("	Num thermal passing pol %d: %.3f/%.3f events, %.3f rate \n", pol, num_passing[pol],num_thermal[pol], 100.*num_passing[pol]/num_thermal[pol]);
+	}
+	printf("-----------------------\n");
+	printf("Num passing either: %.3f/%.3f events, %.3f rate \n",num_passing_either, num_thermal[0], 100.*num_passing_either/num_thermal[0]);
 
 
 	TCanvas *c = new TCanvas("","",4*850,3*850);
