@@ -190,7 +190,7 @@ int main(int argc, char **argv)
 	Long64_t numEntries=eventTree->GetEntries();
 	Long64_t starEvery=numEntries/80;
 	if(starEvery==0) starEvery++;
-	// numEntries=300;
+	numEntries=300;
 	// int numThermal=0;
 	// int numGood=0;
 
@@ -597,7 +597,12 @@ int main(int argc, char **argv)
 			getCorrMapPeak_wStats(map_H_raytrace_300, peakTheta_300m[1], peakPhi_300m[1], peakCorr_300m[1], minCorr_300m[1], meanCorr_300m[1], rmsCorr_300m[1], peakSigma_300m[1]);
 
 
-			//cout<<"Run "<<runNum<<" Event "<<event<<" 300m v corr is "<<peakCorr_300m[0]<<endl;
+			// printf("Run %d, Event Number %d, 300m Reco Stats (Vtheta, Vphi, Vcorr, Htheta, Hphi, Hcorr): %d, %d, %.4f, %d, %d, %.4f \n", runNum, eventNumber, peakTheta_300m[0], peakPhi_300m[0], peakCorr_300m[0], peakTheta_300m[1], peakPhi_300m[1], peakCorr_300m[1]);
+
+			printf("%d, %d, %d, %d, %.5f, %d, %d, %.5f \n", runNum, eventNumber, peakTheta_300m[0], peakPhi_300m[0], peakCorr_300m[0], peakTheta_300m[1], peakPhi_300m[1], peakCorr_300m[1]);
+
+
+
 			// cleanup
 			delete map_V_raytrace_41;
 			delete map_V_raytrace_300;

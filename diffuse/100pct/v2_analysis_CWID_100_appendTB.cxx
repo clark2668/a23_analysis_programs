@@ -127,7 +127,7 @@ int main(int argc, char **argv)
 	Long64_t starEvery=numEntries/80;
 	if(starEvery==0) starEvery++;
 	printf("Num events is %d \n", numEntries);
-	numEntries=500;
+	// numEntries=3000;
 	cout<<"This file has a starEvery of "<<starEvery<<endl;
 
 	//first, let's get the baselines loaded in
@@ -239,7 +239,7 @@ int main(int argc, char **argv)
 	TFile *outFile = TFile::Open(run_file_name,"update");
 	TTree *NewCWTree = (TTree*)outFile->Get("NewCWTree");
 	int numEntries_org_file = NewCWTree->GetEntries();
-	numEntries_org_file=500;
+	// numEntries_org_file=3000;
 	if(numEntries_org_file!=numEntries){
 		cout<<"Warning! Not the same number of events in both. Halt!"<<endl;
 		outFile->Close();
@@ -258,18 +258,14 @@ int main(int argc, char **argv)
 
 	//now, to loop over events!
 	for(Long64_t event=0;event<numEntries;event++){
-		cout<<"On event "<<event<<endl;
 
 		badFreqs_baseline.clear();
     
 		if(event%starEvery==0) { std::cerr << "*"; }
 
 
-		cout<<"About to get event "<<event<<endl;
 		NewCWTree->GetEntry(event);
-		cout<<"Now, about to get it from the event tree"<<endl;
 		eventTree->GetEntry(event); //get the event
-		cout<<"I got event "<<event<<endl;
 
 		bool isCalPulser;
 		bool isSoftTrigger;
@@ -295,8 +291,6 @@ int main(int argc, char **argv)
 			newBranch->Fill(); //fill this anyway with garbage
 			continue; //don't do any further processing on this event
 		}
-
-		cout<<"Got here"<<endl;
 
 		// printf("Event %d good for CWID! CalPul %d, Soft %d, WFRMS are %.2f, %.2f \n", event, isCalPulser, isSoftTrigger, TMath::Log10(bestFaceRMS[0]), TMath::Log10(bestFaceRMS[1]));
 
@@ -334,6 +328,8 @@ int main(int argc, char **argv)
 		// from phase variance search
 		if(!hasError && !(isCalPulser && station_num==3)){
 
+			cout<<"Redoing event "<<rawAtriEvPtr->eventNumber<<endl;
+
 			stringstream ss;
 			string xLabel, yLabel;
 			xLabel = "Time (ns)"; yLabel = "Voltage (mV)";
@@ -352,14 +348,14 @@ int main(int argc, char **argv)
 			vector<double> baseline_CW_cut_V = CWCut_TB(grWaveformsRaw, average, 0, 6., 5.5, station_num, 3, chan_exclusion_list, runNum, event,false);
 			vector<double> baseline_CW_cut_H = CWCut_TB(grWaveformsRaw, average, 1, 6., 5.5, station_num, 3, chan_exclusion_list, runNum, event,false);
 			
-			/*
-			for(int i=0; i<baseline_CW_cut_V.size(); i++){
-				printf(CYAN"	V: Event %d Baseline CW Cut %.2f \n"RESET, event, baseline_CW_cut_V[i]);
-			}
-			for(int i=0; i<baseline_CW_cut_H.size(); i++){
-				printf(CYAN"	H: Event %d Baseline CW Cut %.2f \n"RESET, event, baseline_CW_cut_H[i]);
-			}
-			*/
+			
+			// for(int i=0; i<baseline_CW_cut_V.size(); i++){
+			// 	printf(CYAN"	V: Event %d Baseline CW Cut %.2f \n"RESET, event, baseline_CW_cut_V[i]);
+			// }
+			// for(int i=0; i<baseline_CW_cut_H.size(); i++){
+			// 	printf(CYAN"	H: Event %d Baseline CW Cut %.2f \n"RESET, event, baseline_CW_cut_H[i]);
+			// }
+			
 
 			badFreqs_baseline.push_back(baseline_CW_cut_V);
 			badFreqs_baseline.push_back(baseline_CW_cut_H);
