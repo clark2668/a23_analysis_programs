@@ -87,7 +87,7 @@ int main(int argc, char **argv)
 	AraGeomTool * geomTool = new AraGeomTool();
 	AraQualCuts *qualCut = AraQualCuts::Instance();
 	
-	TFile *fp = TFile::Open(argv[6]);
+	TFile *fp = TFile::Open(argv[6],"read");
 	if(!fp) {
 		std::cout << "Can't open file\n";
 		return -1;

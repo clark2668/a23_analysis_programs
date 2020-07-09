@@ -120,7 +120,7 @@ int main(int argc, char **argv)
 			runSummaryFilename = "/fs/scratch/PAS0654/ara/sim/RunSummary/run_summary_station_3_run_30.root";
 		}
 	}
-	TFile *SummaryFile = TFile::Open(runSummaryFilename.c_str());
+	TFile *SummaryFile = TFile::Open(runSummaryFilename.c_str(),"read'");
 	if(!SummaryFile) {
 		std::cerr << "Can't open summary file\n";
 		return -1;

@@ -29,7 +29,7 @@
 #include "tools_PlottingFns.h"
 #include "tools_RecoFns.h"
 #include "tools_CW.h"
-#include "tools_Cuts.h"
+//#include "tools_Cuts.h"
 #include "tools_CommandLine.h"
 
 RawAtriStationEvent *rawAtriEvPtr;
@@ -327,7 +327,7 @@ int main(int argc, char **argv)
 			vector<double> baseline_CW_cut_V = CWCut_TB(grWaveformsRaw, average, 0, 6., 5.5, station_num, 3, chan_exclusion_list, runNum, event,false);
 			vector<double> baseline_CW_cut_H = CWCut_TB(grWaveformsRaw, average, 1, 6., 5.5, station_num, 3, chan_exclusion_list, runNum, event,false);
 			
-			// for(int i=0; i<baseline_CW_cut_V.size(); i++){
+			//for(int i=0; i<baseline_CW_cut_V.size(); i++){
 			// 	printf(CYAN"	V: Event %d Baseline CW Cut %.2f \n"RESET, event, baseline_CW_cut_V[i]);
 			// }
 			// for(int i=0; i<baseline_CW_cut_H.size(); i++){
@@ -565,7 +565,8 @@ int main(int argc, char **argv)
 					badFreqs_back.push_back(badFreqs_temp);
 					badSigmas_back.push_back(badSigmas_temp);
 					for(int i=0; i<badFreqs_temp.size(); i++){
-						// cout<<"Backward event "<<event<<" :: " <<pol<<" :: freq "<<badFreqs_temp[i]<<", sigma "<<badSigmas_temp[i]<<endl;
+					  //if(badSigmas_temp[i]>1.5)
+					  //cout<<"Backward event "<<event<<" :: " <<pol<<" :: freq "<<badFreqs_temp[i]<<", sigma "<<badSigmas_temp[i]<<endl;
 					}					
 					delete vGrSigmaVarianceAverage_back[pol];
 				}

@@ -45,11 +45,6 @@ int main(int argc, char **argv)
 
 	char *PedDirPath(getenv("PED_DIR"));
 	if (PedDirPath == NULL) std::cout << "Warning! $DATA_DIR is not set!" << endl;
-	char *toolsPath(getenv("TOOLS_DIR"));
-	if (toolsPath == NULL) {
-		std::cout << "Warning! $TOOLS_DIR is not set!" << endl;
-		return -1;
-	}
 
 	/*
 	arguments
@@ -161,7 +156,7 @@ int main(int argc, char **argv)
 	if(!baselinesGood){
 		printf(RED"Warning! Run %d has bad baeslines, preparing for swap to averages...\n"RESET,runNum);
 		char default_filename[500];
-		sprintf(default_filename,"%s/data/average_baseline_station%d_config%d.root",toolsPath,station_num,config);
+		sprintf(default_filename,"/users/PAS0654/osu0673/A23_analysis_new2/results/average_baseline_station%d_config%d.root",station_num,config);
 		TFile *DefaultFile = TFile::Open(default_filename);
 		if(!DefaultFile) { std::cout << "Can't open default baseline file, and run "<<runNum<<" needs it\n"; return -1;}
 		TTree* AverageBaselineTree = (TTree*) DefaultFile->Get("AverageBaselineTree");   
@@ -215,18 +210,11 @@ int main(int argc, char **argv)
 	//now set up the outputs
 	string output_location = argv[6];
 	char run_file_name[400];
-	sprintf(run_file_name,"%s/CWID_station_%d_run_%d.root",output_location.c_str(),station_num, runNum);
-	printf("Run File Name: %s\n", run_file_name);
-	TFile *outFile = TFile::Open(run_file_name,"update");
-	TTree *NewCWTree = (TTree*) outFile->Get("NewCWTree");
-	int numEntries_org_file = NewCWTree->GetEntries();
-	if(numEntries_org_file!=numEntries){
-		cout<<"Warning! Not the same number of events in both. Halt!"<<endl;
-		outFile->Close();
-		return -1;
-	}
+	sprintf(run_file_name,"%s/CWID_TB_station_%d_run_%d.root",output_location.c_str(),station_num, runNum);
+	TFile *outFile = TFile::Open(run_file_name,"RECREATE");
+	TTree *NewCWTree = new TTree("NewCWTree","NewCWTree");
 	vector<vector<double> > badFreqs_baseline;
-	TBranch *newBranch = NewCWTree->Branch("badFreqs_baseline_TB",&badFreqs_baseline);
+	NewCWTree->Branch("badFreqs_baseline",&badFreqs_baseline);
 
 	printf(BLUE"About to loop over events\n"RESET);
 
@@ -301,13 +289,13 @@ int main(int argc, char **argv)
 			deleteGraphVector(grWaveformsRaw);
 
 		}
-		newBranch->Fill();
+		NewCWTree->Fill();
 		if(isSimulation==false){
 			delete realAtriEvPtr;
 		}
 	}//loop over events
 
-	outFile->Write(0,TObject::kOverwrite);
+	outFile->Write();
 	outFile->Close();
 	fp->Close();
 	SummaryFile->Close();
