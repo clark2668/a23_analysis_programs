@@ -54,11 +54,12 @@ int main(int argc, char **argv)
 	
 	double numEntries = eventTree -> GetEntries(); //get the number of entries in this file
 
-	for(int event=0; event<20; event++){ //loop over those entries
+	for(int event=0; event<numEntries; event++){ //loop over those entries
 		
 		eventTree->GetEntry(event); //get the event
 
-		if(!(rawAtriEvPtr->isCalpulserEvent())) continue;
+		if(rawAtriEvPtr->eventNumber!=39072) continue;
+
 		UsefulAtriStationEvent *realAtriEvPtr = new UsefulAtriStationEvent(rawAtriEvPtr, AraCalType::kLatestCalib);
 		vector<TGraph*> waveforms;
 		vector<TGraph*> interpolated;
@@ -68,14 +69,13 @@ int main(int argc, char **argv)
 		}
 		for(int i=0; i<16; i++){
 				char title_txt[200];
-				sprintf(title_txt,"waveform_ch%d.txt",i);
+				sprintf(title_txt,"run%d_event%d_waveform_ch%d.txt",runNum,rawAtriEvPtr->eventNumber,i);
 				FILE *fout = fopen(title_txt, "a");
 				for(int samp=0; samp<interpolated[i]->GetN(); samp++){
 					fprintf(fout,"%.3f, %.3f  \n", interpolated[i]->GetX()[samp], interpolated[i]->GetY()[samp]);
 				}
 				fclose(fout);//close sigmavsfreq.txt file
 		}
-
 		break;
 	}
 }//close the main program

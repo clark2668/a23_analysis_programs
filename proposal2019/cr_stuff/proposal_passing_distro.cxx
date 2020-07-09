@@ -353,6 +353,7 @@ int main(int argc, char **argv)
 		}
 
 		if(numHPolIsol==1 && numVPolIsol==0 && numCombo==0){
+			cout<<"I found an hpol isolated event"<<endl;
 			// printf("HPol Isol: Run %d, V, H, Combo: %d, %d, %d \n", runNum, numVPolIsol, numHPolIsol, numCombo);
 			
 			// now, loop over again and plot
@@ -576,9 +577,13 @@ int main(int argc, char **argv)
 	bool doSpatial=true;
 	if(doSpatial){
 
+		printf("Num VPol Isolated is %d \n", int(h1_ThetaDist[0]->Integral()));
+		printf("Num HPOl Isolated is %d \n", int(h1_ThetaDist[1]->Integral()));
+
 		TCanvas *cSpatial_Isol = new TCanvas("","",2.1*850, 2.1*850);
 		cSpatial_Isol->Divide(2,2);
 		cSpatial_Isol->cd(1);
+
 			h1_ThetaDist[0]->Draw("");
 			h1_ThetaDist[0]->SetLineWidth(3);
 			h1_ThetaDist[0]->GetXaxis()->SetTitle("Zenith [deg]");
@@ -629,7 +634,7 @@ int main(int argc, char **argv)
 		// 	h1_PhiDist[3]->Draw("same");
 		// 		h1_PhiDist[3]->SetLineWidth(3);
 		// 		h1_PhiDist[3]->SetLineColor(kRed);
-		sprintf(thistitle, "/users/PAS0654/osu0673/A23_analysis_new2/AraRoot/analysis/a23_analysis_programs/proposal2019/A%d_SurfaceSpatialDistribution_IsolatedEvents_ExcludingBursts.png",station);
+		// sprintf(thistitle, "/users/PAS0654/osu0673/A23_analysis_new2/AraRoot/analysis/a23_analysis_programs/proposal2019/A%d_SurfaceSpatialDistribution_IsolatedEvents_ExcludingBursts.png",station);
 		// cSpatial_Isol->SaveAs(thistitle);
 		delete cSpatial_Isol;
 
@@ -744,7 +749,7 @@ int main(int argc, char **argv)
 			gPad->Modified();
 			gPad->Update();
 
-		sprintf(thistitle, "/users/PAS0654/osu0673/A23_analysis_new2/AraRoot/analysis/a23_analysis_programs/proposal2019/a%d_isol_sample_dist.png",station);
+		// sprintf(thistitle, "/users/PAS0654/osu0673/A23_analysis_new2/AraRoot/analysis/a23_analysis_programs/proposal2019/a%d_isol_sample_dist.png",station);
 		cPlot->SaveAs(thistitle);
 		delete cPlot;	
 	}
